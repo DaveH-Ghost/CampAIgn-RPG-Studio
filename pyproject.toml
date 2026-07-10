@@ -1,12 +1,12 @@
 [project]
 name = "realm-studio"
-version = "0.7.0"
+version = "1.0.0"
 description = "Reference GM web app for Realm-Fabric — demonstrates the realm-fabric Python library"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
-    "realm-fabric>=0.7.2",
+    "realm-fabric>=1.0.0",
     "fastapi>=0.115.0",
     "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.32.0",
@@ -35,8 +35,3 @@ packages = ["backend"]
 
 [tool.uv]
 package = true
-
-# During migration (until realm-fabric 1.0 on PyPI with full exports), resolve the
-# sibling engine checkout. Remove this block and re-lock from PyPI at 1.0 cutover.
-[tool.uv.sources]
-realm-fabric = { path = "../Realm-Fabric", editable = true }

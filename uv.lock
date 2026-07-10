@@ -547,29 +547,22 @@ wheels = [
 
 [[package]]
 name = "realm-fabric"
-version = "0.7.2"
-source = { editable = "../Realm-Fabric" }
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "rich" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "rich" },
+sdist = { url = "https://files.pythonhosted.org/packages/51/1c/8baa6e3044249ae6cfd597313b21b3deec5244752e2fb4a1f1d1ab1d33ff/realm_fabric-1.0.0.tar.gz", hash = "sha256:03e99667db909a57f520a2c6e96cb08dfa07490bb3e27913bfdd8383f565de8b", size = 90136, upload-time = "2026-07-10T18:45:48.418Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/22/84f9bccdda7c8b15307d61f746ad2517ba61383547869aad38ba3f7bb07f/realm_fabric-1.0.0-py3-none-any.whl", hash = "sha256:887cbf048926e8ba6ddd693a902c8cc6f35c104296d00d37f5461ada26157b4c", size = 122896, upload-time = "2026-07-10T18:45:47.261Z" },
 ]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.0.3" }]
 
 [[package]]
 name = "realm-studio"
-version = "0.7.0"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
@@ -588,7 +581,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "python-multipart", specifier = ">=0.0.9" },
-    { name = "realm-fabric", editable = "../Realm-Fabric" },
+    { name = "realm-fabric", specifier = ">=1.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },
 ]
 

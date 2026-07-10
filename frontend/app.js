@@ -3,7 +3,15 @@
  */
 
 import { hasAppearance, resolveAppearanceUrl } from "./appearance.js";
-import { exportSession, getPrompt, getState, importSession, postManualTurn, postTurn } from "./api.js";
+import {
+  exportSession,
+  getHealth,
+  getPrompt,
+  getState,
+  importSession,
+  postManualTurn,
+  postTurn,
+} from "./api.js";
 import { initPromptLayout, reloadPromptLayoutIfOpen } from "./promptLayout.js";
 import { initAppTabs, initLorebooks, refreshLorebookList, refreshLorebookScanPanel } from "./lorebooks.js";
 import { initSettings } from "./settings.js";
@@ -37,6 +45,7 @@ import {
   showToast,
 } from "./ui.js";
 
+const subtitleEl = document.getElementById("app-subtitle");
 const statusEl = document.getElementById("status");
 const gridViewportEl = document.getElementById("grid-viewport");
 const gridWorldEl = document.getElementById("grid-world");
@@ -576,5 +585,20 @@ if (sessionImportBtn && sessionImportInput) {
 runTurnBtn.addEventListener("mouseenter", () => {
   void refreshRunTurnTokenHint();
 });
+async function refreshBanner() {
+  if (!subtitleEl) return;
+  try {
+    const health = await getHealth();
+    const studioVersion = health.version || "1.0.0";
+    const engineVersion = health.realm_fabric_version;
+    subtitleEl.textContent = engineVersion
+      ? `V${studioVersion} — Reference GM for realm-fabric ${engineVersion}`
+      : `V${studioVersion} — Reference GM for realm-fabric`;
+  } catch {
+    // Keep static fallback from index.html.
+  }
+}
+
 renderTurnLog(turnLogEl, turnLogEmptyEl);
+void refreshBanner();
 fetchState();

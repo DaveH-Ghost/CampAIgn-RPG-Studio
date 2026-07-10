@@ -1,25 +1,33 @@
-"""Dispatch stepper-style command lines without ``Session.run_command``."""
+"""Dispatch stepper-style command lines (Realm-Studio owned string layer)."""
 
 from __future__ import annotations
 
-from realm_fabric import (
-    CommandResult,
-    Session,
+from dataclasses import dataclass
+
+from realm_fabric import Session, delete_area_by_id, format_agents_list, format_full_list
+from realm_fabric.area_edit import (
+    create_agent_from_args,
     create_area_from_args,
-    delete_area_by_id,
+    create_object_from_args,
+    edit_agent_for_session,
     edit_area_from_args,
-    format_agents_list,
-    format_full_list,
-    format_handlers_list,
-    format_memory_modules_list,
+    edit_object_for_session,
     format_objects_list,
-    parse_area_event_arg,
 )
+from realm_fabric.area_event import parse_area_event_arg
+from realm_fabric.interaction_handlers import format_handlers_list
+from realm_fabric.memory_modules.registry import format_memory_modules_list
+
+
+@dataclass(frozen=True)
+class CommandResult:
+    ok: bool
+    message: str
 
 
 def dispatch_command(session: Session, line: str) -> CommandResult:
     """
-    Parse and run a stepper-style command line using typed ``Session`` APIs.
+    Parse and run a stepper-style command line using engine helpers.
 
     Same command vocabulary as the legacy CLI stepper; does not run compound turns.
     """
@@ -32,19 +40,24 @@ def dispatch_command(session: Session, line: str) -> CommandResult:
     arg = parts[1] if len(parts) > 1 else ""
 
     if cmd == "create_object":
-        result = session.create_object_from_command(arg)
-        return CommandResult(ok=result.ok, message=result.message)
+        obj, message = create_object_from_args(session.area, arg)
+        return CommandResult(ok=obj is not None, message=message)
     if cmd == "edit_object":
-        result = session.edit_object_from_command(arg)
-        return CommandResult(ok=result.ok, message=result.message)
+        message = edit_object_for_session(session, arg)
+        ok = not message.startswith("Error") and not message.startswith("Unknown")
+        return CommandResult(ok=ok, message=message)
     if cmd == "delete_object":
         result = session.delete_object(arg.strip())
         return CommandResult(ok=result.ok, message=result.message)
     if cmd == "create_agent":
-        result = session.create_agent_from_command(arg)
-        return CommandResult(ok=result.ok, message=result.message)
+        agent, message = create_agent_from_args(session.area, arg)
+        if agent is not None:
+            session._register_agent(agent)
+        return CommandResult(ok=agent is not None, message=message)
     if cmd == "edit_agent":
-        result = session.edit_agent_from_command(arg)
+        result = edit_agent_for_session(session, arg)
+        if result.ok and result.agent is not None and result.old_name_lower:
+            session._rename_agent_in_index(result.old_name_lower, result.agent)
         return CommandResult(ok=result.ok, message=result.message)
     if cmd == "delete_agent":
         result = session.delete_agent(arg.strip())

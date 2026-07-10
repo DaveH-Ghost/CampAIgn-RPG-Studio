@@ -39,6 +39,7 @@ from backend.schemas import (
 from backend.session_store import get_session_store
 from backend.snapshot_compat import normalize_state_snapshot
 from backend.turn_runner import run_llm_turn, run_manual_turn
+from backend.version import engine_version, studio_version
 from backend.vision_units_api import put_vision_units as api_put_vision_units
 from backend.memory_module_upload import (
     load_cached_custom_modules,
@@ -88,7 +89,7 @@ async def _app_lifespan(_app: FastAPI):
 
 def create_app() -> FastAPI:
     _ensure_reference_handlers()
-    app = FastAPI(title="realm-studio", version="0.7.0", lifespan=_app_lifespan)
+    app = FastAPI(title="realm-studio", version=studio_version(), lifespan=_app_lifespan)
 
     app.add_middleware(
         CORSMiddleware,
@@ -108,8 +109,12 @@ def create_app() -> FastAPI:
         return get_interaction_handlers_catalog()
 
     @app.get("/api/health")
-    def health() -> dict[str, bool]:
-        return {"ok": True}
+    def health() -> dict[str, object]:
+        return {
+            "ok": True,
+            "version": studio_version(),
+            "realm_fabric_version": engine_version(),
+        }
 
     @app.get("/api/interact-template-vars")
     def get_interact_template_vars() -> dict[str, object]:

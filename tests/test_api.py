@@ -73,7 +73,10 @@ def test_put_vision_units_rejects_invalid_units(client):
 def test_health(client):
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"ok": True}
+    data = response.json()
+    assert data["ok"] is True
+    assert data["version"] == "1.0.0"
+    assert data["realm_fabric_version"] == "1.0.0"
 
 
 def test_interact_template_vars(client):
@@ -246,6 +249,8 @@ def test_index_page(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "realm-studio" in response.text
+    assert 'id="app-subtitle"' in response.text
+    assert "V1.0.0" in response.text
     assert 'id="grid"' in response.text
     assert 'id="active-area-select"' in response.text
     assert 'id="create-area"' in response.text

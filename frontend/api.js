@@ -1,5 +1,13 @@
 /** HTTP helpers for realm-studio API. */
 
+export async function getHealth() {
+  const res = await fetch("/api/health");
+  if (!res.ok) {
+    throw new Error(`GET /api/health failed: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function getState() {
   const res = await fetch("/api/state");
   if (!res.ok) {
