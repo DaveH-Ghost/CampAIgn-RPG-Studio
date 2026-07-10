@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>realm-studio</title>
+
+  <link rel="stylesheet" href="/static/styles.css" />
+
+</head>
+
+<body>
+
+  <header>
+
+    <h1>realm-studio</h1>
+
+    <p class="subtitle">V0.6.1 — Pluggable interaction handlers</p>
+
+    <label class="active-area-label">
+
+      Area
+
+      <select id="active-area-select" aria-label="Active area"></select>
+
+    </label>
+
+    <button type="button" id="create-area" class="area-manage-btn" title="Create a new area">+ Area</button>
+
+    <button type="button" id="edit-area" class="area-manage-btn" title="Edit the active area">Edit area</button>
+
+    <button type="button" id="delete-area" class="area-manage-btn" title="Delete the active area (must be empty)">Delete area</button>
+
+    <label class="active-agent-label">
+
+      Active
+
+      <select id="active-agent-select" aria-label="Active agent"></select>
+
+    </label>
+
+    <button type="button" id="emit-event" class="emit-event-btn">Emit event…</button>
+
+    <span class="run-turn-wrap">
+      <button type="button" id="run-turn" class="run-turn-btn">Run turn ▶</button>
+      <span id="run-turn-hint" class="run-turn-hint" role="tooltip"></span>
+    </span>
+
+    <button type="button" id="refresh">Refresh</button>
+
+    <span class="header-session-actions">
+      <button type="button" id="open-settings" class="icon-btn" title="Settings" aria-label="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+      <button type="button" id="session-import" class="icon-btn" title="Load session" aria-label="Load session">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+        </svg>
+      </button>
+      <button type="button" id="session-export" class="icon-btn" title="Save session" aria-label="Save session">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+      </button>
+      <input type="file" id="session-import-input" accept=".json,application/json" hidden />
+    </span>
+
+    <span id="status" aria-live="polite"></span>
+
+  </header>
+
+  <nav class="app-tabs" role="tablist" aria-label="realm-studio views">
+    <button type="button" id="tab-main" class="app-tab active" role="tab" aria-selected="true">Main</button>
+    <button type="button" id="tab-lorebooks" class="app-tab" role="tab" aria-selected="false">Lorebooks</button>
+  </nav>
+
+  <div id="main-tab-panel" class="tab-panel">
+  <main class="layout">
+
+    <section class="grid-panel" aria-label="Area grid">
+
+      <div id="grid-viewport" class="grid-viewport" title="Middle-click drag to pan">
+
+        <div id="grid-world" class="grid-world">
+
+          <div id="grid" class="grid"></div>
+
+          <div id="grid-overlay" class="grid-overlay" aria-hidden="true"></div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <aside class="meta-panel">
+
+      <h2>Session</h2>
+
+      <dl id="session-meta" class="session-meta"></dl>
+
+      <dl id="session-vision-units" class="session-meta session-vision-units">
+
+        <dt><label for="vision-units-input">Units</label></dt>
+
+        <dd>
+
+          <input type="text" id="vision-units-input" class="session-meta-input" autocomplete="off" spellcheck="false" aria-label="Units" />
+
+        </dd>
+
+        <dt><label for="vision-units-per-tile-input">Units per tile</label></dt>
+
+        <dd>
+
+          <input type="text" id="vision-units-per-tile-input" class="session-meta-input" inputmode="numeric" autocomplete="off" aria-label="Units per tile" />
+
+        </dd>
+
+      </dl>
+
+
+
+      <section class="sidebar-section" aria-label="Passive vision">
+
+        <h2>Passive vision</h2>
+
+        <p id="passive-vision-empty" class="panel-empty">No vision text for the active agent.</p>
+
+        <pre id="passive-vision" class="panel-text hidden"></pre>
+
+      </section>
+
+
+
+      <section class="sidebar-section" aria-label="Agents in other areas">
+
+        <h2>Agents elsewhere</h2>
+
+        <p id="agents-elsewhere-empty" class="panel-empty">All agents are in the current area.</p>
+
+        <ul id="agents-elsewhere" class="agents-elsewhere hidden"></ul>
+
+      </section>
+
+
+
+      <section class="sidebar-section" aria-label="Recent area events">
+
+        <h2>Recent events</h2>
+
+        <p id="recent-events-empty" class="panel-empty">No GM events yet — use Emit event…</p>
+
+        <ol id="recent-events" class="recent-events"></ol>
+
+      </section>
+
+
+
+      <section class="sidebar-section" aria-label="Turn log">
+
+        <h2>Turn log</h2>
+
+        <p id="turn-log-empty" class="panel-empty">No turns yet — use Run turn ▶.</p>
+
+        <ol id="turn-log" class="turn-log"></ol>
+
+      </section>
+
+
+
+      <details id="prompt-layout" class="sidebar-details">
+
+        <summary>Prompt layout</summary>
+
+        <p id="prompt-layout-status" class="panel-empty">Open to edit block order and static sections.</p>
+
+        <ul id="prompt-block-list" class="prompt-block-list"></ul>
+
+        <div id="prompt-layout-add" class="prompt-layout-add">
+
+          <label class="prompt-block-field">
+
+            <span>Block type</span>
+
+            <select id="prompt-add-type" aria-label="Block type to add"></select>
+
+          </label>
+
+          <label class="prompt-block-field" id="prompt-add-variant-wrap">
+
+            <span id="prompt-add-variant-label">Name</span>
+
+            <select id="prompt-add-variant" aria-label="Block name"></select>
+
+          </label>
+
+          <label class="prompt-block-field hidden" id="prompt-add-lorebook-wrap">
+            <span>Lorebook</span>
+            <select id="prompt-add-lorebook-id" aria-label="Lorebook id"></select>
+          </label>
+
+          <label class="prompt-block-field hidden" id="prompt-add-content-wrap">
+
+            <span>Initial text</span>
+
+            <textarea id="prompt-add-content" rows="2" aria-label="Initial text content"></textarea>
+
+          </label>
+
+          <button type="button" id="prompt-add-btn">Add block</button>
+
+        </div>
+
+        <div class="prompt-layout-actions">
+
+          <button type="button" id="prompt-layout-save">Save layout</button>
+
+          <button type="button" id="prompt-layout-reset">Reset to default</button>
+
+          <button type="button" id="prompt-layout-preview">Refresh preview</button>
+
+        </div>
+
+        <p id="prompt-layout-preview-empty" class="panel-empty">Preview loads when you open this panel or refresh.</p>
+
+        <pre id="prompt-layout-preview" class="panel-text panel-text-debug hidden"></pre>
+
+      </details>
+
+
+
+      <details id="prompt-debug" class="sidebar-details">
+
+        <summary>Last prompt (debug)</summary>
+
+        <p id="last-prompt-empty" class="panel-empty">Run a turn or open this panel to load the current prompt.</p>
+
+        <pre id="last-prompt" class="panel-text panel-text-debug hidden"></pre>
+
+      </details>
+
+
+
+      <details id="response-debug" class="sidebar-details">
+
+        <summary>Last response (debug)</summary>
+
+        <p id="last-response-empty" class="panel-empty">Run a turn to load the last LLM response.</p>
+
+        <p id="last-response-tokens" class="response-token-meta hidden"></p>
+
+        <pre id="last-response" class="panel-text panel-text-debug hidden"></pre>
+
+      </details>
+
+
+
+      <details class="raw-snapshot sidebar-details">
+
+        <summary>Raw snapshot JSON</summary>
+
+        <pre id="snapshot"></pre>
+
+      </details>
+
+    </aside>
+
+  </main>
+  </div>
+
+  <div id="lorebooks-tab-panel" class="tab-panel hidden">
+    <section class="lorebooks-panel" aria-label="Lorebooks">
+      <div class="lorebooks-layout">
+      <div class="lorebooks-main">
+      <header class="lorebooks-header">
+        <h2>Lorebooks</h2>
+        <p class="lorebooks-hint">Load a JSON lorebook, create a blank one, or try the demo. Edit entries here; add a lorebook slot in Prompt layout (Main tab) to inject matched text.</p>
+        <div class="lorebooks-toolbar">
+          <input type="file" id="lorebook-upload-input" accept=".json,application/json" />
+          <button type="button" id="lorebook-upload-btn" class="settings-action-btn">Load lorebook</button>
+          <button type="button" id="lorebook-create-btn" class="settings-action-btn">Create lorebook</button>
+          <button type="button" id="lorebook-load-demo-btn" class="modal-cancel">Load demo lorebook</button>
+        </div>
+        <p id="lorebooks-list-empty" class="panel-empty">No lorebooks loaded.</p>
+        <ul id="lorebooks-list" class="lorebooks-list hidden"></ul>
+      </header>
+      <div id="lorebook-editor" class="lorebook-editor hidden">
+        <div class="lorebook-editor-header">
+          <h3 id="lorebook-editor-title">Edit lorebook</h3>
+          <button type="button" id="lorebook-editor-close" class="modal-cancel">Close editor</button>
+        </div>
+        <div class="lorebook-editor-toolbar">
+          <p id="lorebook-editor-status" class="panel-empty"></p>
+          <button type="button" id="lorebook-add-entry" class="settings-action-btn">Add entry</button>
+          <button type="button" id="lorebook-expand-all" class="modal-cancel">Expand all</button>
+          <button type="button" id="lorebook-collapse-all" class="modal-cancel">Collapse all</button>
+        </div>
+        <div id="lorebook-entries" class="lorebook-entries"></div>
+        <div class="lorebook-editor-footer">
+          <button type="button" id="lorebook-editor-download" class="modal-cancel">Download JSON</button>
+          <button type="button" id="lorebook-editor-save" class="settings-action-btn">Save changes</button>
+          <p id="lorebook-editor-error" class="modal-error" aria-live="polite"></p>
+        </div>
+      </div>
+      </div>
+      <aside class="lorebooks-scan-panel" aria-label="Lorebook keyword scan sources">
+        <h3>Keyword scan sources</h3>
+        <p id="lorebook-scan-agent" class="lorebooks-scan-hint">Previews use the active agent.</p>
+        <p class="lorebooks-scan-hint">Lorebook entries match when a keyword appears in any enabled source below (constants always inject).</p>
+        <ul id="lorebook-scan-sources" class="lorebook-scan-sources"></ul>
+      </aside>
+      </div>
+    </section>
+  </div>
+
+
+
+  <div id="context-menu" class="context-menu hidden" role="menu"></div>
+
+
+
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+
+    <div class="modal" role="dialog" aria-modal="true">
+
+      <h2 id="modal-title" class="modal-heading"></h2>
+
+      <form id="modal-form"></form>
+
+      <p id="modal-error" class="modal-error" aria-live="polite"></p>
+
+      <button type="button" id="modal-cancel" class="modal-cancel">Cancel</button>
+
+    </div>
+
+  </div>
+
+
+
+  <div id="settings-backdrop" class="modal-backdrop hidden">
+
+    <div class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+
+      <h2 id="settings-title" class="modal-heading">Settings</h2>
+
+      <section class="settings-section">
+        <h3 class="settings-subheading">LLM (in-memory only)</h3>
+        <p class="settings-hint">Not saved to disk. Restart the server to reset.</p>
+        <label class="settings-field">
+          <span>OpenRouter API key</span>
+          <input type="password" id="settings-api-key" autocomplete="off" placeholder="sk-or-..." />
+        </label>
+        <p id="settings-key-status" class="settings-key-status"></p>
+        <label class="settings-field">
+          <span>Model</span>
+          <input type="text" id="settings-model" placeholder="deepseek/deepseek-v4-flash" />
+        </label>
+        <button type="button" id="settings-llm-save" class="settings-action-btn">Apply LLM settings</button>
+      </section>
+
+      <section class="settings-section">
+        <h3 class="settings-subheading">Memory modules</h3>
+        <p class="settings-hint">Upload a .py custom module. Re-upload overwrites the same MODULE_ID.</p>
+        <div class="settings-upload-row">
+          <input type="file" id="settings-module-upload" accept=".py,text/x-python,application/x-python" />
+          <button type="button" id="settings-module-upload-btn" class="settings-action-btn">Add module</button>
+        </div>
+        <ul id="settings-custom-modules" class="settings-module-list"></ul>
+      </section>
+
+      <p id="settings-error" class="modal-error" aria-live="polite"></p>
+
+      <button type="button" id="settings-close" class="modal-cancel">Close</button>
+
+    </div>
+
+  </div>
+
+
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+
+
+  <script type="module" src="/static/app.js"></script>
+
+</body>
+
+</html>
+
+

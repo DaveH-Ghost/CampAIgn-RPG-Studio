@@ -1,0 +1,40 @@
+{
+  "entries": {
+    "0": {
+      "uid": 0,
+      "key": ["room", "wooden walls", "hardwood"],
+      "keysecondary": [],
+      "comment": "The starting room",
+      "content": "You are in a small room with a hardwood floor and four wooden walls. It is plain and quiet — a good place to try moving, looking, and talking to objects.",
+      "constant": false,
+      "disable": false,
+      "selective": false,
+      "selectiveLogic": 0,
+      "order": 0
+    },
+    "1": {
+      "uid": 1,
+      "key": ["ball", "red ball"],
+      "keysecondary": [],
+      "comment": "The ball",
+      "content": "A red rubber ball sits in the room. Agents can look at it for a closer description or interact with it on a turn.",
+      "constant": false,
+      "disable": false,
+      "selective": false,
+      "selectiveLogic": 0,
+      "order": 10
+    },
+    "2": {
+      "uid": 2,
+      "key": ["sign", "wooden sign"],
+      "keysecondary": [],
+      "comment": "The sign",
+      "content": "A wooden sign is posted in the room. Looking at it reveals whatever text the game master has written on it.",
+      "constant": false,
+      "disable": false,
+      "selective": false,
+      "selectiveLogic": 0,
+      "order": 20
+    }
+  }
+}
