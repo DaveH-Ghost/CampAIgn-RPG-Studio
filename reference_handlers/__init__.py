@@ -1,13 +1,13 @@
-"""Reference interaction handlers for CLI, tests, and realm-studio (V0.6.1).
+"""Reference interaction handlers for CLI, tests, and campaign-rpg-studio (V0.6.1).
 
-Apps copy this pattern; they do not import behavior from realm-studio.
+Apps copy this pattern; they do not import behavior from campaign-rpg-studio.
 
 Handler implementations live under ``handlers/`` (one module per handler).
 """
 
 from __future__ import annotations
 
-from realm_fabric import register_interaction_handler
+from campaign_rpg_engine import register_interaction_handler
 
 from .handlers.delete_self import delete_self
 from .handlers.move_area import move_area, validate_move_area_params

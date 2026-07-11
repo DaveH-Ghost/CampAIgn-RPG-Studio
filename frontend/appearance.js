@@ -1,5 +1,5 @@
 /**
- * Resolve engine appearance paths to realm-studio static URLs (V0.3.2d).
+ * Resolve engine appearance paths to campaign-rpg-studio static URLs (V0.3.2d).
  *
  * Engine stores client-relative paths (e.g. ``tokens/explorer.svg``).
  * Static files are served from ``/static/`` (the frontend directory).

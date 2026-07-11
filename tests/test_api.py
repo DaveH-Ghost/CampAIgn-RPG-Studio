@@ -1,4 +1,4 @@
-"""realm-studio API tests (V0.3.1–0.4.0c2)."""
+"""campaign-rpg-studio API tests (V0.3.1–0.4.0c2)."""
 
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from backend.app import create_app
 from backend.session_store import get_session_store, reset_session_store
-from realm_fabric import AgentCompoundTurn, LLMResponse, ObjectAction, SessionResult
+from campaign_rpg_engine import AgentCompoundTurn, LLMResponse, ObjectAction, SessionResult
 from tests.world_helpers import add_object_action, create_agent, create_object, edit_agent, edit_object
 
 ROOM = "room"
@@ -76,7 +76,7 @@ def test_health(client):
     data = response.json()
     assert data["ok"] is True
     assert data["version"] == "1.0.0"
-    assert data["realm_fabric_version"] == "1.0.0"
+    assert data["campaign_rpg_engine_version"] == "1.0.0"
 
 
 def test_interact_template_vars(client):
@@ -248,7 +248,7 @@ def test_create_object_appearance(client):
 def test_index_page(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert "realm-studio" in response.text
+    assert "CampAIgn RPG Studio" in response.text
     assert 'id="app-subtitle"' in response.text
     assert "V1.0.0" in response.text
     assert 'id="grid"' in response.text
@@ -794,7 +794,7 @@ def _clear_custom_memory_modules():
     import shutil
 
     from backend.memory_module_upload import CUSTOM_MODULES_DIR
-    from realm_fabric import clear_custom_memory_registrations
+    from campaign_rpg_engine import clear_custom_memory_registrations
 
     clear_custom_memory_registrations()
     if CUSTOM_MODULES_DIR.is_dir():
@@ -871,7 +871,7 @@ def test_cached_modules_reload_from_disk_after_registry_clear(client):
     assert upload.status_code == 200
 
     from backend.memory_module_upload import CUSTOM_MODULES_DIR, load_cached_custom_modules
-    from realm_fabric import clear_custom_memory_registrations
+    from campaign_rpg_engine import clear_custom_memory_registrations
 
     assert list(CUSTOM_MODULES_DIR.glob("*.py"))
 
@@ -886,7 +886,7 @@ def test_cached_modules_reload_from_disk_after_registry_clear(client):
 
 
 def test_session_import_fails_without_custom_module(client):
-    from realm_fabric import clear_custom_memory_registrations, register_memory_module_from_path
+    from campaign_rpg_engine import clear_custom_memory_registrations, register_memory_module_from_path
 
     example = _example_custom_module_path()
     register_memory_module_from_path(example)
@@ -943,12 +943,12 @@ def test_load_demo_lorebook_api(client):
     assert response.status_code == 200
     data = response.json()
     assert data["ok"] is True
-    assert data["lorebook_id"] == "realm-fabric-demo"
+    assert data["lorebook_id"] == "campaign-rpg-engine-demo"
     assert len(data["lorebook"]["entries"]) == 3
 
     listing = client.get("/api/lorebooks").json()
     ids = {book["id"] for book in listing["lorebooks"]}
-    assert "realm-fabric-demo" in ids
+    assert "campaign-rpg-engine-demo" in ids
 
 
 def test_upload_lorebook_and_list(client):

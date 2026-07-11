@@ -1,8 +1,8 @@
-"""Interaction handlers API for realm-studio (V0.6.1)."""
+"""Interaction handlers API for campaign-rpg-studio (V0.6.1)."""
 
 from __future__ import annotations
 
-from realm_fabric import get_handler_registration, list_registered_handlers
+from campaign_rpg_engine import get_handler_registration, list_registered_handlers
 
 
 def get_interaction_handlers_catalog() -> dict[str, object]:

@@ -1,4 +1,4 @@
-"""Request bodies for realm-studio API routes."""
+"""Request bodies for campaign-rpg-studio API routes."""
 
 from pydantic import BaseModel, Field
 

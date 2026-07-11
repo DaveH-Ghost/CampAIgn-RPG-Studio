@@ -1,5 +1,5 @@
 """
-Run compound turns for realm-studio (LLM or manual player input).
+Run compound turns for campaign-rpg-studio (LLM or manual player input).
 """
 
 from __future__ import annotations
@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from realm_fabric import (
+from campaign_rpg_engine import (
     AgentCompoundTurn,
     LLMParseError,
     Session,

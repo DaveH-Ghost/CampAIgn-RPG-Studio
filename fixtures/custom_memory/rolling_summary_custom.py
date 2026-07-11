@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from realm_fabric import (
+from campaign_rpg_engine import (
     DEFAULT_MAX_SUMMARY_CHARS,
     DEFAULT_SUMMARY_INTERVAL,
     DEFAULT_SUMMARY_TAIL,

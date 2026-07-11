@@ -1,6 +1,6 @@
 # Reference interaction handlers
 
-Demo handlers registered by realm-studio at startup. **Not** part of the engine — copy this pattern in your own app.
+Demo handlers registered by campaign-rpg-studio at startup. **Not** part of the engine — copy this pattern in your own app.
 
 ## Layout
 
@@ -27,7 +27,7 @@ One module per handler keeps implementations easy to find and copy.
 
 ```python
 from reference_handlers import register_reference_handlers
-from realm_fabric import Session, register_interaction_handler
+from campaign_rpg_engine import Session, register_interaction_handler
 
 register_reference_handlers()
 

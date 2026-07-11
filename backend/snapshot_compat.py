@@ -1,4 +1,4 @@
-"""Normalize session snapshots for realm-studio clients (V0.4.0c1–c2)."""
+"""Normalize session snapshots for campaign-rpg-studio clients (V0.4.0c1–c2)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ DEFAULT_AREA_ID = "room"
 
 def normalize_state_snapshot(data: dict[str, Any]) -> dict[str, Any]:
     """
-    Return a complete multi-area snapshot for the realm-studio UI.
+    Return a complete multi-area snapshot for the campaign-rpg-studio UI.
 
     Upgrades legacy flat snapshots and guarantees each area block has list
     ``objects`` / ``recent_events`` fields.

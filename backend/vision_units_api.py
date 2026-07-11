@@ -1,9 +1,9 @@
-"""Vision units API helpers for realm-studio (V0.4.1c)."""
+"""Vision units API helpers for campaign-rpg-studio (V0.4.1c)."""
 
 from __future__ import annotations
 
 from backend.snapshot_compat import normalize_state_snapshot
-from realm_fabric import Session
+from campaign_rpg_engine import Session
 
 
 def put_vision_units(

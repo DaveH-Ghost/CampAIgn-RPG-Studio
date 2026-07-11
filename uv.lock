@@ -34,6 +34,52 @@ wheels = [
 ]
 
 [[package]]
+name = "campaign-rpg-engine"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "openai" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ca/9b/7c54a808cdc67ed09bc93c5f3f9502e7132f7f38284ff7c74bed58124d16/campaign_rpg_engine-1.0.0.tar.gz", hash = "sha256:a2adb7a0c882bde86559b4162e92dfd6982ae2b56774ebd6c172bd158a7c6776", size = 90278, upload-time = "2026-07-11T02:24:41.103Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8c/31/1a6118a81680f01234a242f8231e3ca47ebf66940c39bc9e859a77836647/campaign_rpg_engine-1.0.0-py3-none-any.whl", hash = "sha256:fbde64bc643303e131d18ff557a2b293c77acc7029176e3b6ffad8f1e367cfa5", size = 124460, upload-time = "2026-07-11T02:24:39.74Z" },
+]
+
+[[package]]
+name = "campaign-rpg-studio"
+version = "1.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "campaign-rpg-engine" },
+    { name = "fastapi" },
+    { name = "python-multipart" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "campaign-rpg-engine", specifier = ">=1.0.0" },
+    { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "python-multipart", specifier = ">=0.0.9" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "pytest", specifier = ">=9.0.3" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.6.17"
 source = { registry = "https://pypi.org/simple" }
@@ -543,52 +589,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/da/92/1446574745d74df0c92e6aa4a7b0b3130706a4142b2d1a5869f2eaa423c6/pyyaml-6.0.3-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:16249ee61e95f858e83976573de0f5b2893b3677ba71c9dd36b9cf8be9ac6d65", size = 829923, upload-time = "2025-09-25T21:32:54.537Z" },
     { url = "https://files.pythonhosted.org/packages/f0/7a/1c7270340330e575b92f397352af856a8c06f230aa3e76f86b39d01b416a/pyyaml-6.0.3-cp314-cp314t-win_amd64.whl", hash = "sha256:4ad1906908f2f5ae4e5a8ddfce73c320c2a1429ec52eafd27138b7f1cbe341c9", size = 174062, upload-time = "2025-09-25T21:32:55.767Z" },
     { url = "https://files.pythonhosted.org/packages/f1/12/de94a39c2ef588c7e6455cfbe7343d3b2dc9d6b6b2f40c4c6565744c873d/pyyaml-6.0.3-cp314-cp314t-win_arm64.whl", hash = "sha256:ebc55a14a21cb14062aa4162f906cd962b28e2e9ea38f9b4391244cd8de4ae0b", size = 149341, upload-time = "2025-09-25T21:32:56.828Z" },
-]
-
-[[package]]
-name = "realm-fabric"
-version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "rich" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/51/1c/8baa6e3044249ae6cfd597313b21b3deec5244752e2fb4a1f1d1ab1d33ff/realm_fabric-1.0.0.tar.gz", hash = "sha256:03e99667db909a57f520a2c6e96cb08dfa07490bb3e27913bfdd8383f565de8b", size = 90136, upload-time = "2026-07-10T18:45:48.418Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/22/84f9bccdda7c8b15307d61f746ad2517ba61383547869aad38ba3f7bb07f/realm_fabric-1.0.0-py3-none-any.whl", hash = "sha256:887cbf048926e8ba6ddd693a902c8cc6f35c104296d00d37f5461ada26157b4c", size = 122896, upload-time = "2026-07-10T18:45:47.261Z" },
-]
-
-[[package]]
-name = "realm-studio"
-version = "1.0.0"
-source = { editable = "." }
-dependencies = [
-    { name = "fastapi" },
-    { name = "python-multipart" },
-    { name = "realm-fabric" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx" },
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "python-multipart", specifier = ">=0.0.9" },
-    { name = "realm-fabric", specifier = ">=1.0.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = ">=0.28.0" },
-    { name = "pytest", specifier = ">=9.0.3" },
 ]
 
 [[package]]

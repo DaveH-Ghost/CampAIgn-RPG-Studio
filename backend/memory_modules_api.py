@@ -1,10 +1,10 @@
-"""Memory module catalog for realm-studio agent creation (V0.4.6)."""
+"""Memory module catalog for campaign-rpg-studio agent creation (V0.4.6)."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from realm_fabric import (
+from campaign_rpg_engine import (
     DEFAULT_CHAR_BUDGET,
     DEFAULT_MAX_SUMMARY_CHARS,
     DEFAULT_SUMMARY_INTERVAL,

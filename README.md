@@ -1,12 +1,12 @@
-# realm-studio
+# CampAIgn RPG Studio
 
 
 
-Reference GM web app for [Realm-Fabric](https://github.com/DaveH-Ghost/Realm-Fabric) **1.0** — a fully functional example of building on the `realm-fabric` Python library.
+Reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) **1.0** — a fully functional example of building on the `campaign-rpg-engine` Python library.
 
 
 
-**Distribution:** Realm-Studio lives on **GitHub only** (clone and run). The engine library [`realm-fabric`](https://pypi.org/project/realm-fabric/) is installed from PyPI as a normal dependency — Studio is not published as a package.
+**Distribution:** CampAIgn-RPG-Studio lives on **GitHub only** (clone and run). The engine library [`campaign-rpg-engine`](https://pypi.org/project/campaign-rpg-engine/) is installed from PyPI as a normal dependency — Studio is not published as a package.
 
 
 
@@ -20,13 +20,13 @@ Grid editor, multi-area sessions, lorebooks, prompt layout, session save/load, a
 
 ```powershell
 
-cd path\to\Realm-Studio
+cd path\to\CampAIgn-RPG-Studio
 
 uv sync
 
 copy .env.example .env   # optional; or use Settings gear in the UI
 
-uv run realm-studio
+uv run campaign-rpg-studio
 
 ```
 
@@ -40,7 +40,7 @@ Open [http://127.0.0.1:8765](http://127.0.0.1:8765). Right-click the grid to edi
 
 
 
-If `uv run realm-studio` is blocked:
+If `uv run campaign-rpg-studio` is blocked:
 
 
 
@@ -66,7 +66,7 @@ Use `--no-browser` to skip opening the browser.
 
 - Clone this repo from GitHub (Studio is not on PyPI)
 
-- **`realm-fabric`** engine from PyPI (`realm-fabric>=1.0.0` in `pyproject.toml`)
+- **`campaign-rpg-engine`** engine from PyPI (`campaign-rpg-engine>=1.0.0` in `pyproject.toml`)
 
 - **OpenRouter API key** for LLM turns (area edits work without it)
 
@@ -74,13 +74,13 @@ Use `--no-browser` to skip opening the browser.
 
 ## Co-developing with a local engine checkout
 
-`pyproject.toml` pins **`realm-fabric>=1.0.0` from PyPI**. To work on unreleased engine changes on the same machine:
+`pyproject.toml` pins **`campaign-rpg-engine>=1.0.0` from PyPI**. To hack on unreleased engine changes on the same machine:
 
 ```powershell
-cd Realm-Studio
+cd CampAIgn-RPG-Studio
 uv sync
-uv pip install -e ..\Realm-Fabric
-uv run realm-studio
+uv pip install -e ..\CampAIgn-RPG-Engine
+uv run campaign-rpg-studio
 ```
 
 That editable install overrides PyPI in your local `.venv` only — nothing to commit.
@@ -155,7 +155,7 @@ Settings gear overrides these in memory until server restart.
 
 
 
-If `uv sync` fails with **Access is denied** on `realm-studio.exe`, stop the running server (Ctrl+C in the terminal where `uv run realm-studio` is active), then:
+If `uv sync` fails with **Access is denied** on `campaign-rpg-studio.exe`, stop the running server (Ctrl+C in the terminal where `uv run campaign-rpg-studio` is active), then:
 
 
 

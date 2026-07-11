@@ -1,11 +1,11 @@
-"""Dispatch stepper-style command lines (Realm-Studio owned string layer)."""
+"""Dispatch stepper-style command lines (CampAIgn-RPG-Studio owned string layer)."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from realm_fabric import Session, delete_area_by_id, format_agents_list, format_full_list
-from realm_fabric.area_edit import (
+from campaign_rpg_engine import Session, delete_area_by_id, format_agents_list, format_full_list
+from campaign_rpg_engine.area_edit import (
     create_agent_from_args,
     create_area_from_args,
     create_object_from_args,
@@ -14,9 +14,9 @@ from realm_fabric.area_edit import (
     edit_object_for_session,
     format_objects_list,
 )
-from realm_fabric.area_event import parse_area_event_arg
-from realm_fabric.interaction_handlers import format_handlers_list
-from realm_fabric.memory_modules.registry import format_memory_modules_list
+from campaign_rpg_engine.area_event import parse_area_event_arg
+from campaign_rpg_engine.interaction_handlers import format_handlers_list
+from campaign_rpg_engine.memory_modules.registry import format_memory_modules_list
 
 
 @dataclass(frozen=True)

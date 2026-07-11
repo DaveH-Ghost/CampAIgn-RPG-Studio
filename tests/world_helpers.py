@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from backend.session_store import get_session_store
-from realm_fabric import ObjectAction, Session
+from campaign_rpg_engine import ObjectAction, Session
 
 
 def get_session() -> Session:

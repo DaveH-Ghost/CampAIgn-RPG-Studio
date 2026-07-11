@@ -1,4 +1,4 @@
-"""realm-studio FastAPI application."""
+"""campaign-rpg-studio FastAPI application."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from realm_fabric import estimate_prompt_tokens, interact_template_var_help
+from campaign_rpg_engine import estimate_prompt_tokens, interact_template_var_help
 
 from backend.interaction_handlers_api import get_interaction_handlers_catalog
 from backend.entity_private_data_api import put_entity_private_data
@@ -70,8 +70,8 @@ from backend.prompt_api import (
 
 _STUDIO_DIR = Path(__file__).resolve().parent.parent
 _FRONTEND_DIR = _STUDIO_DIR / "frontend"
-# Sibling Realm-Fabric checkout (co-dev path source); optional for uvicorn reload.
-_FABRIC_ROOT = _STUDIO_DIR.parent / "Realm-Fabric"
+# Sibling engine checkout (co-dev); optional for uvicorn reload.
+_ENGINE_ROOT = _STUDIO_DIR.parent / "CampAIgn-RPG-Engine"
 
 
 def _ensure_reference_handlers() -> None:
@@ -89,7 +89,7 @@ async def _app_lifespan(_app: FastAPI):
 
 def create_app() -> FastAPI:
     _ensure_reference_handlers()
-    app = FastAPI(title="realm-studio", version=studio_version(), lifespan=_app_lifespan)
+    app = FastAPI(title="campaign-rpg-studio", version=studio_version(), lifespan=_app_lifespan)
 
     app.add_middleware(
         CORSMiddleware,
@@ -113,7 +113,7 @@ def create_app() -> FastAPI:
         return {
             "ok": True,
             "version": studio_version(),
-            "realm_fabric_version": engine_version(),
+            "campaign_rpg_engine_version": engine_version(),
         }
 
     @app.get("/api/interact-template-vars")
@@ -443,7 +443,7 @@ def main() -> None:
 
     import uvicorn
 
-    parser = argparse.ArgumentParser(prog="realm-studio")
+    parser = argparse.ArgumentParser(prog="campaign-rpg-studio")
     parser.add_argument(
         "--no-browser",
         action="store_true",
@@ -455,8 +455,8 @@ def main() -> None:
         threading.Timer(1.0, lambda: webbrowser.open(_DEFAULT_URL)).start()
 
     reload_dirs = [str(_STUDIO_DIR)]
-    if _FABRIC_ROOT.is_dir():
-        reload_dirs.append(str(_FABRIC_ROOT))
+    if _ENGINE_ROOT.is_dir():
+        reload_dirs.append(str(_ENGINE_ROOT))
 
     uvicorn.run(
         "backend.app:app",

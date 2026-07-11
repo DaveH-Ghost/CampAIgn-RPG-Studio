@@ -1,11 +1,11 @@
-"""Custom memory module upload for realm-studio (V0.4.6)."""
+"""Custom memory module upload for campaign-rpg-studio (V0.4.6)."""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
 
-from realm_fabric import (
+from campaign_rpg_engine import (
     register_memory_module_from_path,
     register_memory_module_from_source,
 )

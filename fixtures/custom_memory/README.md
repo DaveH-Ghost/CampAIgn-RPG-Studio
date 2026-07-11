@@ -1,6 +1,6 @@
 # Custom memory modules
 
-Example and contract for **runtime-loaded** memory modules. Upload via Realm-Studio **Settings → Memory modules**, or register in code with `register_memory_module_from_path`.
+Example and contract for **runtime-loaded** memory modules. Upload via CampAIgn-RPG-Studio **Settings → Memory modules**, or register in code with `register_memory_module_from_path`.
 
 ## Contract
 
@@ -16,7 +16,7 @@ Each custom module is a single `.py` file that defines:
 
 The module must implement `export_state()` / `restore_state()` for session save/load (inherit from a built-in or implement on the protocol).
 
-Import from **`realm_fabric`** in application modules.
+Import from **`campaign_rpg_engine`** in application modules.
 
 ## Example
 
@@ -25,7 +25,7 @@ Import from **`realm_fabric`** in application modules.
 ## In code
 
 ```python
-from realm_fabric import register_memory_module_from_path
+from campaign_rpg_engine import register_memory_module_from_path
 
 register_memory_module_from_path("path/to/rolling_summary_custom.py")
 session.create_agent(..., memory_module="rolling_summary_custom")

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import random
 
-from realm_fabric import object_footprint_tiles
+from campaign_rpg_engine import object_footprint_tiles
 
 
 def random_move_self(session, area, agent, obj, action) -> str | None:

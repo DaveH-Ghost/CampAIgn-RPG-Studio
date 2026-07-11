@@ -1,8 +1,8 @@
-"""Area CRUD helpers for realm-studio (V0.4.0c2)."""
+"""Area CRUD helpers for campaign-rpg-studio (V0.4.0c2)."""
 
 from __future__ import annotations
 
-from realm_fabric import Session, WorldMutationResult
+from campaign_rpg_engine import Session, WorldMutationResult
 
 from backend.snapshot_compat import normalize_state_snapshot
 

@@ -1,12 +1,12 @@
 """
-In-memory Session holder for the realm-studio demo (single-player, one process).
+In-memory Session holder for the campaign-rpg-studio demo (single-player, one process).
 """
 
 from __future__ import annotations
 
 import os
 
-from realm_fabric import Area, Session, load_profile
+from campaign_rpg_engine import Area, Session, load_profile
 
 _store: SessionStore | None = None
 
@@ -19,7 +19,7 @@ def _maybe_dev_stack_seed(session: Session) -> None:
     """
     Temporary dev helper: stack objects on one tile to test grid scrolling.
 
-    Enable: REALM_STUDIO_DEV_STACK=1 uv run realm-studio
+    Enable: REALM_STUDIO_DEV_STACK=1 uv run campaign-rpg-studio
     Remove when no longer needed for UI testing.
     """
     flag = os.environ.get(_DEV_STACK_ENV, "").strip().lower()

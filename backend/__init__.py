@@ -1,1 +1,1 @@
-"""realm-studio FastAPI backend."""
+"""campaign-rpg-studio FastAPI backend."""

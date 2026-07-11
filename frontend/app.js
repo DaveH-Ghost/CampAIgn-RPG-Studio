@@ -1,5 +1,5 @@
 /**
- * realm-studio frontend — grid, edit menus, LLM turn, sidebar (V0.3.1b–0.4.0c2).
+ * campaign-rpg-studio frontend — grid, edit menus, LLM turn, sidebar (V0.3.1b–0.4.0c2).
  */
 
 import { hasAppearance, resolveAppearanceUrl } from "./appearance.js";
@@ -590,10 +590,10 @@ async function refreshBanner() {
   try {
     const health = await getHealth();
     const studioVersion = health.version || "1.0.0";
-    const engineVersion = health.realm_fabric_version;
+    const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
-      ? `V${studioVersion} — Reference GM for realm-fabric ${engineVersion}`
-      : `V${studioVersion} — Reference GM for realm-fabric`;
+      ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`
+      : `V${studioVersion} — CampAIgn RPG Engine`;
   } catch {
     // Keep static fallback from index.html.
   }

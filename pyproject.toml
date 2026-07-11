@@ -1,12 +1,12 @@
 [project]
-name = "realm-studio"
+name = "campaign-rpg-studio"
 version = "1.0.0"
-description = "Reference GM web app for Realm-Fabric — demonstrates the realm-fabric Python library"
+description = "Reference GM web app for CampAIgn-RPG-Engine — demonstrates the campaign-rpg-engine Python library"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
-    "realm-fabric>=1.0.0",
+    "campaign-rpg-engine>=1.0.0",
     "fastapi>=0.115.0",
     "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.32.0",
@@ -19,7 +19,7 @@ dev = [
 ]
 
 [project.scripts]
-realm-studio = "backend.main:main"
+campaign-rpg-studio = "backend.main:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

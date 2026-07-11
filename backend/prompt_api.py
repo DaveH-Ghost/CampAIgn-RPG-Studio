@@ -1,8 +1,8 @@
-"""Prompt block API helpers for realm-studio (V0.4.1b)."""
+"""Prompt block API helpers for campaign-rpg-studio (V0.4.1b)."""
 
 from __future__ import annotations
 
-from realm_fabric import (
+from campaign_rpg_engine import (
     Session,
     default_prompt_blocks,
     enrich_blocks_with_previews,

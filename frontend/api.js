@@ -1,4 +1,4 @@
-/** HTTP helpers for realm-studio API. */
+/** HTTP helpers for campaign-rpg-studio API. */
 
 export async function getHealth() {
   const res = await fetch("/api/health");

@@ -1,22 +1,22 @@
-"""Package version helpers for realm-studio."""
+"""Package version helpers for campaign-rpg-studio."""
 
 from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 
-STUDIO_TAGLINE = "Reference GM for realm-fabric"
+STUDIO_TAGLINE = "CampAIgn RPG Studio"
 
 
 def studio_version() -> str:
     try:
-        return version("realm-studio")
+        return version("campaign-rpg-studio")
     except PackageNotFoundError:
         return "1.0.0"
 
 
 def engine_version() -> str:
     try:
-        from realm_fabric import __version__
+        from campaign_rpg_engine import __version__
 
         return __version__
     except Exception:

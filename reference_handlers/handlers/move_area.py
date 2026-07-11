@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from realm_fabric import parse_position
+from campaign_rpg_engine import parse_position
 
 
 def validate_move_area_params(params: dict[str, str]) -> str | None:

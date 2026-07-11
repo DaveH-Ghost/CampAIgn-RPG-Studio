@@ -1,4 +1,4 @@
-"""In-memory LLM settings for realm-studio (V0.4.6)."""
+"""In-memory LLM settings for campaign-rpg-studio (V0.4.6)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Console entry point for ``uv run realm-studio``."""
+"""Console entry point for ``uv run campaign-rpg-studio``."""
 
 from backend.app import main
 

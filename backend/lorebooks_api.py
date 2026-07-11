@@ -1,4 +1,4 @@
-"""Lorebook API helpers for realm-studio (V0.5.0)."""
+"""Lorebook API helpers for campaign-rpg-studio (V0.5.0)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from realm_fabric import (
+from campaign_rpg_engine import (
     Lorebook,
     LoreEntry,
     LorebookScanConfig,
@@ -72,7 +72,7 @@ def put_lorebook_scan_config(session: Session, payload: dict[str, Any]) -> dict[
 
 
 def _studio_entry_to_st_shape(item: dict[str, Any]) -> dict[str, Any]:
-    """Map realm-studio editor payload to ST field names (disable-only)."""
+    """Map campaign-rpg-studio editor payload to ST field names (disable-only)."""
     data = dict(item)
     if "disable" not in data:
         data["disable"] = not bool(data.pop("enabled", True))
@@ -133,7 +133,7 @@ def create_lorebook(session: Session, payload: dict[str, Any] | None = None) -> 
 
 def load_demo_lorebook(session: Session) -> dict[str, Any]:
     studio_root = Path(__file__).resolve().parent.parent
-    demo_path = studio_root / "fixtures" / "lorebooks" / "realm-fabric-demo.lorebook.json"
+    demo_path = studio_root / "fixtures" / "lorebooks" / "campaign-rpg-engine-demo.lorebook.json"
     if not demo_path.is_file():
         return {"ok": False, "message": f"Demo lorebook not found at {demo_path}."}
     try:
