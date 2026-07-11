@@ -26,7 +26,7 @@ import {
 import { activeAreaView, asArray, DEFAULT_AREA_ID, normalizeSnapshot, objectOccupiesTile } from "./snapshot.js";
 import { CELL_SIZE } from "./gridViewport.js";
 import { initObjectActions, openManageObjectActionsModal } from "./objectActions.js";
-import { playerTurnFieldDefs } from "./playerTurnPanel.js";
+import { playerTurnFieldDefs, loadPlayerTurnVerbCatalog } from "./playerTurnPanel.js";
 
 let menuEl;
 let modalBackdrop;
@@ -1158,7 +1158,8 @@ export function bindEmitEventButton(buttonEl) {
   buttonEl.addEventListener("click", () => openEmitEventModal());
 }
 
-export function openPlayerTurnModal(agentName, onSubmit, coordinateMode = "full") {
+export async function openPlayerTurnModal(agentName, onSubmit, coordinateMode = "full") {
+  await loadPlayerTurnVerbCatalog();
   openModal(
     `Player turn — ${agentName}`,
     playerTurnFieldDefs(coordinateMode),
@@ -1168,6 +1169,9 @@ export function openPlayerTurnModal(agentName, onSubmit, coordinateMode = "full"
         && (!data.target?.trim() || !data.verb?.trim())
       ) {
         throw new Error("Interact and emote turns require target and verb.");
+      }
+      if (data.action === "verb" && !String(data.turn_verb ?? data.verb ?? "").trim()) {
+        throw new Error("Verb turns require a registered turn verb.");
       }
       await onSubmit(buildCompoundTurnPayload(data));
     },

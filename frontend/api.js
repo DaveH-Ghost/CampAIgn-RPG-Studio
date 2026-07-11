@@ -224,6 +224,15 @@ export async function getPromptBlockCatalog() {
   return data;
 }
 
+export async function fetchTurnVerbs() {
+  const res = await fetch("/api/turn-verbs");
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 export async function putVisionUnits({ units, units_per_tile }) {
   const res = await fetch("/api/vision-units", {
     method: "PUT",
@@ -427,6 +436,10 @@ export function buildCompoundTurnPayload(data) {
   if (action === "interact" || action === "emote") {
     payload.target = data.target.trim();
     payload.verb = data.verb.trim();
+  }
+  if (action === "verb") {
+    payload.verb = String(data.turn_verb ?? data.verb ?? "").trim();
+    if (data.target?.trim()) payload.target = data.target.trim();
   }
   return payload;
 }
@@ -695,6 +708,73 @@ export async function uploadMemoryModule(file) {
   const form = new FormData();
   form.append("file", file, file.name);
   const res = await fetch("/api/memory-modules/upload", {
+    method: "POST",
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function fetchPlugins() {
+  const res = await fetch("/api/plugins");
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.message || `GET /api/plugins failed: HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function enablePlugin(pluginId) {
+  const res = await fetch(`/api/plugins/${encodeURIComponent(pluginId)}/enable`, {
+    method: "POST",
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function disablePlugin(pluginId) {
+  const res = await fetch(`/api/plugins/${encodeURIComponent(pluginId)}/disable`, {
+    method: "POST",
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function fetchPluginPanel(pluginId) {
+  const res = await fetch(`/api/plugins/${encodeURIComponent(pluginId)}/panel`);
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function postPluginAction(pluginId, actionId, params = {}) {
+  const res = await fetch(`/api/plugins/${encodeURIComponent(pluginId)}/action`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action_id: actionId, params }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function uploadPlugin(file) {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const res = await fetch("/api/plugins/upload", {
     method: "POST",
     body: form,
   });

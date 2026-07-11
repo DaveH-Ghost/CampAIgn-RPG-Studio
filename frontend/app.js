@@ -13,8 +13,17 @@ import {
   postTurn,
 } from "./api.js";
 import { initPromptLayout, reloadPromptLayoutIfOpen } from "./promptLayout.js";
-import { initAppTabs, initLorebooks, refreshLorebookList, refreshLorebookScanPanel } from "./lorebooks.js";
-import { initSettings } from "./settings.js";
+import { initAppTabs } from "./tabs.js";
+import { initLorebooks, refreshLorebookList, refreshLorebookScanPanel } from "./lorebooks.js";
+import { initPlugins } from "./plugins.js";
+import { clearHandlerChoicesCache } from "./objectActions.js";
+import {
+  buildPlayerTurnPayloadFromPanel,
+  initPlayerTurnPanel,
+  loadPlayerTurnVerbCatalog,
+  setPlayerTurnPanelBusy,
+  syncPlayerTurnPanel,
+} from "./playerTurnPanel.js";
 import { initVisionUnits, syncVisionUnitsFromSnapshot } from "./visionUnits.js";
 import { initCoordinateMode, syncCoordinateModeFromSnapshot } from "./coordinateMode.js";
 import { initGridViewport, maybeCenterGrid, CELL_SIZE } from "./gridViewport.js";
@@ -45,12 +54,7 @@ import {
   renderActiveAreaSelect,
   showToast,
 } from "./ui.js";
-import {
-  buildPlayerTurnPayloadFromPanel,
-  initPlayerTurnPanel,
-  setPlayerTurnPanelBusy,
-  syncPlayerTurnPanel,
-} from "./playerTurnPanel.js";
+import { initSettings } from "./settings.js";
 
 const subtitleEl = document.getElementById("app-subtitle");
 const statusEl = document.getElementById("status");
@@ -577,6 +581,15 @@ initLorebooks({
     void reloadPromptLayoutIfOpen();
   },
 });
+initPlugins({
+  showToastFn: showToast,
+  onPluginsChangedFn: async (snapshot) => {
+    clearHandlerChoicesCache();
+    await loadPlayerTurnVerbCatalog();
+    await refreshAfterMutation(snapshot);
+    await syncPlayerTurnPanel(snapshot ?? lastSnapshot);
+  },
+});
 initGridViewport(gridViewportEl, gridWorldEl);
 bindGridContextMenu(gridWorldEl);
 if (activeAreaSelect) bindActiveAreaSelect(activeAreaSelect, refreshAfterMutation);
@@ -680,7 +693,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.0.0";
+    const studioVersion = health.version || "1.2.0";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

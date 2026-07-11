@@ -10,6 +10,13 @@ from campaign_rpg_engine import (
     prompt_blocks_from_dicts,
     prompt_slot_catalog,
 )
+from campaign_rpg_engine.prompt_blocks import KNOWN_SLOT_NAMES
+from campaign_rpg_engine.prompt_slots.registry import (
+    get_prompt_slot_registration,
+    list_registered_prompt_slots,
+    render_registered_prompt_slot,
+)
+from backend.plugin_registry import is_prompt_slot_visible_in_catalog
 
 
 def _resolve_prompt_agent_area(session: Session, agent_id: str | None = None):
@@ -33,6 +40,7 @@ def _blocks_payload(session: Session, blocks, *, agent_id: str | None = None) ->
             ctx,
             agent=agent,
             area=area,
+            session=session,
             vision_units=session.vision_units,
             units_per_tile=session.vision_units_per_tile,
             coordinate_mode=session.coordinate_mode,
@@ -88,6 +96,7 @@ def preview_prompt_blocks(
             ctx,
             agent=agent,
             area=area,
+            session=session,
             vision_units=session.vision_units,
             units_per_tile=session.vision_units_per_tile,
             coordinate_mode=session.coordinate_mode,
@@ -102,14 +111,55 @@ def preview_prompt_blocks(
 def get_prompt_slots(session: Session, agent_id: str | None = None) -> dict[str, object]:
     if agent_id is not None and session.get_agent(agent_id) is None:
         return {"ok": False, "message": f"Agent {agent_id!r} not found."}
+    agent, area = _resolve_prompt_agent_area(session, agent_id)
     ctx = session.build_prompt_context_for_agent(agent_id)
+    slots = prompt_slot_catalog(ctx)
+    seen = {item["name"] for item in slots}
+    for name in list_registered_prompt_slots():
+        if name in KNOWN_SLOT_NAMES or name in seen:
+            continue
+        if not is_prompt_slot_visible_in_catalog(session, name):
+            continue
+        reg = get_prompt_slot_registration(name)
+        preview = render_registered_prompt_slot(
+            name,
+            session=session,
+            agent=agent,
+            area=area,
+            ctx=ctx,
+        )
+        slots.append(
+            {
+                "name": name,
+                "description": reg.description if reg else "",
+                "preview": preview,
+                "kind": "plugin",
+            }
+        )
+        seen.add(name)
     return {
         "ok": True,
-        "slots": prompt_slot_catalog(ctx),
+        "slots": slots,
         "editable_sections": sorted({"compound_rules", "output_format"}),
         "default_block_count": len(default_prompt_blocks()),
     }
 
 
-def get_prompt_block_catalog_route() -> dict[str, object]:
-    return {"ok": True, **prompt_block_catalog()}
+def get_prompt_block_catalog_route(session: Session) -> dict[str, object]:
+    catalog = prompt_block_catalog()
+    block_types = []
+    for entry in catalog["block_types"]:
+        item = dict(entry)
+        if item.get("type") == "plugin_slot":
+            item["options"] = [
+                opt
+                for opt in item.get("options", [])
+                if is_prompt_slot_visible_in_catalog(session, str(opt.get("name", "")))
+            ]
+        block_types.append(item)
+    return {
+        "ok": True,
+        "block_types": block_types,
+        "slot_settings": catalog["slot_settings"],
+        "lorebook_slot": catalog["lorebook_slot"],
+    }

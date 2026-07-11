@@ -41,6 +41,14 @@ def test_get_interaction_handlers_lists_reference_set(client):
     data = response.json()
     ids = {item["id"] for item in data["handlers"]}
     assert {"delete_self", "random_move_self", "move_area"} <= ids
+    assert "inventory_pick_up" not in ids
+
+
+def test_get_interaction_handlers_includes_enabled_plugin_handlers(client):
+    client.post("/api/plugins/inventory/enable")
+    response = client.get("/api/interaction-handlers")
+    ids = {item["id"] for item in response.json()["handlers"]}
+    assert "inventory_pick_up" in ids
 
 
 def test_get_state_includes_vision_units(client):
@@ -298,7 +306,7 @@ def test_index_page(client):
     assert response.status_code == 200
     assert "CampAIgn RPG Studio" in response.text
     assert 'id="app-subtitle"' in response.text
-    assert "V1.0.0" in response.text
+    assert "V1.2.0" in response.text
     assert 'id="grid"' in response.text
     assert 'id="active-area-select"' in response.text
     assert 'id="create-area"' in response.text
@@ -409,6 +417,7 @@ def test_get_prompt_slots(client):
     names = {item["name"] for item in data["slots"]}
     assert "passive_vision" in names
     assert "memory" in names
+    assert "inventory" not in names
     assert "compound_rules" in data["editable_sections"]
 
 
@@ -418,8 +427,43 @@ def test_get_prompt_block_catalog(client):
     data = response.json()
     assert data["ok"] is True
     types = {entry["type"] for entry in data["block_types"]}
-    assert types == {"slot", "text", "section"}
+    assert types == {"slot", "plugin_slot", "text", "section"}
     assert "character" in data["slot_settings"]
+    plugin_entry = next(item for item in data["block_types"] if item["type"] == "plugin_slot")
+    plugin_names = {opt["name"] for opt in plugin_entry["options"]}
+    assert "inventory" not in plugin_names
+
+    client.post("/api/plugins/inventory/enable")
+    enabled = client.get("/api/prompt-block-catalog").json()
+    plugin_entry = next(
+        item for item in enabled["block_types"] if item["type"] == "plugin_slot"
+    )
+    assert "inventory" in {opt["name"] for opt in plugin_entry["options"]}
+
+
+def test_get_turn_verbs(client):
+    response = client.get("/api/turn-verbs")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    ids = {verb["id"] for verb in data["verbs"]}
+    assert "drop" not in ids
+
+    client.post("/api/plugins/inventory/enable")
+    enabled = client.get("/api/turn-verbs").json()
+    ids = {verb["id"] for verb in enabled["verbs"]}
+    assert "drop" in ids
+
+
+def test_put_prompt_blocks_plugin_slot(client):
+    client.post("/api/plugins/inventory/enable")
+    blocks = client.get("/api/prompt-blocks").json()["blocks"]
+    blocks.append({"type": "plugin_slot", "name": "inventory"})
+    response = client.put("/api/prompt-blocks", json={"blocks": blocks})
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    saved = client.get("/api/prompt-blocks").json()["blocks"]
+    assert any(b.get("type") == "plugin_slot" and b.get("name") == "inventory" for b in saved)
 
 
 def test_get_memory_modules(client):

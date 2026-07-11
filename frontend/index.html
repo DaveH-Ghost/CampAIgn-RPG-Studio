@@ -20,7 +20,7 @@
 
     <h1>CampAIgn RPG Studio</h1>
 
-    <p class="subtitle" id="app-subtitle">V1.0.0 — CampAIgn RPG Engine</p>
+    <p class="subtitle" id="app-subtitle">V1.2.0 — CampAIgn RPG Engine</p>
 
     <label class="active-area-label">
 
@@ -82,6 +82,7 @@
   <nav class="app-tabs" role="tablist" aria-label="campaign-rpg-studio views">
     <button type="button" id="tab-main" class="app-tab active" role="tab" aria-selected="true">Main</button>
     <button type="button" id="tab-lorebooks" class="app-tab" role="tab" aria-selected="false">Lorebooks</button>
+    <button type="button" id="tab-plugins" class="app-tab" role="tab" aria-selected="false">Plugins</button>
   </nav>
 
   <div id="main-tab-panel" class="tab-panel">
@@ -147,6 +148,8 @@
 
                 <option value="emote">emote</option>
 
+                <option value="verb">verb</option>
+
               </select>
 
             </label>
@@ -165,7 +168,7 @@
 
             <label class="player-turn-block" for="player-turn-target">
 
-              <span class="player-turn-label">Target</span>
+              <span class="player-turn-label" id="player-turn-target-label">Target</span>
 
               <input id="player-turn-target" name="target" class="session-meta-input player-turn-control" type="text" autocomplete="off" />
 
@@ -173,9 +176,11 @@
 
             <label class="player-turn-block" for="player-turn-verb">
 
-              <span class="player-turn-label">Verb</span>
+              <span class="player-turn-label" id="player-turn-verb-label">Verb</span>
 
               <input id="player-turn-verb" name="verb" class="session-meta-input player-turn-control" type="text" placeholder="eat, waved, …" autocomplete="off" />
+
+              <select id="player-turn-verb-select" class="session-meta-input player-turn-control player-turn-select hidden" aria-hidden="true"></select>
 
             </label>
 
@@ -432,6 +437,26 @@
         <p class="lorebooks-scan-hint">Lorebook entries match when a keyword appears in any enabled source below (constants always inject).</p>
         <ul id="lorebook-scan-sources" class="lorebook-scan-sources"></ul>
       </aside>
+      </div>
+    </section>
+  </div>
+
+  <div id="plugins-tab-panel" class="tab-panel hidden">
+    <section class="plugins-panel" aria-label="Plugins">
+      <div class="plugins-layout">
+        <div class="plugins-main">
+          <header class="plugins-header">
+            <h2>Plugins</h2>
+            <p class="plugins-hint">Install packages under <code>plugins/</code> or upload a <code>.py</code> / <code>.zip</code> plugin. Enable a plugin for this session; plugin state saves with the session.</p>
+            <div class="plugins-toolbar">
+              <input type="file" id="plugin-upload-input" accept=".py,.zip,application/zip" />
+              <button type="button" id="plugin-upload-btn" class="settings-action-btn">Upload plugin</button>
+            </div>
+            <p id="plugins-list-empty" class="panel-empty">No plugins installed.</p>
+            <ul id="plugins-list" class="plugins-list hidden"></ul>
+          </header>
+        </div>
+        <aside id="plugin-panel-host" class="plugins-detail" aria-label="Plugin panel"></aside>
       </div>
     </section>
   </div>

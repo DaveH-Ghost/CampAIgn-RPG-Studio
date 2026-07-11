@@ -187,7 +187,8 @@ function syncAddBlockForm() {
 
   addVariantSelect.innerHTML = "";
   const options = entry?.options || [];
-  addVariantLabel.textContent = type === "slot" ? "Slot" : "Section";
+  addVariantLabel.textContent =
+    type === "plugin_slot" ? "Plugin slot" : type === "slot" ? "Slot" : "Section";
   for (const item of options) {
     const option = document.createElement("option");
     option.value = item.name;
@@ -235,6 +236,10 @@ function slotMeta(name) {
 function slotSettingsSchema(block) {
   if (block.type !== "slot" || !block.name) return null;
   return slotSettings[block.name] || null;
+}
+
+function isSlotLikeBlock(block) {
+  return block.type === "slot" || block.type === "plugin_slot";
 }
 
 function resolvedSlotOptions(block, schema) {
@@ -286,7 +291,7 @@ async function mergeSlotPreviewsFromApi() {
   if (!result.ok) throw new Error(result.message);
   for (let i = 0; i < workingBlocks.length; i += 1) {
     const preview = result.blocks[i]?.preview;
-    if (preview !== undefined && workingBlocks[i]?.type === "slot") {
+    if (preview !== undefined && workingBlocks[i] && isSlotLikeBlock(workingBlocks[i])) {
       workingBlocks[i] = { ...workingBlocks[i], preview };
     }
   }
@@ -362,14 +367,15 @@ function buildBlockRow(block, index) {
   const main = document.createElement("div");
   main.className = "prompt-block-main";
 
-  if (block.type === "slot") {
+  if (block.type === "slot" || block.type === "plugin_slot") {
     const meta = slotMeta(block.name);
     const label = document.createElement("div");
     label.className = "prompt-block-label";
+    const prefix = block.type === "plugin_slot" ? "Plugin slot" : "Slot";
     const lorebookId = block.options?.lorebook_id;
     label.textContent = lorebookId
-      ? `Slot: ${block.name} (${lorebookId})`
-      : `Slot: ${block.name}`;
+      ? `${prefix}: ${block.name} (${lorebookId})`
+      : `${prefix}: ${block.name}`;
     const desc = document.createElement("div");
     desc.className = "prompt-block-desc";
     desc.textContent = meta.description || "";
@@ -511,6 +517,12 @@ function buildBlockFromCatalog(type, variantName, textContent) {
     }
     return block;
   }
+  if (type === "plugin_slot") {
+    if (!variantName) {
+      throw new Error("Select a plugin slot.");
+    }
+    return { type: "plugin_slot", name: variantName };
+  }
   if (type === "text") {
     return { type: "text", content: textContent ?? "" };
   }
@@ -539,13 +551,19 @@ async function addBlockFromForm() {
     } else {
       const variantName = addVariantSelect.value;
       if (!variantName) {
-        throw new Error(type === "slot" ? "Select a slot." : "Select a section.");
+        throw new Error(
+          type === "plugin_slot"
+            ? "Select a plugin slot."
+            : type === "slot"
+              ? "Select a slot."
+              : "Select a section.",
+        );
       }
       block = buildBlockFromCatalog(type, variantName, null);
     }
     workingBlocks = [...workingBlocks, block];
     markDirty();
-    if (block.type === "slot") {
+    if (isSlotLikeBlock(block)) {
       await mergeSlotPreviewsFromApi();
     }
     renderBlockList();
@@ -578,6 +596,9 @@ function blocksPayload() {
         payload.options = block.options;
       }
       return payload;
+    }
+    if (block.type === "plugin_slot") {
+      return { type: "plugin_slot", name: block.name };
     }
     if (block.type === "text") {
       return { type: "text", content: block.content ?? "" };
@@ -632,6 +653,8 @@ async function refreshPreview({ quiet = false } = {}) {
     previewEl.textContent = data.prompt;
     previewEl.classList.remove("hidden");
     previewEmptyEl.classList.add("hidden");
+    await mergeSlotPreviewsFromApi();
+    renderBlockList();
     await onPreviewUpdated(data.prompt);
     if (!quiet) showToast("Prompt preview refreshed.", false);
   } catch (err) {

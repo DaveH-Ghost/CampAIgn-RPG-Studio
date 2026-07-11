@@ -32,6 +32,10 @@ let manageObject = null;
 
 let handlerChoicesCache = null;
 
+export function clearHandlerChoicesCache() {
+  handlerChoicesCache = null;
+}
+
 async function getHandlerChoices() {
   if (handlerChoicesCache) return handlerChoicesCache;
   try {

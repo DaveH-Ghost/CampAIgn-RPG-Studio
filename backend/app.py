@@ -40,12 +40,22 @@ from backend.schemas import (
 from backend.session_store import get_session_store
 from backend.snapshot_compat import normalize_state_snapshot
 from backend.turn_runner import run_llm_turn, run_manual_turn
+from backend.turn_verbs_api import get_turn_verbs_catalog
 from backend.version import engine_version, studio_version
 from backend.vision_units_api import put_vision_units as api_put_vision_units
 from backend.coordinate_mode_api import put_coordinate_mode as api_put_coordinate_mode
 from backend.memory_module_upload import (
     load_cached_custom_modules,
     upload_memory_module,
+)
+from backend.plugin_upload import load_all_plugins, upload_plugin
+from backend.plugins_api import (
+    get_plugin_panel_route,
+    get_plugins_catalog,
+    on_session_imported,
+    post_disable_plugin,
+    post_enable_plugin,
+    post_plugin_action,
 )
 from backend.lorebooks_api import (
     create_lorebook,
@@ -86,11 +96,13 @@ def _ensure_reference_handlers() -> None:
 async def _app_lifespan(_app: FastAPI):
     _ensure_reference_handlers()
     load_cached_custom_modules()
+    load_all_plugins()
     yield
 
 
 def create_app() -> FastAPI:
     _ensure_reference_handlers()
+    load_all_plugins()
     app = FastAPI(title="campaign-rpg-studio", version=studio_version(), lifespan=_app_lifespan)
 
     app.add_middleware(
@@ -108,7 +120,11 @@ def create_app() -> FastAPI:
 
     @app.get("/api/interaction-handlers")
     def get_interaction_handlers() -> dict[str, object]:
-        return get_interaction_handlers_catalog()
+        return get_interaction_handlers_catalog(get_session_store().session)
+
+    @app.get("/api/turn-verbs")
+    def get_turn_verbs() -> dict[str, object]:
+        return get_turn_verbs_catalog(get_session_store().session)
 
     @app.get("/api/health")
     def health() -> dict[str, object]:
@@ -267,7 +283,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/prompt-block-catalog")
     def get_prompt_block_catalog_route() -> dict[str, object]:
-        return api_get_prompt_block_catalog()
+        return api_get_prompt_block_catalog(get_session_store().session)
 
     @app.get("/api/memory-modules")
     def get_memory_modules_route() -> dict[str, object]:
@@ -380,6 +396,60 @@ def create_app() -> FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    @app.get("/api/plugins")
+    def get_plugins_route() -> dict[str, object]:
+        return get_plugins_catalog(get_session_store().session)
+
+    @app.post("/api/plugins/{plugin_id}/enable")
+    def enable_plugin_route(plugin_id: str) -> dict[str, object]:
+        result = post_enable_plugin(get_session_store().session, plugin_id)
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Enable failed"))
+        return result
+
+    @app.post("/api/plugins/{plugin_id}/disable")
+    def disable_plugin_route(plugin_id: str) -> dict[str, object]:
+        result = post_disable_plugin(get_session_store().session, plugin_id)
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Disable failed"))
+        return result
+
+    @app.get("/api/plugins/{plugin_id}/panel")
+    def get_plugin_panel_api_route(plugin_id: str) -> dict[str, object]:
+        result = get_plugin_panel_route(get_session_store().session, plugin_id)
+        if not result.get("ok"):
+            raise HTTPException(status_code=404, detail=result.get("message", "Not found"))
+        return result
+
+    @app.post("/api/plugins/{plugin_id}/action")
+    def post_plugin_action_route(plugin_id: str, body: dict) -> dict[str, object]:
+        result = post_plugin_action(get_session_store().session, plugin_id, body)
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Action failed"))
+        return result
+
+    @app.post("/api/plugins/upload")
+    async def upload_plugin_route(file: UploadFile = File(...)) -> dict[str, object]:
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="Missing filename.")
+        lower = file.filename.lower()
+        if not (lower.endswith(".py") or lower.endswith(".zip")):
+            raise HTTPException(status_code=400, detail="Upload must be a .py file or .zip package.")
+        raw = await file.read()
+        try:
+            if lower.endswith(".py"):
+                source = raw.decode("utf-8")
+            else:
+                source = raw
+        except UnicodeDecodeError as exc:
+            raise HTTPException(status_code=400, detail="Plugin file must be UTF-8 text.") from exc
+        try:
+            if lower.endswith(".py"):
+                return upload_plugin(source=source, filename=file.filename)
+            return upload_plugin(source=raw, filename=file.filename)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     @app.get("/api/settings/llm")
     def get_llm_settings_route() -> dict[str, object]:
         return get_llm_settings()
@@ -473,7 +543,7 @@ def main() -> None:
         port=_DEFAULT_PORT,
         reload=True,
         reload_dirs=reload_dirs,
-        reload_excludes=[".custom_modules/*"],
+        reload_excludes=[".custom_modules/*", ".custom_plugins/*"],
     )
 
 

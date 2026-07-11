@@ -12,6 +12,7 @@ import {
   putLorebookScanConfig,
   uploadLorebook,
 } from "./api.js";
+import { registerTabShowHandler } from "./tabs.js";
 
 let showToast = () => {};
 let onLorebooksChanged = () => {};
@@ -94,6 +95,11 @@ export function initLorebooks({
   addEntryBtn?.addEventListener("click", () => addEntry());
   editorDownloadBtn?.addEventListener("click", () => {
     if (editingBookId) void handleDownload(editingBookId);
+  });
+
+  registerTabShowHandler("lorebooks", async () => {
+    await refreshList();
+    await refreshScanPanel();
   });
 
   void refreshList();
@@ -601,29 +607,4 @@ function escapeHtml(text) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-export function initAppTabs() {
-  const tabMain = document.getElementById("tab-main");
-  const tabLorebooks = document.getElementById("tab-lorebooks");
-  const panelMain = document.getElementById("main-tab-panel");
-  const panelLorebooks = document.getElementById("lorebooks-tab-panel");
-  if (!tabMain || !tabLorebooks || !panelMain || !panelLorebooks) return;
-
-  function showTab(which) {
-    const mainActive = which === "main";
-    tabMain.classList.toggle("active", mainActive);
-    tabLorebooks.classList.toggle("active", !mainActive);
-    tabMain.setAttribute("aria-selected", mainActive ? "true" : "false");
-    tabLorebooks.setAttribute("aria-selected", mainActive ? "false" : "true");
-    panelMain.classList.toggle("hidden", !mainActive);
-    panelLorebooks.classList.toggle("hidden", mainActive);
-  }
-
-  tabMain.addEventListener("click", () => showTab("main"));
-  tabLorebooks.addEventListener("click", () => {
-    showTab("lorebooks");
-    void refreshList();
-    void refreshScanPanel();
-  });
 }

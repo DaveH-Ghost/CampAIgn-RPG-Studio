@@ -61,7 +61,10 @@ class SessionStore:
 
     def import_session(self, data: dict) -> None:
         """Replace the in-memory session from a save document."""
+        from backend.plugins_api import on_session_imported
+
         self._session = Session.from_snapshot(data)
+        on_session_imported(self._session)
 
     @property
     def session(self) -> Session:

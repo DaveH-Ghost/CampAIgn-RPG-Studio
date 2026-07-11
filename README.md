@@ -2,7 +2,7 @@
 
 
 
-Reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) **1.0** — a fully functional example of building on the `campaign-rpg-engine` Python library.
+Reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) **1.2** — a fully functional example of building on the `campaign-rpg-engine` Python library.
 
 
 
@@ -82,7 +82,7 @@ github/
   CampAIgn-RPG-Studio/
 ```
 
-`pyproject.toml` pins **`campaign-rpg-engine>=1.0.0`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
+`pyproject.toml` pins **`campaign-rpg-engine>=1.2.0`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
 
 ```powershell
 cd CampAIgn-RPG-Studio
@@ -115,6 +115,8 @@ Restore `[tool.uv.sources]` for day-to-day co-development.
 
 - **Lorebooks** — SillyTavern JSON import; keyword scan into prompts
 
+- **Plugins** — capability-based plugin host (`plugins/` folder + upload); enable per session; see [`plugins/README.md`](plugins/README.md)
+
 - **Prompt layout** — reorder blocks, slot settings, lorebook injection
 
 - **Settings** — in-memory LLM key/model; custom memory module upload
@@ -128,6 +130,8 @@ Restore `[tool.uv.sources]` for day-to-day co-development.
 
 
 Demo interaction handlers (`delete_self`, `random_move_self`, `move_area`) live in [`reference_handlers/`](reference_handlers/). They are **app-owned**, not part of the engine — copy this pattern in your own projects.
+
+For new extensions, prefer the [**Plugins**](plugins/README.md) tab and `plugins/` packages (handlers, turn verbs, prompt slots, events, panel UI).
 
 
 
@@ -192,4 +196,8 @@ uv sync
 
 
 MIT — see [LICENSE](LICENSE).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
