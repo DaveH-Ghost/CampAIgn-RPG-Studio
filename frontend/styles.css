@@ -227,19 +227,31 @@ button:hover {
   min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+.grid-workspace {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
+  align-items: stretch;
+}
+
+/* Side panel: player form left of grid when active */
+.grid-workspace:has(.player-turn-panel:not(.hidden)) {
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
 }
 
 .player-turn-panel {
-  flex-shrink: 0;
+  min-height: 0;
+  height: 100%;
   color-scheme: dark;
   background: #121216;
   border: 1px solid #333;
-  border-top: 2px solid #3d6a54;
   border-radius: 6px;
   padding: 0.75rem 1rem 1rem;
-  max-height: min(42vh, 22rem);
-  overflow: auto;
+  overflow-y: auto;
 }
 
 .player-turn-panel.hidden {
@@ -248,9 +260,9 @@ button:hover {
 
 .player-turn-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
   margin-bottom: 0.75rem;
   padding-bottom: 0.65rem;
   border-bottom: 1px solid #2a2a34;
@@ -287,12 +299,12 @@ button:hover {
 
 .player-turn-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.65rem;
 }
 
 .player-turn-action-extra {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .player-turn-block {
@@ -339,8 +351,7 @@ textarea.player-turn-control {
 }
 
 .player-turn-submit {
-  flex-shrink: 0;
-  align-self: center;
+  width: 100%;
   padding: 0.45rem 1rem;
   font: inherit;
   font-size: 0.85rem;
@@ -362,11 +373,23 @@ textarea.player-turn-control {
   cursor: not-allowed;
 }
 
-@media (max-width: 900px) {
-  .player-turn-row {
+@media (max-width: 1100px) {
+  .grid-workspace:has(.player-turn-panel:not(.hidden)) {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(12rem, 1fr) auto;
   }
 
+  .grid-workspace:has(.player-turn-panel:not(.hidden)) .grid-viewport {
+    order: -1;
+  }
+
+  .player-turn-panel:not(.hidden) {
+    max-height: min(40vh, 20rem);
+    height: auto;
+  }
+}
+
+@media (max-width: 900px) {
   .player-turn-header {
     flex-direction: column;
     align-items: stretch;
@@ -374,6 +397,7 @@ textarea.player-turn-control {
 
   .player-turn-submit {
     align-self: flex-start;
+    width: auto;
   }
 }
 
