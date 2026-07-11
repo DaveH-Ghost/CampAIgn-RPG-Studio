@@ -39,6 +39,18 @@ def _resolve_agent(session: Session, agent_id: str | None):
     return session.get_active_agent()
 
 
+def _active_agent_before_explicit_turn(session: Session, agent_id: str | None) -> str | None:
+    """When *agent_id* is set, remember POV agent so we can restore after the turn."""
+    if agent_id is None:
+        return None
+    return session.active_agent_id
+
+
+def _restore_active_agent(session: Session, previous_active_id: str | None) -> None:
+    if previous_active_id is not None:
+        session.active_agent_id = previous_active_id
+
+
 def run_manual_turn(
     session: Session,
     turn_payload: dict[str, Any],
@@ -67,7 +79,9 @@ def run_manual_turn(
     except ValidationError as exc:
         return {"ok": False, "message": str(exc)}
 
+    prev_active = _active_agent_before_explicit_turn(session, agent_id)
     result = session.run_compound_turn(compound_turn, agent_id=agent_id)
+    _restore_active_agent(session, prev_active)
     if not result.ok or result.record is None:
         return {"ok": False, "message": result.message}
 
@@ -124,7 +138,9 @@ def run_llm_turn(
         except LLMParseError as exc:
             return {"ok": False, "message": str(exc)}
 
+        prev_active = _active_agent_before_explicit_turn(session, agent_id)
         result = session.run_compound_turn(compound_turn, agent_id=agent_id)
+        _restore_active_agent(session, prev_active)
         if not result.ok or result.record is None:
             return {"ok": False, "message": result.message}
 

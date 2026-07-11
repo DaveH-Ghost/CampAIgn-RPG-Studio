@@ -45,6 +45,12 @@ import {
   renderActiveAreaSelect,
   showToast,
 } from "./ui.js";
+import {
+  buildPlayerTurnPayloadFromPanel,
+  initPlayerTurnPanel,
+  setPlayerTurnPanelBusy,
+  syncPlayerTurnPanel,
+} from "./playerTurnPanel.js";
 
 const subtitleEl = document.getElementById("app-subtitle");
 const statusEl = document.getElementById("status");
@@ -94,6 +100,9 @@ const deleteAreaBtn = document.getElementById("delete-area");
 const activeAgentSelect = document.getElementById("active-agent-select");
 const runTurnBtn = document.getElementById("run-turn");
 const runTurnHintEl = document.getElementById("run-turn-hint");
+const playerTurnPanelEl = document.getElementById("player-turn-panel");
+const playerTurnHeadingEl = document.getElementById("player-turn-heading");
+const playerTurnSubmitBtn = document.getElementById("player-turn-submit");
 const emitEventBtn = document.getElementById("emit-event");
 const sessionExportBtn = document.getElementById("session-export");
 const sessionImportBtn = document.getElementById("session-import");
@@ -119,11 +128,26 @@ function activeAgentFromSnapshot(snapshot) {
   return asArray(snap.agents).find((agent) => agent.id === snap.active_agent_id) ?? null;
 }
 
+function getCoordinateMode() {
+  return lastSnapshot?.coordinate_mode === "relative" ? "relative" : "full";
+}
+
+function findAgentById(agentId) {
+  const snap = normalizeSnapshot(lastSnapshot);
+  return asArray(snap.agents).find((agent) => agent.id === agentId) ?? null;
+}
+
+function setTurnBusy(busy) {
+  turnInFlight = busy;
+  if (runTurnBtn) runTurnBtn.disabled = busy;
+  setPlayerTurnPanelBusy(busy);
+}
+
 async function refreshRunTurnTokenHint() {
   if (turnInFlight || !runTurnBtn) return;
   const active = activeAgentFromSnapshot();
   if (active?.is_player) {
-    setRunTurnTokenHint("Player agent — manual turn form (no LLM)");
+    setRunTurnTokenHint("Player agent — use the turn form below (no LLM)");
     return;
   }
   const seq = ++promptTokenHintSeq;
@@ -342,6 +366,7 @@ function renderState(data) {
   if (activeAreaSelect) renderActiveAreaSelect(activeAreaSelect, lastSnapshot);
   if (activeAgentSelect) renderActiveAgentSelect(activeAgentSelect, lastSnapshot);
   snapshotEl.textContent = JSON.stringify(lastSnapshot, null, 2);
+  syncPlayerTurnPanel(lastSnapshot);
   void refreshRunTurnTokenHint();
 }
 
@@ -369,12 +394,14 @@ function updateStatusLine(data) {
   statusEl.textContent = `Turn ${snap.session_turn ?? "?"} — ${area} — ${agentName}`;
 }
 
-function recordTurnResult(result) {
+function recordTurnResult(result, { agentId, agentName } = {}) {
   const snap = normalizeSnapshot(result.snapshot || lastSnapshot);
-  const active = asArray(snap.agents).find((a) => a.id === snap.active_agent_id);
+  const agent = agentId
+    ? asArray(snap.agents).find((item) => item.id === agentId)
+    : asArray(snap.agents).find((item) => item.id === snap.active_agent_id);
   appendTurnLogEntry({
     sessionTurn: snap.session_turn ?? "?",
-    agentName: active?.name ?? "Agent",
+    agentName: agentName ?? agent?.name ?? "Agent",
     message: result.message,
     steps: result.steps,
   });
@@ -398,7 +425,7 @@ function recordTurnResult(result) {
   }
 }
 
-async function executeTurnResult(result) {
+async function executeTurnResult(result, turnMeta = {}) {
   if (!result.ok) {
     showToast(result.message, true);
     statusEl.textContent = "Turn failed";
@@ -410,51 +437,88 @@ async function executeTurnResult(result) {
   } else {
     await fetchState();
   }
-  recordTurnResult(result);
+  recordTurnResult(result, turnMeta);
   const stepCount = Array.isArray(result.steps) ? result.steps.length : 0;
   const suffix = stepCount ? ` (${stepCount} step${stepCount === 1 ? "" : "s"})` : "";
   showToast(`${result.message}${suffix}`, false);
 }
 
-async function runTurn() {
+async function runManualTurnForAgent(agentId, compoundTurn, turnMeta = {}) {
   if (turnInFlight) return;
-  const active = activeAgentFromSnapshot();
-  if (active?.is_player) {
-    openPlayerTurnModal(active.name, async (compoundTurn) => {
-      if (turnInFlight) return;
-      turnInFlight = true;
-      runTurnBtn.disabled = true;
-      statusEl.textContent = "Running player turn…";
-      try {
-        const result = await postManualTurn({
-          agentId: active.id,
-          compoundTurn,
-        });
-        await executeTurnResult(result);
-      } catch (err) {
-        showToast(String(err.message || err), true);
-        statusEl.textContent = "Error";
-      } finally {
-        turnInFlight = false;
-        runTurnBtn.disabled = false;
-      }
-    });
-    return;
-  }
-
-  turnInFlight = true;
-  runTurnBtn.disabled = true;
-  statusEl.textContent = "Running LLM turn…";
+  const agent = findAgentById(agentId);
+  const label = turnMeta.agentName ?? agent?.name ?? agentId;
+  setTurnBusy(true);
+  statusEl.textContent = `Running player turn (${label})…`;
   try {
-    const result = await postTurn({});
-    await executeTurnResult(result);
+    const result = await postManualTurn({ agentId, compoundTurn });
+    await executeTurnResult(result, { agentId, agentName: label });
   } catch (err) {
     showToast(String(err.message || err), true);
     statusEl.textContent = "Error";
   } finally {
-    turnInFlight = false;
-    runTurnBtn.disabled = false;
+    setTurnBusy(false);
   }
+}
+
+async function runLlmTurnForAgent(agentId, turnMeta = {}) {
+  if (turnInFlight) return;
+  const agent = findAgentById(agentId);
+  if (agent?.is_player) {
+    showToast(`${agent.name} is a player agent — use the manual turn form.`, true);
+    return;
+  }
+  const label = turnMeta.agentName ?? agent?.name ?? agentId ?? "active agent";
+  setTurnBusy(true);
+  statusEl.textContent = `Running LLM turn (${label})…`;
+  try {
+    const result = await postTurn({ agentId });
+    await executeTurnResult(result, { agentId, agentName: label });
+  } catch (err) {
+    showToast(String(err.message || err), true);
+    statusEl.textContent = "Error";
+  } finally {
+    setTurnBusy(false);
+  }
+}
+
+async function runAgentTurn(agentId, compoundTurn = null) {
+  const agent = findAgentById(agentId);
+  if (!agent) {
+    showToast(`Agent ${agentId} not found.`, true);
+    return;
+  }
+  if (compoundTurn) {
+    await runManualTurnForAgent(agentId, compoundTurn, { agentName: agent.name });
+    return;
+  }
+  if (agent.is_player) {
+    openPlayerTurnModal(
+      agent.name,
+      (payload) => runManualTurnForAgent(agentId, payload, { agentName: agent.name }),
+      getCoordinateMode(),
+    );
+    return;
+  }
+  await runLlmTurnForAgent(agentId, { agentName: agent.name });
+}
+
+async function runTurn() {
+  if (turnInFlight) return;
+  const active = activeAgentFromSnapshot();
+  if (!active) {
+    showToast("No active agent.", true);
+    return;
+  }
+  if (active.is_player) {
+    try {
+      const compoundTurn = buildPlayerTurnPayloadFromPanel();
+      await runManualTurnForAgent(active.id, compoundTurn, { agentName: active.name });
+    } catch (err) {
+      showToast(String(err.message || err), true);
+    }
+    return;
+  }
+  await runLlmTurnForAgent(active.id, { agentName: active.name });
 }
 
 async function refreshAfterMutation(snapshot) {
@@ -473,6 +537,25 @@ async function refreshAfterMutation(snapshot) {
 initUi({
   getSnapshotFn: () => activeAreaView(lastSnapshot),
   onStateChangedFn: refreshAfterMutation,
+  onRunAgentTurnFn: runAgentTurn,
+  getCoordinateModeFn: getCoordinateMode,
+});
+initPlayerTurnPanel({
+  panelFormEl: playerTurnPanelEl,
+  headingEl: playerTurnHeadingEl,
+  submitBtnEl: playerTurnSubmitBtn,
+  getSnapshotFn: () => lastSnapshot,
+  getCoordinateModeFn: getCoordinateMode,
+  showToastFn: showToast,
+  onSubmitFn: async (compoundTurn) => {
+    const active = activeAgentFromSnapshot();
+    if (!active?.is_player) {
+      showToast("Active agent is not a player.", true);
+      return;
+    }
+    await runManualTurnForAgent(active.id, compoundTurn, { agentName: active.name });
+  },
+  showToastFn: showToast,
 });
 initVisionUnits({
   unitsInputEl: visionUnitsInput,

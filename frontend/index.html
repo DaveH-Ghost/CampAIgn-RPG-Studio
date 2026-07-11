@@ -101,6 +101,100 @@
 
       </div>
 
+      <form id="player-turn-panel" class="player-turn-panel hidden" aria-label="Player turn">
+
+        <div class="player-turn-header">
+
+          <div class="player-turn-header-text">
+
+            <h2 id="player-turn-heading" class="player-turn-heading">Player turn</h2>
+
+            <p class="player-turn-hint">Manual compound turn (no LLM). <strong>Run turn ▶</strong> submits this form.</p>
+
+          </div>
+
+          <button type="submit" id="player-turn-submit" class="player-turn-submit">Submit turn</button>
+
+        </div>
+
+        <div class="player-turn-body">
+
+          <label class="player-turn-block player-turn-block-wide" for="player-turn-reasoning">
+
+            <span class="player-turn-label">Reasoning</span>
+
+            <textarea id="player-turn-reasoning" name="reasoning" class="session-meta-input player-turn-control" rows="2" required>Manual test turn.</textarea>
+
+          </label>
+
+          <div class="player-turn-row">
+
+            <label class="player-turn-block" for="player-turn-move">
+
+              <span class="player-turn-label" id="player-turn-move-label">Move (x,y, obj_*, agent_*, or blank)</span>
+
+              <input id="player-turn-move" name="move" class="session-meta-input player-turn-control" type="text" placeholder="4,4" autocomplete="off" />
+
+            </label>
+
+            <label class="player-turn-block" for="player-turn-look">
+
+              <span class="player-turn-label">Look (entity id)</span>
+
+              <input id="player-turn-look" name="look" class="session-meta-input player-turn-control" type="text" placeholder="obj_ball_01" autocomplete="off" />
+
+            </label>
+
+            <label class="player-turn-block" for="player-turn-action">
+
+              <span class="player-turn-label">Turn action</span>
+
+              <select id="player-turn-action" name="action" class="session-meta-input player-turn-control player-turn-select">
+
+                <option value="none">none</option>
+
+                <option value="interact">interact</option>
+
+                <option value="emote">emote</option>
+
+              </select>
+
+            </label>
+
+          </div>
+
+          <label class="player-turn-block player-turn-block-wide" for="player-turn-say">
+
+            <span class="player-turn-label">Say (dialogue)</span>
+
+            <textarea id="player-turn-say" name="say" class="session-meta-input player-turn-control" rows="2"></textarea>
+
+          </label>
+
+          <div id="player-turn-action-extra" class="player-turn-row player-turn-action-extra hidden" data-show-when-action>
+
+            <label class="player-turn-block" for="player-turn-target">
+
+              <span class="player-turn-label">Target</span>
+
+              <input id="player-turn-target" name="target" class="session-meta-input player-turn-control" type="text" autocomplete="off" />
+
+            </label>
+
+            <label class="player-turn-block" for="player-turn-verb">
+
+              <span class="player-turn-label">Verb</span>
+
+              <input id="player-turn-verb" name="verb" class="session-meta-input player-turn-control" type="text" placeholder="eat, waved, …" autocomplete="off" />
+
+            </label>
+
+          </div>
+
+        </div>
+
+      </form>
+
     </section>
 
     <aside class="meta-panel">

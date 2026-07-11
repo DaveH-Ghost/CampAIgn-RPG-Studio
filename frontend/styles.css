@@ -227,6 +227,154 @@ button:hover {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
+}
+
+.player-turn-panel {
+  flex-shrink: 0;
+  color-scheme: dark;
+  background: #121216;
+  border: 1px solid #333;
+  border-top: 2px solid #3d6a54;
+  border-radius: 6px;
+  padding: 0.75rem 1rem 1rem;
+  max-height: min(42vh, 22rem);
+  overflow: auto;
+}
+
+.player-turn-panel.hidden {
+  display: none;
+}
+
+.player-turn-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #2a2a34;
+}
+
+.player-turn-header-text {
+  min-width: 0;
+}
+
+.player-turn-heading {
+  margin: 0 0 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #b8b8c8;
+}
+
+.player-turn-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #9a9aa8;
+}
+
+.player-turn-hint strong {
+  color: #c8f0d8;
+  font-weight: 600;
+}
+
+.player-turn-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.player-turn-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.player-turn-action-extra {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.player-turn-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.player-turn-block-wide {
+  width: 100%;
+}
+
+.player-turn-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #9a9aa8;
+}
+
+.player-turn-control {
+  width: 100%;
+  min-height: 2rem;
+}
+
+.player-turn-control.player-turn-select {
+  padding-right: 1.75rem;
+  background-color: #16161c;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239a9aa8' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  appearance: none;
+  cursor: pointer;
+}
+
+textarea.player-turn-control {
+  resize: vertical;
+  min-height: 2.5rem;
+  line-height: 1.4;
+}
+
+.player-turn-panel .session-meta-input::placeholder {
+  color: #6a6a78;
+}
+
+.player-turn-submit {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 0.45rem 1rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #3d6a54;
+  border-radius: 4px;
+  background: #2d4a3e;
+  color: #c8f0d8;
+}
+
+.player-turn-submit:hover:not(:disabled) {
+  background: #3a5a4a;
+  border-color: #4d8a6a;
+}
+
+.player-turn-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .player-turn-row {
+    grid-template-columns: 1fr;
+  }
+
+  .player-turn-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .player-turn-submit {
+    align-self: flex-start;
+  }
 }
 
 .grid-viewport {

@@ -26,6 +26,7 @@ import {
 import { activeAreaView, asArray, DEFAULT_AREA_ID, normalizeSnapshot, objectOccupiesTile } from "./snapshot.js";
 import { CELL_SIZE } from "./gridViewport.js";
 import { initObjectActions, openManageObjectActionsModal } from "./objectActions.js";
+import { playerTurnFieldDefs } from "./playerTurnPanel.js";
 
 let menuEl;
 let modalBackdrop;
@@ -35,10 +36,19 @@ let modalError;
 let toastEl;
 let getSnapshot = () => null;
 let onStateChanged = async () => {};
+let onRunAgentTurn = async () => {};
+let getCoordinateMode = () => "full";
 
-export function initUi({ getSnapshotFn, onStateChangedFn }) {
+export function initUi({
+  getSnapshotFn,
+  onStateChangedFn,
+  onRunAgentTurnFn,
+  getCoordinateModeFn,
+}) {
   getSnapshot = getSnapshotFn;
   onStateChanged = onStateChangedFn;
+  onRunAgentTurn = onRunAgentTurnFn ?? onRunAgentTurn;
+  getCoordinateMode = getCoordinateModeFn ?? getCoordinateMode;
 
   menuEl = document.getElementById("context-menu");
   modalBackdrop = document.getElementById("modal-backdrop");
@@ -168,6 +178,9 @@ function listAreaOptions() {
 function showMenu(x, y, items) {
   menuEl.innerHTML = "";
   for (const item of items) {
+    if (item.hidden) {
+      continue;
+    }
     if (item.separator) {
       const sep = document.createElement("div");
       sep.className = "context-menu-sep";
@@ -250,6 +263,22 @@ function showEntityMenu(x, y, kind, id) {
     const agentCtx =
       findAgentWithArea(id) ?? { entity, areaId: activeAreaView(getSnapshot())?.active_area_id };
     showMenu(x, y, [
+      {
+        label: "Run turn ▶",
+        action: () => onRunAgentTurn(entity.id),
+        hidden: Boolean(entity.is_player),
+      },
+      {
+        label: "Manual turn…",
+        action: () => {
+          openPlayerTurnModal(
+            entity.name,
+            (compoundTurn) => onRunAgentTurn(entity.id, compoundTurn),
+            getCoordinateMode(),
+          );
+        },
+        hidden: !entity.is_player,
+      },
       {
         label: "Play as this agent",
         action: () => runActiveAgent(entity.id),
@@ -1129,61 +1158,10 @@ export function bindEmitEventButton(buttonEl) {
   buttonEl.addEventListener("click", () => openEmitEventModal());
 }
 
-export function openPlayerTurnModal(agentName, onSubmit) {
+export function openPlayerTurnModal(agentName, onSubmit, coordinateMode = "full") {
   openModal(
     `Player turn — ${agentName}`,
-    [
-      {
-        name: "reasoning",
-        label: "Reasoning",
-        value: "Manual test turn.",
-        type: "textarea",
-        rows: 2,
-        required: true,
-      },
-      {
-        name: "move",
-        label: "Move (x,y, obj_*, agent_*, or blank)",
-        value: "",
-        placeholder: "4,4",
-      },
-      {
-        name: "look",
-        label: "Look target (entity id)",
-        value: "",
-        placeholder: "obj_ball_01",
-      },
-      {
-        name: "say",
-        label: "Say (dialogue)",
-        value: "",
-        type: "textarea",
-        rows: 2,
-      },
-      {
-        name: "action",
-        label: "Turn action",
-        type: "select",
-        value: "none",
-        options: [
-          { value: "none", label: "none" },
-          { value: "interact", label: "interact" },
-          { value: "emote", label: "emote" },
-        ],
-      },
-      {
-        name: "target",
-        label: "Target (interact / emote)",
-        value: "",
-        showWhen: { field: "action", values: ["interact", "emote"] },
-      },
-      {
-        name: "verb",
-        label: "Verb / action name",
-        value: "",
-        showWhen: { field: "action", values: ["interact", "emote"] },
-      },
-    ],
+    playerTurnFieldDefs(coordinateMode),
     async (data) => {
       if (
         (data.action === "interact" || data.action === "emote")

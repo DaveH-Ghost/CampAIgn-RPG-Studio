@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from backend.app import create_app
 from backend.session_store import get_session_store, reset_session_store
+from backend.version import studio_version
 from campaign_rpg_engine import AgentCompoundTurn, LLMResponse, ObjectAction, SessionResult
 from tests.world_helpers import add_object_action, create_agent, create_object, edit_agent, edit_object
 
@@ -120,8 +121,10 @@ def test_health(client):
     assert response.status_code == 200
     data = response.json()
     assert data["ok"] is True
-    assert data["version"] == "1.0.0"
-    assert data["campaign_rpg_engine_version"] == "1.0.0"
+    assert data["version"] == studio_version()
+    from campaign_rpg_engine import __version__ as engine_version
+
+    assert data["campaign_rpg_engine_version"] == engine_version
 
 
 def test_interact_template_vars(client):
@@ -303,6 +306,7 @@ def test_index_page(client):
     assert 'id="delete-area"' in response.text
     assert 'id="last-prompt"' in response.text
     assert 'id="last-response"' in response.text
+    assert 'id="player-turn-panel"' in response.text
 
 
 def _fake_compound_response(_prompt):
@@ -1223,3 +1227,52 @@ def test_post_manual_turn_rejects_llm_agent(client, monkeypatch):
     data = response.json()
     assert data["ok"] is False
     assert "player" in data["message"].lower()
+
+
+def test_post_turn_with_agent_id_keeps_active_agent(client, monkeypatch):
+    monkeypatch.setattr(
+        "backend.turn_runner.get_compound_turn",
+        _fake_compound_response,
+    )
+    player = _create_player_agent(client, name="Hero")
+    npc = create_agent(
+        name="Goblin",
+        position=(1, 0),
+        personality="Grumpy.",
+        is_player=False,
+    )
+    client.post("/api/active-agent", json={"name_or_id": player["id"]})
+
+    response = client.post("/api/turn", json={"agent_id": npc.id})
+    data = response.json()
+    assert data["ok"] is True
+    assert data["snapshot"]["active_agent_id"] == player["id"]
+    assert data["snapshot"]["session_turn"] == 1
+
+
+def test_post_manual_turn_with_agent_id_keeps_active_agent(client):
+    player = _create_player_agent(client, name="Hero")
+    guide = create_agent(
+        name="Guide",
+        position=(0, 1),
+        personality="Helpful.",
+        is_player=False,
+    )
+    client.post("/api/active-agent", json={"name_or_id": guide.id})
+
+    response = client.post(
+        "/api/turn/manual",
+        json={
+            "agent_id": player["id"],
+            "compound_turn": {
+                "reasoning": "Step forward.",
+                "move": "1,0",
+                "action": "none",
+            },
+        },
+    )
+    data = response.json()
+    assert data["ok"] is True
+    assert data["snapshot"]["active_agent_id"] == guide.id
+    updated = next(item for item in data["snapshot"]["agents"] if item["id"] == player["id"])
+    assert updated["position"] == [1, 0]
