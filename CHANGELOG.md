@@ -4,6 +4,20 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.2.1
+
+**Requires:** `campaign-rpg-engine>=1.2.1`
+
+### Entity templates
+
+- Save objects/agents as JSON templates under `entity_templates/` (no id or position).
+- **Save as…** and **Load…** dialogs offer template library or file actions.
+- Right-click empty tile → **Load…** (template library or file); right-click entity → **Save as…** (template library or file download)
+- Agent save dialog: optional **Include memory** for recurring NPCs between sessions.
+- API: `GET/POST/DELETE /api/entity-templates`, export/spawn-from-template, spawn at grid position with new ids.
+
+---
+
 ## 1.2.0
 
 **Requires:** `campaign-rpg-engine>=1.2.0`

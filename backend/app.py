@@ -20,6 +20,16 @@ from backend.area_api import create_area as api_create_area
 from backend.area_api import delete_area as api_delete_area
 from backend.area_api import edit_area as api_edit_area
 from backend.command_dispatch import dispatch_command
+from backend.entity_templates_api import (
+    delete_entity_template,
+    download_entity_template_file,
+    export_entity_template_download,
+    get_entity_template,
+    list_entity_templates,
+    save_entity_from_world,
+    spawn_entity_from_template_data,
+    spawn_entity_template,
+)
 from backend.schemas import (
     ActiveAgentRequest,
     ActiveAreaRequest,
@@ -28,6 +38,9 @@ from backend.schemas import (
     DeleteAreaRequest,
     EditAreaRequest,
     EntityPrivateDataRequest,
+    EntityTemplateSaveRequest,
+    EntityTemplateSpawnFromBodyRequest,
+    EntityTemplateSpawnRequest,
     EventRequest,
     LlmSettingsRequest,
     PromptBlocksPreviewRequest,
@@ -395,6 +408,98 @@ def create_app() -> FastAPI:
             return upload_memory_module(source=source, filename=file.filename)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/api/entity-templates")
+    def get_entity_templates_route() -> dict[str, object]:
+        return list_entity_templates()
+
+    @app.get("/api/entity-templates/{template_id}")
+    def get_entity_template_route(template_id: str) -> dict[str, object]:
+        result = get_entity_template(template_id)
+        if not result.get("ok"):
+            raise HTTPException(status_code=404, detail=result.get("message", "Not found"))
+        return result
+
+    @app.post("/api/entity-templates/save-from-entity")
+    def save_entity_template_route(body: EntityTemplateSaveRequest) -> dict[str, object]:
+        result = save_entity_from_world(
+            get_session_store().session,
+            kind=body.kind,
+            entity_id=body.entity_id,
+            filename=body.filename,
+            include_memory=body.include_memory,
+        )
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Save failed"))
+        return result
+
+    @app.post("/api/entity-templates/export-from-entity")
+    def export_entity_template_route(body: EntityTemplateSaveRequest) -> Response:
+        result = export_entity_template_download(
+            get_session_store().session,
+            kind=body.kind,
+            entity_id=body.entity_id,
+            filename=body.filename,
+            include_memory=body.include_memory,
+        )
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Export failed"))
+        filename = str(result["filename"])
+        payload = json.dumps(result["template"], indent=2, ensure_ascii=False)
+        return Response(
+            content=payload,
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    @app.get("/api/entity-templates/{template_id}/download")
+    def download_entity_template_route(template_id: str) -> Response:
+        result = download_entity_template_file(template_id)
+        if not result.get("ok"):
+            raise HTTPException(status_code=404, detail=result.get("message", "Not found"))
+        filename = str(result["filename"])
+        payload = json.dumps(result["template"], indent=2, ensure_ascii=False)
+        return Response(
+            content=payload,
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    @app.post("/api/entity-templates/spawn-from-template")
+    def spawn_entity_from_template_route(
+        body: EntityTemplateSpawnFromBodyRequest,
+    ) -> dict[str, object]:
+        result = spawn_entity_from_template_data(
+            get_session_store().session,
+            body.template,
+            position=body.position,
+            area_id=body.area_id,
+        )
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Spawn failed"))
+        return result
+
+    @app.post("/api/entity-templates/{template_id}/spawn")
+    def spawn_entity_template_route(
+        template_id: str,
+        body: EntityTemplateSpawnRequest,
+    ) -> dict[str, object]:
+        result = spawn_entity_template(
+            get_session_store().session,
+            template_id,
+            position=body.position,
+            area_id=body.area_id,
+        )
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Spawn failed"))
+        return result
+
+    @app.delete("/api/entity-templates/{template_id}")
+    def delete_entity_template_route(template_id: str) -> dict[str, object]:
+        result = delete_entity_template(template_id)
+        if not result.get("ok"):
+            raise HTTPException(status_code=404, detail=result.get("message", "Not found"))
+        return result
 
     @app.get("/api/plugins")
     def get_plugins_route() -> dict[str, object]:

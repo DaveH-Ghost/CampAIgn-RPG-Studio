@@ -2,7 +2,7 @@
 
 
 
-Reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) **1.2** — a fully functional example of building on the `campaign-rpg-engine` Python library.
+Reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) **1.2.1** — a fully functional example of building on the `campaign-rpg-engine` Python library.
 
 
 
@@ -82,7 +82,7 @@ github/
   CampAIgn-RPG-Studio/
 ```
 
-`pyproject.toml` pins **`campaign-rpg-engine>=1.2.0`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
+`pyproject.toml` pins **`campaign-rpg-engine>=1.2.1`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
 
 ```powershell
 cd CampAIgn-RPG-Studio

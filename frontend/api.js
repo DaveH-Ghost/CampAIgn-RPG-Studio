@@ -771,6 +771,124 @@ export async function postPluginAction(pluginId, actionId, params = {}) {
   return data;
 }
 
+export async function fetchEntityTemplates() {
+  const res = await fetch("/api/entity-templates");
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.message || `GET /api/entity-templates failed: HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function postSaveEntityTemplate({
+  kind,
+  entityId,
+  filename,
+  includeMemory = false,
+}) {
+  const res = await fetch("/api/entity-templates/save-from-entity", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      kind,
+      entity_id: entityId,
+      filename,
+      include_memory: includeMemory,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+async function downloadAttachmentResponse(res, fallbackFilename) {
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`;
+    try {
+      const data = await res.json();
+      message = data.detail || data.message || message;
+    } catch {
+      // ignore non-JSON error bodies
+    }
+    throw new Error(typeof message === "string" ? message : JSON.stringify(message));
+  }
+  const blob = await res.blob();
+  const header = res.headers.get("Content-Disposition");
+  const match = header ? /filename="([^"]+)"/.exec(header) : null;
+  const filename = match?.[1] || fallbackFilename;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+  return { filename };
+}
+
+export async function downloadEntityTemplateFromEntity({
+  kind,
+  entityId,
+  filename,
+  includeMemory = false,
+}) {
+  const res = await fetch("/api/entity-templates/export-from-entity", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      kind,
+      entity_id: entityId,
+      filename,
+      include_memory: includeMemory,
+    }),
+  });
+  return downloadAttachmentResponse(res, filename || "entity-template.json");
+}
+
+export async function downloadEntityTemplateFile(templateId) {
+  const res = await fetch(
+    `/api/entity-templates/${encodeURIComponent(templateId)}/download`,
+  );
+  return downloadAttachmentResponse(res, `${templateId}.json`);
+}
+
+export async function postSpawnEntityFromTemplate(template, { position, areaId = null }) {
+  const res = await fetch("/api/entity-templates/spawn-from-template", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      template,
+      position,
+      area_id: areaId,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function postSpawnEntityTemplate(templateId, { position, areaId = null }) {
+  const res = await fetch(
+    `/api/entity-templates/${encodeURIComponent(templateId)}/spawn`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        position,
+        area_id: areaId,
+      }),
+    },
+  );
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 export async function uploadPlugin(file) {
   const form = new FormData();
   form.append("file", file, file.name);

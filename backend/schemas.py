@@ -81,3 +81,21 @@ class LlmSettingsRequest(BaseModel):
 class EntityPrivateDataRequest(BaseModel):
     entity_id: str = Field(min_length=1)
     private_data: str = ""
+
+
+class EntityTemplateSaveRequest(BaseModel):
+    kind: str = Field(min_length=1)
+    entity_id: str = Field(min_length=1)
+    filename: str = Field(min_length=1)
+    include_memory: bool = False
+
+
+class EntityTemplateSpawnRequest(BaseModel):
+    position: list[int] = Field(min_length=2, max_length=2)
+    area_id: str | None = None
+
+
+class EntityTemplateSpawnFromBodyRequest(BaseModel):
+    template: dict[str, object]
+    position: list[int] = Field(min_length=2, max_length=2)
+    area_id: str | None = None

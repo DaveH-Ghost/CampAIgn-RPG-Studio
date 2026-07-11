@@ -22,6 +22,11 @@ import {
   postDeleteArea,
   postEditArea,
   postEvent,
+  fetchEntityTemplates,
+  downloadEntityTemplateFromEntity,
+  postSaveEntityTemplate,
+  postSpawnEntityFromTemplate,
+  postSpawnEntityTemplate,
 } from "./api.js";
 import { activeAreaView, asArray, DEFAULT_AREA_ID, normalizeSnapshot, objectOccupiesTile } from "./snapshot.js";
 import { CELL_SIZE } from "./gridViewport.js";
@@ -210,6 +215,10 @@ function hideMenu() {
 function showEmptyTileMenu(x, y, tileX, tileY) {
   showMenu(x, y, [
     {
+      label: "Load…",
+      action: () => openLoadEntityModal(tileX, tileY),
+    },
+    {
       label: "Create object here…",
       action: () => openCreateObjectModal(tileX, tileY),
     },
@@ -226,6 +235,10 @@ function showEmptyTileMenu(x, y, tileX, tileY) {
 
 function showManageTileMenu(x, y, tileX, tileY, at) {
   const items = [
+    {
+      label: "Load…",
+      action: () => openLoadEntityModal(tileX, tileY),
+    },
     {
       label: "Create object here…",
       action: () => openCreateObjectModal(tileX, tileY),
@@ -288,6 +301,10 @@ function showEntityMenu(x, y, kind, id) {
         action: () => openEditAgentModal(agentCtx.entity, agentCtx.areaId),
       },
       {
+        label: "Save as…",
+        action: () => openSaveEntityModal("agent", entity),
+      },
+      {
         label: "Delete",
         action: () => runDelete(`delete-agent ${entity.id}`, entity.name),
       },
@@ -300,6 +317,10 @@ function showEntityMenu(x, y, kind, id) {
         action: () => openEditObjectModal(objectCtx.entity, objectCtx.areaId),
       },
       { label: "Manage actions…", action: () => openManageObjectActionsModal(entity) },
+      {
+        label: "Save as…",
+        action: () => openSaveEntityModal("object", entity),
+      },
       entity.hidden
         ? {
             label: "Reveal",
@@ -489,7 +510,23 @@ function appendModalField(form, field) {
   parent.appendChild(wrap);
 }
 
-function openModal(title, fields, onSubmit, { submitLabel = "Save" } = {}) {
+function collectModalFormData(formEl, fields) {
+  const data = {};
+  for (const field of fields) {
+    if (field.type === "context" || field.type === "readonly" || !field.name) continue;
+    const el = formEl.elements[field.name];
+    if (!el) continue;
+    data[field.name] =
+      field.type === "checkbox"
+        ? el.checked
+        : field.type === "multiselect"
+          ? Array.from(el.selectedOptions).map((option) => option.value)
+          : el.value.trim();
+  }
+  return data;
+}
+
+function openModal(title, fields, onSubmit, { submitLabel = "Save", actions = null } = {}) {
   modalTitle.textContent = title;
   modalForm.innerHTML = "";
   modalError.textContent = "";
@@ -503,37 +540,44 @@ function openModal(title, fields, onSubmit, { submitLabel = "Save" } = {}) {
     el.addEventListener("change", () => syncConditionalModalFields(modalForm));
   }
 
-  const actions = document.createElement("div");
-  actions.className = "modal-actions";
-  const submit = document.createElement("button");
-  submit.type = "submit";
-  submit.textContent = submitLabel;
-  actions.appendChild(submit);
-  modalForm.appendChild(actions);
-
-  modalForm.onsubmit = async (e) => {
-    e.preventDefault();
+  const runSubmit = async (handler) => {
     modalError.textContent = "";
-    const data = {};
-    for (const field of fields) {
-      if (field.type === "context" || field.type === "readonly" || !field.name) continue;
-      const el = modalForm.elements[field.name];
-      if (!el) continue;
-      data[field.name] =
-        field.type === "checkbox"
-          ? el.checked
-          : field.type === "multiselect"
-            ? Array.from(el.selectedOptions).map((option) => option.value)
-            : el.value.trim();
-    }
     try {
-      await onSubmit(data);
+      const shouldClose = await handler(collectModalFormData(modalForm, fields));
+      if (shouldClose === false) return;
       closeModal();
     } catch (err) {
       modalError.textContent = String(err.message || err);
     }
   };
 
+  const actionsEl = document.createElement("div");
+  actionsEl.className = "modal-actions";
+
+  if (actions?.length) {
+    for (const action of actions) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = action.label;
+      btn.addEventListener("click", () => runSubmit(action.onSubmit));
+      actionsEl.appendChild(btn);
+    }
+    modalForm.onsubmit = (e) => {
+      e.preventDefault();
+      void runSubmit(actions[0].onSubmit);
+    };
+  } else {
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.textContent = submitLabel;
+    actionsEl.appendChild(submit);
+    modalForm.onsubmit = async (e) => {
+      e.preventDefault();
+      await runSubmit(onSubmit);
+    };
+  }
+
+  modalForm.appendChild(actionsEl);
   modalBackdrop.classList.remove("hidden");
 }
 
@@ -1357,6 +1401,186 @@ export function bindAreaManageButtons({ createBtn, editBtn, deleteBtn }) {
   if (createBtn) createBtn.addEventListener("click", () => openCreateAreaModal());
   if (editBtn) editBtn.addEventListener("click", () => openEditAreaModal());
   if (deleteBtn) deleteBtn.addEventListener("click", () => openDeleteAreaModal());
+}
+
+function slugifyTemplateFilename(name) {
+  return String(name || "template")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "template";
+}
+
+async function openSaveEntityModal(kind, entity) {
+  const defaultName = `${slugifyTemplateFilename(entity.name)}.json`;
+  const fields = [
+    {
+      name: "filename",
+      label: "Filename",
+      value: defaultName,
+      required: true,
+      group: "basic",
+    },
+  ];
+  if (kind === "agent") {
+    fields.push({
+      name: "includeMemory",
+      label: "Include memory (for recurring NPCs between sessions)",
+      type: "checkbox",
+      value: false,
+      group: "basic",
+    });
+  }
+  fields.push({
+    type: "context",
+    text: "Templates omit entity id and position. Save to the Studio library for quick reuse, or download a JSON file to your computer.",
+    group: "basic",
+  });
+
+  openModal(`Save ${kind}`, fields, null, {
+    actions: [
+      {
+        label: "Save as template",
+        onSubmit: async (data) => {
+          const result = await postSaveEntityTemplate({
+            kind,
+            entityId: entity.id,
+            filename: data.filename,
+            includeMemory: Boolean(data.includeMemory),
+          });
+          showToast(result.message || "Template saved.", false);
+        },
+      },
+      {
+        label: "Save as file",
+        onSubmit: async (data) => {
+          const { filename } = await downloadEntityTemplateFromEntity({
+            kind,
+            entityId: entity.id,
+            filename: data.filename,
+            includeMemory: Boolean(data.includeMemory),
+          });
+          showToast(`Saved ${filename}`, false);
+        },
+      },
+    ],
+  });
+}
+
+function pickJsonFile() {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      if (!file) {
+        resolve(null);
+        return;
+      }
+      try {
+        const text = await file.text();
+        resolve({ file, template: JSON.parse(text) });
+      } catch (err) {
+        reject(err);
+      }
+    });
+    input.click();
+  });
+}
+
+async function openLoadEntityModal(tileX, tileY) {
+  let templates = [];
+  try {
+    const data = await fetchEntityTemplates();
+    templates = data.templates || [];
+  } catch (err) {
+    showToast(String(err.message || err), true);
+    return;
+  }
+
+  const areaId = activeAreaView(getSnapshot())?.active_area_id ?? DEFAULT_AREA_ID;
+  const templateOptions = templates.length
+    ? templates.map((item) => ({
+        value: item.id,
+        label: `${item.name} (${item.kind})`,
+      }))
+    : [{ value: "", label: "No templates saved", disabled: true }];
+
+  openModal(
+    "Load entity",
+    [
+      {
+        name: "templateId",
+        label: "Studio template",
+        type: "select",
+        value: templates[0]?.id ?? "",
+        required: false,
+        options: templateOptions,
+        group: "basic",
+      },
+      {
+        name: "x",
+        label: "X",
+        value: String(tileX),
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      {
+        name: "y",
+        label: "Y",
+        value: String(tileY),
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      {
+        type: "context",
+        text: "Spawns a new object or agent at the chosen position. A new entity id is always generated.",
+        group: "basic",
+      },
+    ],
+    null,
+    {
+      actions: [
+        {
+          label: "Load from template",
+          onSubmit: async (data) => {
+            if (!data.templateId) {
+              throw new Error(
+                "No templates saved yet. Right-click an object or agent and choose Save as…",
+              );
+            }
+            const result = await postSpawnEntityTemplate(data.templateId, {
+              position: [Number(data.x), Number(data.y)],
+              areaId,
+            });
+            showToast(result.message || "Template loaded.", false);
+            await onStateChanged(result.snapshot);
+          },
+        },
+        {
+          label: "Load from file",
+          onSubmit: async (data) => {
+            let picked;
+            try {
+              picked = await pickJsonFile();
+            } catch {
+              throw new Error("Invalid JSON file.");
+            }
+            if (!picked) return false;
+            const result = await postSpawnEntityFromTemplate(picked.template, {
+              position: [Number(data.x), Number(data.y)],
+              areaId,
+            });
+            showToast(result.message || "Loaded from file.", false);
+            await onStateChanged(result.snapshot);
+          },
+        },
+      ],
+    },
+  );
 }
 
 export { showToast };
