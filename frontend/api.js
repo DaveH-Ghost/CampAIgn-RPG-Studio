@@ -237,6 +237,19 @@ export async function putVisionUnits({ units, units_per_tile }) {
   return data;
 }
 
+export async function putCoordinateMode(mode) {
+  const res = await fetch("/api/coordinate-mode", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 export async function previewPromptBlocks(blocks, agentId) {
   const body = { blocks };
   if (agentId) body.agent_id = agentId;
@@ -361,6 +374,8 @@ export function buildCreateAgent({
   memoryModule,
   memoryOptions = {},
   isPlayer,
+  blocksMovement = true,
+  movementExceptions = "",
   x,
   y,
 }) {
@@ -375,6 +390,15 @@ export function buildCreateAgent({
   }
   if (isPlayer) {
     line += " player true";
+  }
+  if (blocksMovement === false) {
+    line += " blocks-movement false";
+  } else {
+    line += " blocks-movement true";
+  }
+  const exceptions = String(movementExceptions ?? "").trim();
+  if (exceptions) {
+    line += ` movement-exception ${cliQuote(exceptions)}`;
   }
   const moduleId = String(memoryModule ?? "").trim() || "recent_turns";
   if (moduleId !== "recent_turns") {
@@ -462,6 +486,8 @@ export function buildEditAgent({
   appearance,
   moveSpeed,
   isPlayer,
+  blocksMovement,
+  movementExceptions,
   areaId,
   sourceAreaId,
   x,
@@ -482,6 +508,13 @@ export function buildEditAgent({
   }
   if (isPlayer !== undefined) {
     parts.push(`player ${isPlayer ? "true" : "false"}`);
+  }
+  if (blocksMovement !== undefined) {
+    parts.push(`blocks-movement ${blocksMovement ? "true" : "false"}`);
+  }
+  if (blocksMovement !== undefined) {
+    const exceptions = String(movementExceptions ?? "").trim();
+    parts.push(`movement-exception ${cliQuote(exceptions)}`);
   }
   const targetArea = String(areaId ?? "").trim();
   const originArea = String(sourceAreaId ?? "").trim();

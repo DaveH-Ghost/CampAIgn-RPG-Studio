@@ -66,24 +66,42 @@ Use `--no-browser` to skip opening the browser.
 
 - Clone this repo from GitHub (Studio is not on PyPI)
 
-- **`campaign-rpg-engine`** engine from PyPI (`campaign-rpg-engine>=1.0.0` in `pyproject.toml`)
+- Sibling checkout of [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) at `../CampAIgn-RPG-Engine` (editable via `[tool.uv.sources]` in `pyproject.toml`)
 
 - **OpenRouter API key** for LLM turns (area edits work without it)
 
 
 
-## Co-developing with a local engine checkout
+## Development layout
 
-`pyproject.toml` pins **`campaign-rpg-engine>=1.0.0` from PyPI**. To hack on unreleased engine changes on the same machine:
+Clone both repos as siblings (same parent folder):
+
+```
+github/
+  CampAIgn-RPG-Engine/
+  CampAIgn-RPG-Studio/
+```
+
+`pyproject.toml` pins **`campaign-rpg-engine>=1.0.0`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
 
 ```powershell
 cd CampAIgn-RPG-Studio
 uv sync
-uv pip install -e ..\CampAIgn-RPG-Engine
 uv run campaign-rpg-studio
 ```
 
-That editable install overrides PyPI in your local `.venv` only — nothing to commit.
+### Verify against PyPI (release check)
+
+To confirm Studio works with a published wheel only, temporarily remove the `[tool.uv.sources]` block from `pyproject.toml`, then:
+
+```powershell
+Remove-Item -Recurse -Force .venv
+uv lock
+uv sync
+uv run pytest
+```
+
+Restore `[tool.uv.sources]` for day-to-day co-development.
 
 
 

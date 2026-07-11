@@ -35,12 +35,14 @@ from backend.schemas import (
     TurnRequest,
     ManualTurnRequest,
     VisionUnitsRequest,
+    CoordinateModeRequest,
 )
 from backend.session_store import get_session_store
 from backend.snapshot_compat import normalize_state_snapshot
 from backend.turn_runner import run_llm_turn, run_manual_turn
 from backend.version import engine_version, studio_version
 from backend.vision_units_api import put_vision_units as api_put_vision_units
+from backend.coordinate_mode_api import put_coordinate_mode as api_put_coordinate_mode
 from backend.memory_module_upload import (
     load_cached_custom_modules,
     upload_memory_module,
@@ -131,6 +133,13 @@ def create_app() -> FastAPI:
             get_session_store().session,
             units=body.units,
             units_per_tile=body.units_per_tile,
+        )
+
+    @app.put("/api/coordinate-mode")
+    def put_coordinate_mode_route(body: CoordinateModeRequest) -> dict[str, object]:
+        return api_put_coordinate_mode(
+            get_session_store().session,
+            mode=body.mode,
         )
 
     @app.post("/api/command")

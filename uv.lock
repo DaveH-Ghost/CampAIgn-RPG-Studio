@@ -35,22 +35,29 @@ wheels = [
 
 [[package]]
 name = "campaign-rpg-engine"
-version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
+version = "1.0.1"
+source = { editable = "../CampAIgn-RPG-Engine" }
 dependencies = [
     { name = "openai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ca/9b/7c54a808cdc67ed09bc93c5f3f9502e7132f7f38284ff7c74bed58124d16/campaign_rpg_engine-1.0.0.tar.gz", hash = "sha256:a2adb7a0c882bde86559b4162e92dfd6982ae2b56774ebd6c172bd158a7c6776", size = 90278, upload-time = "2026-07-11T02:24:41.103Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8c/31/1a6118a81680f01234a242f8231e3ca47ebf66940c39bc9e859a77836647/campaign_rpg_engine-1.0.0-py3-none-any.whl", hash = "sha256:fbde64bc643303e131d18ff557a2b293c77acc7029176e3b6ffad8f1e367cfa5", size = 124460, upload-time = "2026-07-11T02:24:39.74Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "openai" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "rich" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.0.3" }]
 
 [[package]]
 name = "campaign-rpg-studio"
-version = "1.0.0"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "campaign-rpg-engine" },
@@ -67,7 +74,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "campaign-rpg-engine", specifier = ">=1.0.0" },
+    { name = "campaign-rpg-engine", editable = "../CampAIgn-RPG-Engine" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "python-multipart", specifier = ">=0.0.9" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },

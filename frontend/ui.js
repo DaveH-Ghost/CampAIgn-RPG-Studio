@@ -797,6 +797,7 @@ function openCreateAgentModal(x, y) {
         value: false,
         group: "simulation",
       },
+      ...objectMovementFields({ blocksMovement: true, movementExceptions: "" }),
       {
         name: "appearance",
         label: "Token image path",
@@ -843,6 +844,8 @@ function openCreateAgentModal(x, y) {
         memoryModule: data.memoryModule,
         memoryOptions,
         isPlayer: data.isPlayer,
+        blocksMovement: data.blocksMovement,
+        movementExceptions: data.blocksMovement ? data.movementExceptions : "",
         x,
         y,
       });
@@ -1007,6 +1010,10 @@ function openEditAgentModal(entity, areaId) {
       value: Boolean(entity.is_player),
       group: "simulation",
     },
+    ...objectMovementFields({
+      blocksMovement: entity.blocks_movement === true,
+      movementExceptions: (entity.movement_exceptions || []).join(", "),
+    }),
     {
       name: "memoryModule",
       label: "Memory module (set at creation)",
@@ -1056,6 +1063,8 @@ function openEditAgentModal(entity, areaId) {
       appearance: data.appearance,
       moveSpeed: data.moveSpeed,
       isPlayer: data.isPlayer,
+      blocksMovement: data.blocksMovement,
+      movementExceptions: data.blocksMovement ? data.movementExceptions : "",
       areaId: data.areaId,
       sourceAreaId: resolvedAreaId,
       x: data.x,

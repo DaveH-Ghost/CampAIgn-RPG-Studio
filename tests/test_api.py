@@ -70,6 +70,51 @@ def test_put_vision_units_rejects_invalid_units(client):
     assert response.json()["ok"] is False
 
 
+def test_get_state_includes_coordinate_mode(client):
+    response = client.get("/api/state")
+    data = response.json()
+    assert data.get("coordinate_mode") == "full"
+
+
+def test_put_coordinate_mode_relative_sets_dnd_defaults(client):
+    response = client.put("/api/coordinate-mode", json={"mode": "relative"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert data["coordinate_mode"] == "relative"
+    assert data["vision_units"] == "ft"
+    assert data["vision_units_per_tile"] == 5
+    assert data["snapshot"]["coordinate_mode"] == "relative"
+
+
+def test_relative_coordinate_mode_prompt_preview(client):
+    client.put("/api/coordinate-mode", json={"mode": "relative"})
+    response = client.get("/api/prompt-blocks")
+    assert response.status_code == 200
+    blocks = response.json()["blocks"]
+    grid = next(b for b in blocks if b.get("name") == "grid_description")
+    assert "grid-based world" in grid["preview"]
+    assert "northwest" not in grid["preview"]
+    rules = next(b for b in blocks if b.get("name") == "compound_rules")
+    assert "x,y" not in rules["preview"]
+    output = next(b for b in blocks if b.get("name") == "output_format")
+    assert '"2,3"' not in output["preview"]
+
+
+def test_create_agent_blocks_movement(client):
+    agent = create_agent(
+        name="Guard",
+        position=(1, 1),
+        personality="Stoic.",
+        blocks_movement=True,
+        movement_exceptions=["agent_01"],
+    )
+    state = client.get("/api/state").json()
+    saved = next(a for a in state["agents"] if a["id"] == agent.id)
+    assert saved["blocks_movement"] is True
+    assert saved["movement_exceptions"] == ["agent_01"]
+
+
 def test_health(client):
     response = client.get("/api/health")
     assert response.status_code == 200

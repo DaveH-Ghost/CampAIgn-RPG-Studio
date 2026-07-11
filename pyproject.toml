@@ -1,12 +1,12 @@
 [project]
 name = "campaign-rpg-studio"
-version = "1.0.0"
+version = "1.0.1"
 description = "Reference GM web app for CampAIgn-RPG-Engine — demonstrates the campaign-rpg-engine Python library"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
-    "campaign-rpg-engine>=1.0.0",
+    "campaign-rpg-engine>=1.0.1",
     "fastapi>=0.115.0",
     "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.32.0",
@@ -35,3 +35,8 @@ packages = ["backend"]
 
 [tool.uv]
 package = true
+
+# Local co-development: sibling engine checkout (../CampAIgn-RPG-Engine).
+# Remove this block and re-lock from PyPI to verify Studio against a published wheel.
+[tool.uv.sources]
+campaign-rpg-engine = { path = "../CampAIgn-RPG-Engine", editable = true }

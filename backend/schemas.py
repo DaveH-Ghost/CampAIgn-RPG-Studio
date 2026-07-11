@@ -69,6 +69,10 @@ class VisionUnitsRequest(BaseModel):
     units_per_tile: int | None = Field(default=None, ge=1)
 
 
+class CoordinateModeRequest(BaseModel):
+    mode: str = Field(min_length=1)
+
+
 class LlmSettingsRequest(BaseModel):
     api_key: str | None = None
     model: str | None = None

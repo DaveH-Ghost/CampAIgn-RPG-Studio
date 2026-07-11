@@ -16,6 +16,7 @@ import { initPromptLayout, reloadPromptLayoutIfOpen } from "./promptLayout.js";
 import { initAppTabs, initLorebooks, refreshLorebookList, refreshLorebookScanPanel } from "./lorebooks.js";
 import { initSettings } from "./settings.js";
 import { initVisionUnits, syncVisionUnitsFromSnapshot } from "./visionUnits.js";
+import { initCoordinateMode, syncCoordinateModeFromSnapshot } from "./coordinateMode.js";
 import { initGridViewport, maybeCenterGrid, CELL_SIZE } from "./gridViewport.js";
 import {
   appendTurnLogEntry,
@@ -55,6 +56,7 @@ const snapshotEl = document.getElementById("snapshot");
 const sessionMetaEl = document.getElementById("session-meta");
 const visionUnitsInput = document.getElementById("vision-units-input");
 const visionUnitsPerTileInput = document.getElementById("vision-units-per-tile-input");
+const coordinateModeSelect = document.getElementById("coordinate-mode-select");
 const passiveVisionEl = document.getElementById("passive-vision");
 const passiveVisionEmptyEl = document.getElementById("passive-vision-empty");
 const agentsElsewhereEl = document.getElementById("agents-elsewhere");
@@ -335,6 +337,7 @@ function renderState(data) {
   renderGrid(lastSnapshot);
   renderSessionMeta(lastSnapshot);
   syncVisionUnitsFromSnapshot(lastSnapshot);
+  syncCoordinateModeFromSnapshot(lastSnapshot);
   renderSidebarPanels(lastSnapshot);
   if (activeAreaSelect) renderActiveAreaSelect(activeAreaSelect, lastSnapshot);
   if (activeAgentSelect) renderActiveAgentSelect(activeAgentSelect, lastSnapshot);
@@ -474,6 +477,11 @@ initUi({
 initVisionUnits({
   unitsInputEl: visionUnitsInput,
   unitsPerTileInputEl: visionUnitsPerTileInput,
+  showToastFn: showToast,
+  onUpdatedFn: refreshAfterMutation,
+});
+initCoordinateMode({
+  modeSelectEl: coordinateModeSelect,
   showToastFn: showToast,
   onUpdatedFn: refreshAfterMutation,
 });
