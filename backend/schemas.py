@@ -104,3 +104,40 @@ class EntityTemplateSpawnFromBodyRequest(BaseModel):
     template: dict[str, object]
     position: list[int] = Field(min_length=2, max_length=2)
     area_id: str | None = None
+
+
+class CreateDecorationRequest(BaseModel):
+    kind: str = Field(min_length=1)
+    image: str = Field(min_length=1)
+    area_id: str | None = None
+    x: int = 0
+    y: int = 0
+    width: int = 0
+    height: int = 0
+    z_index: int | None = None
+    repeat: str = "repeat"
+    decoration_id: str | None = None
+    label: str = "decor"
+
+
+class UpdateDecorationRequest(BaseModel):
+    decoration_id: str = Field(min_length=1)
+    area_id: str | None = None
+    image: str | None = None
+    x: int | None = None
+    y: int | None = None
+    width: int | None = None
+    height: int | None = None
+    z_index: int | None = None
+    repeat: str | None = None
+
+
+class DeleteDecorationRequest(BaseModel):
+    decoration_id: str = Field(min_length=1)
+    area_id: str | None = None
+
+
+class ReorderDecorationRequest(BaseModel):
+    decoration_id: str = Field(min_length=1)
+    direction: str = Field(min_length=1)
+    area_id: str | None = None

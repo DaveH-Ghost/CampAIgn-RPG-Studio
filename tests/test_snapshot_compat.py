@@ -24,6 +24,8 @@ def test_normalize_multi_area_snapshot():
     norm = normalize_state_snapshot(raw)
     assert isinstance(norm["areas"]["hall"]["objects"], list)
     assert norm["areas"]["hall"]["objects"] == []
+    assert isinstance(norm["areas"]["hall"]["decorations"], list)
+    assert norm["areas"]["hall"]["decorations"] == []
     assert "grid" not in norm
 
 

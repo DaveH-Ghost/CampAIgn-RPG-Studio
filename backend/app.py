@@ -19,6 +19,13 @@ from backend.entity_private_data_api import put_entity_private_data
 from backend.area_api import create_area as api_create_area
 from backend.area_api import delete_area as api_delete_area
 from backend.area_api import edit_area as api_edit_area
+from backend.decorations_api import (
+    create_decoration as api_create_decoration,
+    delete_decoration as api_delete_decoration,
+    reorder_decoration as api_reorder_decoration,
+    update_decoration as api_update_decoration,
+)
+from backend.decoration_assets_api import upload_decoration_asset
 from backend.command_dispatch import dispatch_command
 from backend.entity_templates_api import (
     delete_entity_template,
@@ -36,7 +43,9 @@ from backend.schemas import (
     ActiveAreaRequest,
     CommandRequest,
     CreateAreaRequest,
+    CreateDecorationRequest,
     DeleteAreaRequest,
+    DeleteDecorationRequest,
     EditAreaRequest,
     EntityPrivateDataRequest,
     EntityTemplateImportRequest,
@@ -47,8 +56,10 @@ from backend.schemas import (
     LlmSettingsRequest,
     PromptBlocksPreviewRequest,
     PromptBlocksRequest,
+    ReorderDecorationRequest,
     TurnRequest,
     ManualTurnRequest,
+    UpdateDecorationRequest,
     VisionUnitsRequest,
     CoordinateModeRequest,
 )
@@ -223,6 +234,81 @@ def create_app() -> FastAPI:
         """Delete an empty area."""
         session = get_session_store().session
         return api_delete_area(session, area_id=body.area_id.strip().lower())
+
+    @app.post("/api/decorations")
+    def post_create_decoration(body: CreateDecorationRequest) -> dict[str, object]:
+        session = get_session_store().session
+        result = api_create_decoration(
+            session,
+            kind=body.kind,
+            image=body.image,
+            area_id=body.area_id,
+            x=body.x,
+            y=body.y,
+            width=body.width,
+            height=body.height,
+            z_index=body.z_index,
+            repeat=body.repeat,
+            decoration_id=body.decoration_id,
+            label=body.label,
+        )
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Create failed"))
+        return result
+
+    @app.put("/api/decorations")
+    def put_update_decoration(body: UpdateDecorationRequest) -> dict[str, object]:
+        session = get_session_store().session
+        result = api_update_decoration(
+            session,
+            decoration_id=body.decoration_id,
+            area_id=body.area_id,
+            image=body.image,
+            x=body.x,
+            y=body.y,
+            width=body.width,
+            height=body.height,
+            z_index=body.z_index,
+            repeat=body.repeat,
+        )
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Update failed"))
+        return result
+
+    @app.delete("/api/decorations")
+    def delete_decoration_route(body: DeleteDecorationRequest) -> dict[str, object]:
+        session = get_session_store().session
+        result = api_delete_decoration(
+            session,
+            decoration_id=body.decoration_id,
+            area_id=body.area_id,
+        )
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Delete failed"))
+        return result
+
+    @app.post("/api/decorations/reorder")
+    def post_reorder_decoration(body: ReorderDecorationRequest) -> dict[str, object]:
+        session = get_session_store().session
+        result = api_reorder_decoration(
+            session,
+            decoration_id=body.decoration_id,
+            direction=body.direction,
+            area_id=body.area_id,
+        )
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Reorder failed"))
+        return result
+
+    @app.post("/api/decoration-assets/upload")
+    async def upload_decoration_asset_route(file: UploadFile = File(...)) -> dict[str, object]:
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="Missing filename.")
+        raw = await file.read()
+        try:
+            return upload_decoration_asset(data=raw, filename=file.filename)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/api/active-agent")
     def post_active_agent(body: ActiveAgentRequest) -> dict[str, object]:

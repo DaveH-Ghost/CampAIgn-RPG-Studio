@@ -20,7 +20,7 @@
 
     <h1>CampAIgn RPG Studio</h1>
 
-    <p class="subtitle" id="app-subtitle">V1.2.2 — CampAIgn RPG Studio</p>
+    <p class="subtitle" id="app-subtitle">V1.3.0 — CampAIgn RPG Studio</p>
 
     <label class="active-area-label">
 
@@ -193,9 +193,15 @@
 
       <div id="grid-viewport" class="grid-viewport" title="Middle-click drag to pan">
 
+        <div id="grid-viewport-background" class="grid-viewport-background" aria-hidden="true"></div>
+
         <div id="grid-world" class="grid-world">
 
           <div id="grid" class="grid"></div>
+
+          <div id="grid-sprites" class="grid-sprites" aria-hidden="true"></div>
+
+          <div id="grid-lines" class="grid-lines" aria-hidden="true"></div>
 
           <div id="grid-overlay" class="grid-overlay" aria-hidden="true"></div>
 
@@ -246,6 +252,92 @@
         </dd>
 
       </dl>
+
+
+
+      <section class="sidebar-section scene-decorations-section" aria-label="Scene decorations">
+
+        <div class="scene-decorations-header">
+          <h2>Scene decorations</h2>
+          <button type="button" id="edit-scene-toggle" class="area-manage-btn scene-edit-toggle" aria-pressed="false" title="Toggle scene decoration editing">Edit scene</button>
+        </div>
+
+        <div id="scene-decorations-panel" class="scene-decorations-body hidden">
+
+        <p class="scene-decorations-hint">Visual-only layers — not visible to agents. Drag sprites on the grid, or browse for images (saved to <code>frontend/assets/</code>).</p>
+
+        <input type="file" id="decoration-image-upload-input" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,.png,.jpg,.jpeg,.gif,.webp,.svg" hidden />
+
+        <div class="scene-decorations-actions">
+          <button type="button" id="scene-add-sprite" class="area-manage-btn">+ Sprite</button>
+          <button type="button" id="scene-add-background" class="area-manage-btn">+ Background</button>
+        </div>
+
+        <p id="scene-decorations-empty" class="panel-empty hidden">No decorations in this area.</p>
+
+        <ul id="scene-decorations-list" class="scene-decorations-list"></ul>
+
+        <div id="scene-decoration-detail" class="scene-decoration-detail hidden">
+
+          <label class="scene-decoration-field">
+            <span>Image</span>
+            <div class="scene-decoration-image-row">
+              <input type="text" id="scene-decoration-image" class="session-meta-input" autocomplete="off" spellcheck="false" placeholder="assets/example.png" />
+              <button type="button" id="scene-decoration-browse" class="area-manage-btn">Browse…</button>
+            </div>
+          </label>
+
+          <div id="scene-decoration-background-fields">
+            <label class="scene-decoration-field">
+              <span>Repeat</span>
+              <select id="scene-decoration-repeat" class="session-meta-input">
+                <option value="repeat">repeat</option>
+                <option value="repeat-x">repeat-x</option>
+                <option value="repeat-y">repeat-y</option>
+                <option value="no-repeat">no-repeat</option>
+              </select>
+            </label>
+            <label class="scene-decoration-field">
+              <span>Tile width (px)</span>
+              <input type="text" id="scene-decoration-bg-width" class="session-meta-input" inputmode="numeric" placeholder="auto" />
+            </label>
+            <label class="scene-decoration-field">
+              <span>Tile height (px)</span>
+              <input type="text" id="scene-decoration-bg-height" class="session-meta-input" inputmode="numeric" placeholder="auto" />
+            </label>
+          </div>
+
+          <div id="scene-decoration-sprite-fields">
+            <label class="scene-decoration-field">
+              <span>X (px)</span>
+              <input type="text" id="scene-decoration-x" class="session-meta-input" inputmode="numeric" />
+            </label>
+            <label class="scene-decoration-field">
+              <span>Y (px)</span>
+              <input type="text" id="scene-decoration-y" class="session-meta-input" inputmode="numeric" />
+            </label>
+            <label class="scene-decoration-field">
+              <span>Width (px)</span>
+              <input type="text" id="scene-decoration-width" class="session-meta-input" inputmode="numeric" />
+            </label>
+            <label class="scene-decoration-field">
+              <span>Height (px)</span>
+              <input type="text" id="scene-decoration-height" class="session-meta-input" inputmode="numeric" />
+            </label>
+          </div>
+
+          <div class="scene-decoration-detail-actions">
+            <button type="button" id="scene-decoration-up" class="area-manage-btn" title="Move up">↑</button>
+            <button type="button" id="scene-decoration-down" class="area-manage-btn" title="Move down">↓</button>
+            <button type="button" id="scene-decoration-apply" class="area-manage-btn">Apply</button>
+            <button type="button" id="scene-decoration-delete" class="area-manage-btn danger">Delete</button>
+          </div>
+
+        </div>
+
+        </div>
+
+      </section>
 
 
 

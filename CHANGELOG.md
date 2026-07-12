@@ -4,6 +4,20 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.3.0
+
+**Requires:** `campaign-rpg-engine>=1.3.0`
+
+### Scene decorations
+
+- Per-area **background** and **sprite** layers stored in engine snapshots (`decorations[]`, `snapshot_version` 5).
+- Render stack: black viewport → background repeat → white grid → sprites by `z_index` → dashed grid lines → entity tokens.
+- **Edit scene** toggle on Main tab — list panel, add/remove, move up/down, drag sprites, edit geometry.
+- REST: `POST/PUT/DELETE /api/decorations`, `POST /api/decorations/reorder`.
+- Decoration images under `frontend/assets/` (paths like `assets/floor.png`).
+
+---
+
 ## 1.2.2
 
 **Requires:** `campaign-rpg-engine>=1.2.1`

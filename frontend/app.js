@@ -27,6 +27,7 @@ import {
 } from "./playerTurnPanel.js";
 import { initVisionUnits, syncVisionUnitsFromSnapshot } from "./visionUnits.js";
 import { initCoordinateMode, syncCoordinateModeFromSnapshot } from "./coordinateMode.js";
+import { initDecorations, renderSceneDecorations } from "./decorations.js";
 import { initGridViewport, maybeCenterGrid, CELL_SIZE } from "./gridViewport.js";
 import {
   appendTurnLogEntry,
@@ -62,6 +63,9 @@ const statusEl = document.getElementById("status");
 const gridViewportEl = document.getElementById("grid-viewport");
 const gridWorldEl = document.getElementById("grid-world");
 const gridEl = document.getElementById("grid");
+const gridViewportBackgroundEl = document.getElementById("grid-viewport-background");
+const gridSpritesEl = document.getElementById("grid-sprites");
+const gridLinesEl = document.getElementById("grid-lines");
 const gridOverlayEl = document.getElementById("grid-overlay");
 const snapshotEl = document.getElementById("snapshot");
 const sessionMetaEl = document.getElementById("session-meta");
@@ -276,6 +280,9 @@ function renderGrid(data) {
   if (!grid) {
     gridEl.innerHTML = "";
     if (gridOverlayEl) gridOverlayEl.innerHTML = "";
+    if (gridViewportBackgroundEl) gridViewportBackgroundEl.innerHTML = "";
+    if (gridSpritesEl) gridSpritesEl.innerHTML = "";
+    if (gridLinesEl) gridLinesEl.innerHTML = "";
     gridEl.classList.add("grid-empty");
     return;
   }
@@ -289,11 +296,15 @@ function renderGrid(data) {
 
   gridEl.style.setProperty("--grid-cols", String(width));
   gridEl.style.setProperty("--grid-rows", String(height));
+  const pixelWidth = width * CELL_SIZE;
+  const pixelHeight = height * CELL_SIZE;
+  gridEl.style.width = `${pixelWidth}px`;
+  gridEl.style.height = `${pixelHeight}px`;
   gridEl.innerHTML = "";
   if (gridOverlayEl) {
     gridOverlayEl.innerHTML = "";
-    gridOverlayEl.style.width = `${width * CELL_SIZE}px`;
-    gridOverlayEl.style.height = `${height * CELL_SIZE}px`;
+    gridOverlayEl.style.width = `${pixelWidth}px`;
+    gridOverlayEl.style.height = `${pixelHeight}px`;
   }
 
   for (let y = grid.min_y; y <= grid.max_y; y++) {
@@ -325,6 +336,13 @@ function renderGrid(data) {
       );
     }
   }
+
+  renderSceneDecorations(view, {
+    gridViewportBackgroundEl,
+    gridSpritesEl,
+    gridLinesEl,
+    gridEl,
+  });
 
   maybeCenterGrid(gridEl);
 }
@@ -573,6 +591,16 @@ initCoordinateMode({
   showToastFn: showToast,
   onUpdatedFn: refreshAfterMutation,
 });
+initDecorations({
+  refreshState: (snapshot) => {
+    if (snapshot) {
+      renderState(snapshot);
+    } else {
+      void fetchState();
+    }
+  },
+  getSnapshot: () => lastSnapshot,
+});
 initSettings({ showToastFn: showToast });
 initAppTabs();
 initLorebooks({
@@ -695,7 +723,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.2.2";
+    const studioVersion = health.version || "1.3.0";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

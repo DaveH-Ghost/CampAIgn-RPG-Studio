@@ -52,6 +52,8 @@ def _ensure_area_arrays(data: dict[str, Any]) -> dict[str, Any]:
         block = dict(area) if isinstance(area, dict) else {}
         if not isinstance(block.get("objects"), list):
             block["objects"] = []
+        if not isinstance(block.get("decorations"), list):
+            block["decorations"] = []
         if not isinstance(block.get("recent_events"), list):
             block["recent_events"] = []
         fixed_areas[area_id] = block

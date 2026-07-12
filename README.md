@@ -2,7 +2,7 @@
 
 
 
-**CampAIgn RPG Studio 1.2.2** — reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.2.1`).
+**CampAIgn RPG Studio 1.3.0** — reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.3.0`).
 
 
 
@@ -82,7 +82,7 @@ github/
   CampAIgn-RPG-Studio/
 ```
 
-`pyproject.toml` pins **`campaign-rpg-engine>=1.2.1`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
+`pyproject.toml` pins **`campaign-rpg-engine>=1.3.0`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
 
 ```powershell
 cd CampAIgn-RPG-Studio

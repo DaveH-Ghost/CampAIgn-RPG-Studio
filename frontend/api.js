@@ -1055,3 +1055,74 @@ export async function uploadLorebook(file) {
   }
   return data;
 }
+
+export async function postCreateDecoration(body) {
+  const res = await fetch("/api/decorations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const detail = data.detail || data.message || `HTTP ${res.status}`;
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+  return data;
+}
+
+export async function updateDecoration(body) {
+  const res = await fetch("/api/decorations", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const detail = data.detail || data.message || `HTTP ${res.status}`;
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+  return data;
+}
+
+export async function deleteDecoration(body) {
+  const res = await fetch("/api/decorations", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const detail = data.detail || data.message || `HTTP ${res.status}`;
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+  return data;
+}
+
+export async function reorderDecoration(body) {
+  const res = await fetch("/api/decorations/reorder", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const detail = data.detail || data.message || `HTTP ${res.status}`;
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+  return data;
+}
+
+export async function uploadDecorationAsset(file) {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const res = await fetch("/api/decoration-assets/upload", {
+    method: "POST",
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const detail = data.detail || data.message || `HTTP ${res.status}`;
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+  return data;
+}

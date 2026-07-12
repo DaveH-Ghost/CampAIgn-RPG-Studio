@@ -15,12 +15,14 @@ function normalizeAreaBlock(area) {
       grid: null,
       area_description: "",
       objects: [],
+      decorations: [],
       recent_events: [],
     };
   }
   return {
     ...area,
     objects: asArray(area.objects),
+    decorations: asArray(area.decorations),
     recent_events: asArray(area.recent_events),
   };
 }
@@ -101,6 +103,7 @@ export function activeAreaView(snapshot) {
     grid: block.grid,
     area_description: block.area_description ?? "",
     objects: block.objects,
+    decorations: block.decorations,
     agents: agentsHere,
     recent_events: block.recent_events,
   };

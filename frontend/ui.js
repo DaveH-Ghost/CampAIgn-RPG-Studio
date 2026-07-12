@@ -2,6 +2,7 @@
  * Context menu, modals, toast (V0.3.1c).
  */
 
+import { isSceneEditMode } from "./decorations.js";
 import {
   buildCompoundTurnPayload,
   buildCreateAgent,
@@ -114,6 +115,9 @@ function tileCoordsFromContextEvent(e) {
 export function bindGridContextMenu(gridEl) {
   gridEl.addEventListener("contextmenu", (e) => {
     e.preventDefault();
+    if (isSceneEditMode()) {
+      return;
+    }
     hideMenu();
 
     const coords = tileCoordsFromContextEvent(e);
