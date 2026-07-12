@@ -106,6 +106,29 @@ class EntityTemplateSpawnFromBodyRequest(BaseModel):
     area_id: str | None = None
 
 
+class AreaTemplateSaveRequest(BaseModel):
+    area_id: str = Field(min_length=1)
+    filename: str = Field(min_length=1)
+    name: str | None = None
+    include_hidden_objects: bool = True
+
+
+class AreaTemplateSpawnRequest(BaseModel):
+    area_id: str = Field(min_length=1)
+    mode: str = "new"
+
+
+class AreaTemplateImportRequest(BaseModel):
+    filename: str = Field(min_length=1)
+    template: dict[str, object]
+
+
+class AreaTemplateSpawnFromBodyRequest(BaseModel):
+    template: dict[str, object]
+    area_id: str = Field(min_length=1)
+    mode: str = "new"
+
+
 class CreateDecorationRequest(BaseModel):
     kind: str = Field(min_length=1)
     image: str = Field(min_length=1)

@@ -4,6 +4,23 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.3.1
+
+**Requires:** `campaign-rpg-engine>=1.3.1`
+
+### Area templates
+
+- Save/load whole areas as reusable blueprints in `area_templates/` (`kind: "area"`).
+- Includes grid bounds, decorations, and objects (optional toggle for hidden objects). Agents are not saved.
+- REST: `POST/GET/DELETE /api/area-templates`, save-from-area, spawn (`mode: new|replace`), import/download.
+- Header **Save area…** / **Load area…** buttons; Templates tab **Area templates** section.
+
+### Assets
+
+- Decoration uploads under `frontend/assets/` are gitignored (local only).
+
+---
+
 ## 1.3.0
 
 **Requires:** `campaign-rpg-engine>=1.3.0`

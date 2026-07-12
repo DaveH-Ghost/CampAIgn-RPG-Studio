@@ -1,0 +1,63 @@
+{
+  "template_version": 1,
+  "kind": "area",
+  "name": "room",
+  "area_description": "You are in a small room with a hardwood floor and four wooden walls.",
+  "grid": {
+    "min_x": 0,
+    "min_y": 0,
+    "max_x": 4,
+    "max_y": 4
+  },
+  "include_hidden_objects": true,
+  "decorations": [],
+  "objects": [
+    {
+      "template_version": 1,
+      "kind": "object",
+      "name": "Ceramic Ball",
+      "description": "A slightly worn ceramic ball. It has a few scuffs and feels light.",
+      "passive_description": "",
+      "appearance": "tokens/ball.svg",
+      "width": 1,
+      "height": 1,
+      "blocks_movement": true,
+      "movement_exceptions": [],
+      "hidden": false,
+      "private_data": "",
+      "actions_detail": {
+        "kick": {
+          "range": 1,
+          "result": "You kick the {object}. It rolls from {object_start} to {object_end}.",
+          "passive_result": "{actor} kicks the {object}. It rolls from {object_start} to {object_end}.",
+          "handler_id": "random_move_self",
+          "handler_params": {},
+          "kind": "interact"
+        }
+      },
+      "position": [
+        2,
+        2
+      ]
+    },
+    {
+      "template_version": 1,
+      "kind": "object",
+      "name": "Wooden Sign",
+      "description": "It reads: \"This room is a test environment. Please interact with the world to make it more interesting.\"",
+      "passive_description": "A simple wooden sign on the wall.",
+      "appearance": "tokens/sign.svg",
+      "width": 1,
+      "height": 1,
+      "blocks_movement": true,
+      "movement_exceptions": [],
+      "hidden": false,
+      "private_data": "",
+      "actions_detail": {},
+      "position": [
+        2,
+        4
+      ]
+    }
+  ]
+}

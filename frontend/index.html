@@ -20,7 +20,7 @@
 
     <h1>CampAIgn RPG Studio</h1>
 
-    <p class="subtitle" id="app-subtitle">V1.3.0 — CampAIgn RPG Studio</p>
+    <p class="subtitle" id="app-subtitle">V1.3.1 — CampAIgn RPG Studio</p>
 
     <label class="active-area-label">
 
@@ -33,6 +33,10 @@
     <button type="button" id="create-area" class="area-manage-btn" title="Create a new area">+ Area</button>
 
     <button type="button" id="edit-area" class="area-manage-btn" title="Edit the active area">Edit area</button>
+
+    <button type="button" id="save-area-template" class="area-manage-btn" title="Save the active area as a reusable template">Save area…</button>
+
+    <button type="button" id="load-area-template" class="area-manage-btn" title="Load an area template into a new or existing area">Load area…</button>
 
     <button type="button" id="delete-area" class="area-manage-btn" title="Delete the active area (must be empty)">Delete area</button>
 
@@ -545,6 +549,19 @@
         </div>
         <p id="templates-list-empty" class="panel-empty">No templates saved yet.</p>
         <ul id="templates-list" class="templates-list hidden"></ul>
+      </header>
+    </section>
+    <section class="templates-panel" aria-label="Area templates">
+      <header class="templates-header">
+        <h2>Area templates</h2>
+        <p class="templates-hint">Whole-area blueprints in <code>area_templates/</code> — grid bounds, decorations, and objects (agents are not saved). Use <strong>Save area…</strong> / <strong>Load area…</strong> in the header, or the buttons below.</p>
+        <div class="templates-toolbar">
+          <input type="file" id="area-template-upload-input" accept=".json,application/json" hidden />
+          <button type="button" id="area-template-upload-btn" class="settings-action-btn">Import JSON file</button>
+          <button type="button" id="area-template-save-btn" class="settings-action-btn">Save current area…</button>
+        </div>
+        <p id="area-templates-list-empty" class="panel-empty">No area templates saved yet.</p>
+        <ul id="area-templates-list" class="templates-list hidden"></ul>
       </header>
     </section>
   </div>

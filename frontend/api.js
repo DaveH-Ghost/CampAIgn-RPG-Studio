@@ -914,6 +914,146 @@ export async function importEntityTemplate({ filename, template }) {
   return data;
 }
 
+export async function fetchAreaTemplates() {
+  const res = await fetch("/api/area-templates");
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.message || `GET /api/area-templates failed: HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function postSaveAreaTemplate({
+  areaId,
+  filename,
+  name = null,
+  includeHiddenObjects = true,
+}) {
+  const res = await fetch("/api/area-templates/save-from-area", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      area_id: areaId,
+      filename,
+      name,
+      include_hidden_objects: includeHiddenObjects,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function downloadAreaTemplateFromArea({
+  areaId,
+  filename,
+  name = null,
+  includeHiddenObjects = true,
+}) {
+  const res = await fetch("/api/area-templates/export-from-area", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      area_id: areaId,
+      filename,
+      name,
+      include_hidden_objects: includeHiddenObjects,
+    }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("content-disposition") || "";
+  const match = disposition.match(/filename="([^"]+)"/);
+  const resolvedName = match?.[1] || filename;
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = resolvedName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  return { filename: resolvedName };
+}
+
+export async function downloadAreaTemplateFile(templateId) {
+  const res = await fetch(
+    `/api/area-templates/${encodeURIComponent(templateId)}/download`,
+  );
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("content-disposition") || "";
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match?.[1] || `${templateId}.json`;
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  return { filename };
+}
+
+export async function postSpawnAreaFromTemplate(template, { areaId, mode = "new" }) {
+  const res = await fetch("/api/area-templates/spawn-from-template", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ template, area_id: areaId, mode }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function postSpawnAreaTemplate(templateId, { areaId, mode = "new" }) {
+  const res = await fetch(
+    `/api/area-templates/${encodeURIComponent(templateId)}/spawn`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ area_id: areaId, mode }),
+    },
+  );
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function deleteAreaTemplate(templateId) {
+  const res = await fetch(
+    `/api/area-templates/${encodeURIComponent(templateId)}`,
+    { method: "DELETE" },
+  );
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function importAreaTemplate({ filename, template }) {
+  const res = await fetch("/api/area-templates/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename, template }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 export async function uploadPlugin(file) {
   const form = new FormData();
   form.append("file", file, file.name);

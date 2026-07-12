@@ -105,6 +105,8 @@ const responseDebugEl = document.getElementById("response-debug");
 const activeAreaSelect = document.getElementById("active-area-select");
 const createAreaBtn = document.getElementById("create-area");
 const editAreaBtn = document.getElementById("edit-area");
+const saveAreaTemplateBtn = document.getElementById("save-area-template");
+const loadAreaTemplateBtn = document.getElementById("load-area-template");
 const deleteAreaBtn = document.getElementById("delete-area");
 const activeAgentSelect = document.getElementById("active-agent-select");
 const runTurnBtn = document.getElementById("run-turn");
@@ -628,6 +630,8 @@ bindAreaManageButtons({
   createBtn: createAreaBtn,
   editBtn: editAreaBtn,
   deleteBtn: deleteAreaBtn,
+  saveAreaBtn: saveAreaTemplateBtn,
+  loadAreaBtn: loadAreaTemplateBtn,
 });
 bindEmitEventButton(emitEventBtn);
 bindPromptDebug(promptDebugEl, lastPromptEl, lastPromptEmptyEl, () => getPrompt());
@@ -723,7 +727,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.3.0";
+    const studioVersion = health.version || "1.3.1";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

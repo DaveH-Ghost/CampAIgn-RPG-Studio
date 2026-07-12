@@ -28,6 +28,11 @@ import {
   postSaveEntityTemplate,
   postSpawnEntityFromTemplate,
   postSpawnEntityTemplate,
+  fetchAreaTemplates,
+  downloadAreaTemplateFromArea,
+  postSaveAreaTemplate,
+  postSpawnAreaFromTemplate,
+  postSpawnAreaTemplate,
 } from "./api.js";
 import { activeAreaView, asArray, DEFAULT_AREA_ID, normalizeSnapshot, objectOccupiesTile } from "./snapshot.js";
 import { CELL_SIZE } from "./gridViewport.js";
@@ -1401,10 +1406,12 @@ export async function openDeleteAreaModal() {
   }
 }
 
-export function bindAreaManageButtons({ createBtn, editBtn, deleteBtn }) {
+export function bindAreaManageButtons({ createBtn, editBtn, deleteBtn, saveAreaBtn, loadAreaBtn }) {
   if (createBtn) createBtn.addEventListener("click", () => openCreateAreaModal());
   if (editBtn) editBtn.addEventListener("click", () => openEditAreaModal());
   if (deleteBtn) deleteBtn.addEventListener("click", () => openDeleteAreaModal());
+  if (saveAreaBtn) saveAreaBtn.addEventListener("click", () => openSaveAreaTemplateModal());
+  if (loadAreaBtn) loadAreaBtn.addEventListener("click", () => openLoadAreaTemplateModal());
 }
 
 function slugifyTemplateFilename(name) {
@@ -1579,6 +1586,204 @@ async function openLoadEntityModal(tileX, tileY) {
               areaId,
             });
             showToast(result.message || "Loaded from file.", false);
+            await onStateChanged(result.snapshot);
+          },
+        },
+      ],
+    },
+  );
+}
+
+export function openSaveAreaTemplateModal() {
+  const snap = normalizeSnapshot(getSnapshot());
+  const areaId = snap?.active_area_id;
+  if (!areaId) {
+    showToast("No active area selected.", true);
+    return;
+  }
+  const defaultName = `${slugifyTemplateFilename(areaId)}.json`;
+  openModal(
+    "Save area as template",
+    [
+      {
+        name: "filename",
+        label: "Filename",
+        value: defaultName,
+        required: true,
+        group: "basic",
+      },
+      {
+        name: "name",
+        label: "Template name",
+        value: areaId,
+        required: true,
+        group: "basic",
+      },
+      {
+        name: "includeHiddenObjects",
+        label: "Include hidden objects",
+        type: "checkbox",
+        value: true,
+        group: "basic",
+      },
+      {
+        type: "context",
+        text: "Area templates include grid bounds, decorations, and objects with positions. Agents are not saved. Entity ids are regenerated on load.",
+        group: "basic",
+      },
+    ],
+    null,
+    {
+      actions: [
+        {
+          label: "Save as template",
+          onSubmit: async (data) => {
+            const result = await postSaveAreaTemplate({
+              areaId,
+              filename: data.filename,
+              name: data.name,
+              includeHiddenObjects: Boolean(data.includeHiddenObjects),
+            });
+            showToast(result.message || "Area template saved.", false);
+            const { refreshTemplatesList } = await import("./templates.js");
+            await refreshTemplatesList();
+          },
+        },
+        {
+          label: "Save as file",
+          onSubmit: async (data) => {
+            const { filename } = await downloadAreaTemplateFromArea({
+              areaId,
+              filename: data.filename,
+              name: data.name,
+              includeHiddenObjects: Boolean(data.includeHiddenObjects),
+            });
+            showToast(`Saved ${filename}`, false);
+          },
+        },
+      ],
+    },
+  );
+}
+
+export async function openLoadAreaTemplateModal() {
+  let templates = [];
+  try {
+    const data = await fetchAreaTemplates();
+    templates = data.templates || [];
+  } catch (err) {
+    showToast(String(err.message || err), true);
+    return;
+  }
+
+  const snap = normalizeSnapshot(getSnapshot());
+  const activeAreaId = snap?.active_area_id ?? DEFAULT_AREA_ID;
+  const templateOptions = templates.length
+    ? templates.map((item) => ({
+        value: item.id,
+        label: `${item.name} (${item.grid_width ?? "?"}×${item.grid_height ?? "?"})`,
+      }))
+    : [{ value: "", label: "No area templates saved", disabled: true }];
+
+  openModal(
+    "Load area template",
+    [
+      {
+        name: "templateId",
+        label: "Studio template",
+        type: "select",
+        value: templates[0]?.id ?? "",
+        options: templateOptions,
+        group: "basic",
+      },
+      {
+        name: "mode",
+        label: "Load mode",
+        type: "select",
+        value: "new",
+        options: [
+          { value: "new", label: "Create new area" },
+          { value: "replace", label: "Replace current area contents" },
+        ],
+        group: "basic",
+      },
+      {
+        name: "areaId",
+        label: "Target area id",
+        value: "new_area",
+        required: true,
+        group: "basic",
+      },
+      {
+        type: "context",
+        text: "Replace mode overwrites decorations and objects in the target area. Agents in that area are kept. Confirm before loading.",
+        group: "basic",
+      },
+    ],
+    null,
+    {
+      actions: [
+        {
+          label: "Load from template",
+          onSubmit: async (data) => {
+            if (!data.templateId) {
+              throw new Error("No area templates saved yet. Use Save area… first.");
+            }
+            const mode = data.mode === "replace" ? "replace" : "new";
+            const targetAreaId =
+              mode === "replace"
+                ? activeAreaId
+                : String(data.areaId || "").trim().toLowerCase();
+            if (!targetAreaId) {
+              throw new Error("Target area id is required.");
+            }
+            if (
+              mode === "replace" &&
+              !window.confirm(
+                `Replace all contents of area "${targetAreaId}" with this template?`,
+              )
+            ) {
+              return false;
+            }
+            const result = await postSpawnAreaTemplate(data.templateId, {
+              areaId: targetAreaId,
+              mode,
+            });
+            showToast(result.message || "Area template loaded.", false);
+            await onStateChanged(result.snapshot);
+          },
+        },
+        {
+          label: "Load from file",
+          onSubmit: async (data) => {
+            let picked;
+            try {
+              picked = await pickJsonFile();
+            } catch {
+              throw new Error("Invalid JSON file.");
+            }
+            if (!picked) return false;
+            const mode = data.mode === "replace" ? "replace" : "new";
+            const targetAreaId =
+              mode === "replace"
+                ? activeAreaId
+                : String(data.areaId || "").trim().toLowerCase();
+            if (!targetAreaId) {
+              throw new Error("Target area id is required.");
+            }
+            if (
+              mode === "replace" &&
+              !window.confirm(
+                `Replace all contents of area "${targetAreaId}" with this template?`,
+              )
+            ) {
+              return false;
+            }
+            const result = await postSpawnAreaFromTemplate(picked.template, {
+              areaId: targetAreaId,
+              mode,
+            });
+            showToast(result.message || "Area template loaded.", false);
             await onStateChanged(result.snapshot);
           },
         },

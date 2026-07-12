@@ -22,6 +22,10 @@ htmlcov/
 # Studio runtime
 .wheel-smoke-venv/
 
+# Scene decoration uploads (local only — keep README)
+frontend/assets/*
+!frontend/assets/README.md
+
 # IDEs & OS
 .idea/
 .vscode/
