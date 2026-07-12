@@ -158,3 +158,24 @@ def test_spawn_from_template_file_body(client):
     assert body["ok"] is True
     assert body["entity_id"] != obj.id
     assert get_session().area.get_object_by_id(body["entity_id"]) is not None
+
+
+def test_import_entity_template_file(client):
+    obj = create_object(name="Barrel", position=(0, 0), passive_description=".")
+    exported = client.post(
+        "/api/entity-templates/export-from-entity",
+        json={"kind": "object", "entity_id": obj.id, "filename": "barrel.json"},
+    ).json()
+    imported = client.post(
+        "/api/entity-templates/import",
+        json={"filename": "barrel.json", "template": exported},
+    )
+    assert imported.status_code == 200
+    assert imported.json()["ok"] is True
+
+    listed = client.get("/api/entity-templates").json()
+    assert any(t["id"] == "barrel" for t in listed["templates"])
+
+    deleted = client.delete("/api/entity-templates/barrel")
+    assert deleted.status_code == 200
+    assert deleted.json()["ok"] is True

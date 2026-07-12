@@ -1,9 +1,10 @@
-/** App tab switching (Main / Lorebooks / Plugins). */
+/** App tab switching (Main / Lorebooks / Templates / Plugins). */
 
-const TAB_IDS = ["main", "lorebooks", "plugins"];
+const TAB_IDS = ["main", "lorebooks", "templates", "plugins"];
 
 let onTabShow = {
   lorebooks: null,
+  templates: null,
   plugins: null,
 };
 

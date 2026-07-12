@@ -889,6 +889,31 @@ export async function postSpawnEntityTemplate(templateId, { position, areaId = n
   return data;
 }
 
+export async function deleteEntityTemplate(templateId) {
+  const res = await fetch(
+    `/api/entity-templates/${encodeURIComponent(templateId)}`,
+    { method: "DELETE" },
+  );
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function importEntityTemplate({ filename, template }) {
+  const res = await fetch("/api/entity-templates/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename, template }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 export async function uploadPlugin(file) {
   const form = new FormData();
   form.append("file", file, file.name);

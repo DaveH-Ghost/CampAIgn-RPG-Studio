@@ -20,7 +20,7 @@
 
     <h1>CampAIgn RPG Studio</h1>
 
-    <p class="subtitle" id="app-subtitle">V1.2.1 — CampAIgn RPG Engine</p>
+    <p class="subtitle" id="app-subtitle">V1.2.2 — CampAIgn RPG Studio</p>
 
     <label class="active-area-label">
 
@@ -82,6 +82,7 @@
   <nav class="app-tabs" role="tablist" aria-label="campaign-rpg-studio views">
     <button type="button" id="tab-main" class="app-tab active" role="tab" aria-selected="true">Main</button>
     <button type="button" id="tab-lorebooks" class="app-tab" role="tab" aria-selected="false">Lorebooks</button>
+    <button type="button" id="tab-templates" class="app-tab" role="tab" aria-selected="false">Templates</button>
     <button type="button" id="tab-plugins" class="app-tab" role="tab" aria-selected="false">Plugins</button>
   </nav>
 
@@ -438,6 +439,21 @@
         <ul id="lorebook-scan-sources" class="lorebook-scan-sources"></ul>
       </aside>
       </div>
+    </section>
+  </div>
+
+  <div id="templates-tab-panel" class="tab-panel hidden">
+    <section class="templates-panel" aria-label="Entity templates">
+      <header class="templates-header">
+        <h2>Entity templates</h2>
+        <p class="templates-hint">Reusable object and agent blueprints in <code>entity_templates/</code>. Save from the grid with <strong>Save as… → Save as template</strong>, or import JSON here. Place on the map from the Main tab with right-click <strong>Load…</strong>.</p>
+        <div class="templates-toolbar">
+          <input type="file" id="template-upload-input" accept=".json,application/json" hidden />
+          <button type="button" id="template-upload-btn" class="settings-action-btn">Import JSON file</button>
+        </div>
+        <p id="templates-list-empty" class="panel-empty">No templates saved yet.</p>
+        <ul id="templates-list" class="templates-list hidden"></ul>
+      </header>
     </section>
   </div>
 

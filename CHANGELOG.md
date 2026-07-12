@@ -4,6 +4,17 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.2.2
+
+**Requires:** `campaign-rpg-engine>=1.2.1`
+
+### Entity templates tab
+
+- **Templates** tab — list, import, download, and remove library templates.
+- `POST /api/entity-templates/import` — add a JSON file to the Studio library.
+
+---
+
 ## 1.2.1
 
 **Requires:** `campaign-rpg-engine>=1.2.1`

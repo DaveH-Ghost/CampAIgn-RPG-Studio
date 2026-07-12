@@ -15,6 +15,7 @@ import {
 import { initPromptLayout, reloadPromptLayoutIfOpen } from "./promptLayout.js";
 import { initAppTabs } from "./tabs.js";
 import { initLorebooks, refreshLorebookList, refreshLorebookScanPanel } from "./lorebooks.js";
+import { initTemplates } from "./templates.js";
 import { initPlugins } from "./plugins.js";
 import { clearHandlerChoicesCache } from "./objectActions.js";
 import {
@@ -581,6 +582,7 @@ initLorebooks({
     void reloadPromptLayoutIfOpen();
   },
 });
+initTemplates({ showToastFn: showToast });
 initPlugins({
   showToastFn: showToast,
   onPluginsChangedFn: async (snapshot) => {
@@ -693,7 +695,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.2.1";
+    const studioVersion = health.version || "1.2.2";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

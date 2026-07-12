@@ -1,4 +1,4 @@
-"""Entity template library on disk (1.2.1)."""
+"""Entity template library on disk (1.2.2)."""
 
 from __future__ import annotations
 

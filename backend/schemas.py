@@ -95,6 +95,11 @@ class EntityTemplateSpawnRequest(BaseModel):
     area_id: str | None = None
 
 
+class EntityTemplateImportRequest(BaseModel):
+    filename: str = Field(min_length=1)
+    template: dict[str, object]
+
+
 class EntityTemplateSpawnFromBodyRequest(BaseModel):
     template: dict[str, object]
     position: list[int] = Field(min_length=2, max_length=2)

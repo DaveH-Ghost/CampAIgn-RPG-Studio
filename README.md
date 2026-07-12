@@ -2,7 +2,7 @@
 
 
 
-Reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) **1.2.1** — a fully functional example of building on the `campaign-rpg-engine` Python library.
+**CampAIgn RPG Studio 1.2.2** — reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.2.1`).
 
 
 
@@ -114,6 +114,8 @@ Restore `[tool.uv.sources]` for day-to-day co-development.
 - **Entities** — create/edit agents and objects; player agents with manual turns
 
 - **Lorebooks** — SillyTavern JSON import; keyword scan into prompts
+
+- **Entity templates** — save/load from the grid; **Templates** tab for library management
 
 - **Plugins** — capability-based plugin host (`plugins/` folder + upload); enable per session; see [`plugins/README.md`](plugins/README.md)
 

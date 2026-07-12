@@ -306,7 +306,7 @@ def test_index_page(client):
     assert response.status_code == 200
     assert "CampAIgn RPG Studio" in response.text
     assert 'id="app-subtitle"' in response.text
-    assert "V1.2.1" in response.text
+    assert "V1.2.2" in response.text
     assert 'id="grid"' in response.text
     assert 'id="active-area-select"' in response.text
     assert 'id="create-area"' in response.text

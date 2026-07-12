@@ -27,6 +27,7 @@ from backend.entity_templates_api import (
     get_entity_template,
     list_entity_templates,
     save_entity_from_world,
+    save_entity_template,
     spawn_entity_from_template_data,
     spawn_entity_template,
 )
@@ -38,6 +39,7 @@ from backend.schemas import (
     DeleteAreaRequest,
     EditAreaRequest,
     EntityPrivateDataRequest,
+    EntityTemplateImportRequest,
     EntityTemplateSaveRequest,
     EntityTemplateSpawnFromBodyRequest,
     EntityTemplateSpawnRequest,
@@ -418,6 +420,13 @@ def create_app() -> FastAPI:
         result = get_entity_template(template_id)
         if not result.get("ok"):
             raise HTTPException(status_code=404, detail=result.get("message", "Not found"))
+        return result
+
+    @app.post("/api/entity-templates/import")
+    def import_entity_template_route(body: EntityTemplateImportRequest) -> dict[str, object]:
+        result = save_entity_template(body.template, filename=body.filename)
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Import failed"))
         return result
 
     @app.post("/api/entity-templates/save-from-entity")
