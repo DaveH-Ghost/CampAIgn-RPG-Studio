@@ -4,6 +4,23 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.4.0
+
+**Requires:** `campaign-rpg-engine>=1.4.0`
+
+### Inventory plugin — give and show
+
+- Turn verbs **`give`** and **`show`** — agent-to-agent carried-item actions (`target`: `"<agent_id> <item_id>"`, recipient first).
+- **Range 1** (Chebyshev); auto-approach pathing toward the recipient (engine opt-in verb pathing).
+- **`show`** — private detailed event to the recipient via `emit_area_event`; bystanders see passive `{actor} shows {item} to {recipient}` (recipient excluded from duplicate passive).
+- Inventory prompt lists **`[give]`** **`[show]`** per carried item alongside **`[drop]`** and item actions.
+
+### Repo hygiene
+
+- `entity_templates/*.json` gitignored (library folder kept via `.gitkeep`).
+
+---
+
 ## 1.3.1
 
 **Requires:** `campaign-rpg-engine>=1.3.1`

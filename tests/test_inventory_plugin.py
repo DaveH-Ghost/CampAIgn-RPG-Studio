@@ -12,7 +12,7 @@ from backend.session_store import reset_session_store
 from campaign_rpg_engine import ObjectAction, clear_event_listeners_for_tests, clear_turn_verbs_for_tests
 from campaign_rpg_engine.prompt_slots.registry import clear_prompt_slots_for_tests
 from reference_handlers import register_reference_handlers
-from tests.world_helpers import add_object_action, create_agent, create_object, get_session
+from tests.world_helpers import add_object_action, create_agent, create_object, edit_agent, get_session
 
 _PLUGINS_DIR = Path(__file__).resolve().parent.parent / "plugins"
 
@@ -80,6 +80,23 @@ def _setup_pickup_ball(*, with_drink: bool = False):
             ),
         )
     return agent, ball
+
+
+def _pick_up_item(client, agent, obj):
+    client.post("/api/active-agent", json={"name_or_id": agent.id})
+    response = client.post(
+        "/api/turn/manual",
+        json={
+            "compound_turn": {
+                "reasoning": "Pick up.",
+                "action": "interact",
+                "target": obj.id,
+                "verb": "pick_up",
+            },
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
 
 
 def test_inventory_plugin_in_catalog(client):
@@ -184,9 +201,223 @@ def test_inventory_prompt_slot_format(client):
     inventory = next(item for item in slots if item["name"] == "inventory")
     preview = inventory["preview"]
     assert "Items in your Inventory:" in preview
-    assert f"Travel Mug ({ball.id}) [drop]" in preview
+    assert f"Travel Mug ({ball.id}) [drop] [give] [show]" in preview
     assert '"action": "verb"' in preview
     assert "verb = action name" in preview.lower() or "action name" in preview.lower()
+
+
+    assert "give" in preview
+    assert "show" in preview
+    assert "agent_shopkeeper_01 obj_mug_01" in preview
+
+
+def test_give_and_show_registered_as_turn_verbs(client):
+    _enable_inventory(client)
+    verbs = {v["id"] for v in client.get("/api/turn-verbs").json()["verbs"]}
+    assert "give" in verbs
+    assert "show" in verbs
+
+
+def test_give_transfers_item_to_other_agent(client):
+    _enable_inventory(client)
+    carrier, mug = _setup_pickup_ball()
+    recipient = create_agent(
+        name="Shopkeeper",
+        position=(1, 0),
+        personality="Friendly.",
+        is_player=False,
+    )
+    _pick_up_item(client, carrier, mug)
+
+    give = client.post(
+        "/api/turn/manual",
+        json={
+            "compound_turn": {
+                "reasoning": "Hand over the mug.",
+                "action": "verb",
+                "verb": "give",
+                "target": f"{recipient.id} {mug.id}",
+            },
+        },
+    )
+    assert give.status_code == 200
+    body = give.json()
+    assert body["ok"] is True
+    assert "give" in body["message"].lower()
+
+    session = get_session()
+    inv = session.get_extension("inventory")
+    assert inv["by_agent"][carrier.id] == []
+    assert mug.id in {item["item_id"] for item in inv["by_agent"][recipient.id]}
+
+
+def test_show_sends_private_event_to_recipient(client):
+    _enable_inventory(client)
+    carrier, mug = _setup_pickup_ball()
+    recipient = create_agent(
+        name="Shopkeeper",
+        position=(1, 0),
+        personality="Friendly.",
+        is_player=False,
+    )
+    _pick_up_item(client, carrier, mug)
+
+    show = client.post(
+        "/api/turn/manual",
+        json={
+            "compound_turn": {
+                "reasoning": "Let them see the mug.",
+                "action": "verb",
+                "verb": "show",
+                "target": f"{recipient.id} {mug.id}",
+            },
+        },
+    )
+    assert show.status_code == 200
+    assert show.json()["ok"] is True
+
+    session = get_session()
+    live_recipient = session.get_agent(recipient.id)
+    live_carrier = session.get_agent(carrier.id)
+    assert live_recipient is not None and live_carrier is not None
+    area = session.get_area_for_agent(live_recipient)
+    assert area is not None
+
+    recipient_memory = live_recipient.memory.render_prompt_block(live_recipient, area)
+    carrier_memory = live_carrier.memory.render_prompt_block(live_carrier, area)
+    assert "shows you Travel Mug" in recipient_memory
+    assert "A dented mug." in recipient_memory
+    assert f"shows Travel Mug to {recipient.name}" not in recipient_memory
+    assert "shows you Travel Mug" not in carrier_memory
+    inv = session.get_extension("inventory")
+    assert mug.id in {item["item_id"] for item in inv["by_agent"][carrier.id]}
+
+
+def test_show_bystander_sees_object_name_not_detail(client):
+    _enable_inventory(client)
+    carrier, mug = _setup_pickup_ball()
+    recipient = create_agent(
+        name="Shopkeeper",
+        position=(1, 0),
+        personality="Friendly.",
+        is_player=False,
+    )
+    bystander = create_agent(
+        name="Watcher",
+        position=(2, 0),
+        personality="Curious.",
+        is_player=False,
+    )
+    _pick_up_item(client, carrier, mug)
+
+    show = client.post(
+        "/api/turn/manual",
+        json={
+            "compound_turn": {
+                "reasoning": "Let them see the mug.",
+                "action": "verb",
+                "verb": "show",
+                "target": f"{recipient.id} {mug.id}",
+            },
+        },
+    )
+    assert show.status_code == 200
+    assert show.json()["ok"] is True
+
+    session = get_session()
+    bystander_memory = session.get_agent(bystander.id).memory.render_prompt_block(
+        bystander, session.get_area_for_agent(bystander)
+    )
+    assert f"shows Travel Mug to {recipient.name}" in bystander_memory
+    assert "shows you Travel Mug" not in bystander_memory
+
+
+def test_give_paths_into_range_before_transfer(client):
+    _enable_inventory(client)
+    carrier, mug = _setup_pickup_ball()
+    recipient = create_agent(
+        name="Shopkeeper",
+        position=(2, 0),
+        personality="Friendly.",
+        is_player=False,
+    )
+    _pick_up_item(client, carrier, mug)
+
+    give = client.post(
+        "/api/turn/manual",
+        json={
+            "compound_turn": {
+                "reasoning": "Walk over and hand it off.",
+                "action": "verb",
+                "verb": "give",
+                "target": f"{recipient.id} {mug.id}",
+            },
+        },
+    )
+    assert give.status_code == 200
+    body = give.json()
+    assert body["ok"] is True
+    assert "give" in body["message"].lower()
+
+    session = get_session()
+    inv = session.get_extension("inventory")
+    assert mug.id in {item["item_id"] for item in inv["by_agent"][recipient.id]}
+    steps = body.get("steps", [])
+    assert any(step.get("kind") == "move" for step in steps)
+
+
+def test_give_rejects_recipient_out_of_range(client):
+    _enable_inventory(client)
+    carrier, mug = _setup_pickup_ball()
+    edit_agent(carrier.id, move_speed=1)
+    recipient = create_agent(
+        name="Shopkeeper",
+        position=(3, 0),
+        personality="Distant.",
+        is_player=False,
+    )
+    _pick_up_item(client, carrier, mug)
+
+    give = client.post(
+        "/api/turn/manual",
+        json={
+            "compound_turn": {
+                "reasoning": "Try from far away.",
+                "action": "verb",
+                "verb": "give",
+                "target": f"{recipient.id} {mug.id}",
+            },
+        },
+    )
+    assert give.status_code == 200
+    body = give.json()
+    assert "too far" in body.get("message", "").lower()
+
+    inv = get_session().get_extension("inventory")
+    assert mug.id in {item["item_id"] for item in inv["by_agent"][carrier.id]}
+
+
+def test_give_rejects_malformed_target(client):
+    _enable_inventory(client)
+    carrier, mug = _setup_pickup_ball()
+    create_agent(name="Shopkeeper", position=(1, 0), personality=".")
+    _pick_up_item(client, carrier, mug)
+
+    give = client.post(
+        "/api/turn/manual",
+        json={
+            "compound_turn": {
+                "reasoning": "Bad target.",
+                "action": "verb",
+                "verb": "give",
+                "target": mug.id,
+            },
+        },
+    )
+    assert give.status_code == 200
+    body = give.json()
+    assert body["ok"] is False
+    assert "INVALID_TARGET" in body.get("message", "")
 
 
 def test_plugin_slot_block_preview_includes_inventory(client):
@@ -210,7 +441,7 @@ def test_plugin_slot_block_preview_includes_inventory(client):
     preview = client.post("/api/prompt-blocks/preview", json={"blocks": blocks}).json()
     inv_block = next(b for b in preview["blocks"] if b.get("name") == "inventory")
     assert "Items in your Inventory:" in inv_block.get("preview", "")
-    assert f"Travel Mug ({ball.id}) [drop]" in inv_block.get("preview", "")
+    assert f"Travel Mug ({ball.id}) [drop] [give] [show]" in inv_block.get("preview", "")
 
 
 def test_inventory_state_round_trips_in_export(client):

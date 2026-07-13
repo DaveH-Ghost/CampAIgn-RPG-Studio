@@ -31,18 +31,21 @@ state = _import_plugin_module("state")
 serialization = _import_plugin_module("serialization")
 handlers = _import_plugin_module("handlers")
 interact = _import_plugin_module("interact")
+social = _import_plugin_module("social")
 
 PLUGIN_ID = state.PLUGIN_ID
 PLUGIN_LABEL = "Inventory"
-PLUGIN_VERSION = "1"
+PLUGIN_VERSION = "2"
 PLUGIN_DESCRIPTION = (
     "Carry objects off the map. Add pick_up with handler inventory_pick_up; "
     "inventory-only actions (e.g. drink with inventory_consume) work from inventory "
-    "via turn verb matching the action name. Drop via the Plugins panel or verb drop."
+    "via turn verb matching the action name. Drop, give, and show via turn verbs."
 )
 
 _HANDLER_ID = "inventory_pick_up"
 _DROP_VERB = "drop"
+_GIVE_VERB = "give"
+_SHOW_VERB = "show"
 
 
 def _drop_positions(agent, area):
@@ -68,17 +71,27 @@ def _format_inventory_prompt(session, agent_id: str) -> str:
         item_id = item.get("item_id", "")
         verb_tags = " ".join(
             f"[{verb}]"
-            for verb in interact.inventory_verbs_for_item(item, drop_verb=_DROP_VERB)
+            for verb in interact.inventory_verbs_for_item(
+                item,
+                drop_verb=_DROP_VERB,
+                social_verbs=(_GIVE_VERB, _SHOW_VERB),
+            )
         )
         lines.append(f"- {name} ({item_id}) {verb_tags}")
 
     lines.extend(
         [
             "",
-            'To use a carried item, use "action": "verb", "target": "object_id", '
+            'To use a carried item, use "action": "verb", "target": "<item_id>", '
             '"verb": "<action name>" (same name as the bracketed tag, e.g. drink).',
-            'To drop, use "verb": "drop".',
-            "Inventory actions are not listed on the map; pick items up first.",
+            f'To drop: "verb": "{_DROP_VERB}", target = item id only.',
+            f'To give or show to another agent within range {social.SOCIAL_RANGE}: "verb": "{_GIVE_VERB}" or '
+            f'"{_SHOW_VERB}", target = "<agent_id> <item_id>" (recipient first).',
+            "Example give: "
+            f'"action": "verb", "verb": "{_GIVE_VERB}", '
+            '"target": "agent_shopkeeper_01 obj_mug_01"',
+            "Use agent ids from passive vision and item ids from this list.",
+            "Do not use action interact for give/show.",
         ]
     )
     return "\n".join(lines)
@@ -222,7 +235,7 @@ def _build_panel(session):
             "type": "text",
             "content": (
                 f'Inventory turns: action "verb", target = item id, verb = action name '
-                f'or "{_DROP_VERB}".'
+                f'or "{_DROP_VERB}". Give/show: target = "<agent_id> <item_id>" (range {social.SOCIAL_RANGE}).'
             ),
         }
     )
@@ -250,6 +263,22 @@ def _use_item_action(session, params):
     if isinstance(outcome, str):
         return {"ok": False, "message": outcome}
     return {"ok": True, "message": outcome.result or "Done."}
+
+
+def _give_turn_verb(session, agent, area, turn):
+    del area
+    outcome = social.give_carried_item(session, agent, turn.target or "")
+    if isinstance(outcome, str):
+        return outcome
+    return outcome
+
+
+def _show_turn_verb(session, agent, area, turn):
+    del area
+    outcome = social.show_carried_item(session, agent, turn.target or "")
+    if isinstance(outcome, str):
+        return outcome
+    return outcome
 
 
 def register(ctx):
@@ -299,6 +328,22 @@ def register(ctx):
         _drop_turn_verb,
         description="Drop a carried item (target = inventory item id)",
         validate_turn=_validate_drop,
+    )
+    ctx.register_turn_verb(
+        _GIVE_VERB,
+        _give_turn_verb,
+        description="Give a carried item to another agent (target = agent_id item_id)",
+        validate_turn=social.validate_agent_item_turn_target,
+        path_range=social.SOCIAL_RANGE,
+        path_target_from_turn=social.path_target_agent_from_turn,
+    )
+    ctx.register_turn_verb(
+        _SHOW_VERB,
+        _show_turn_verb,
+        description="Show a carried item to another agent (target = agent_id item_id)",
+        validate_turn=social.validate_agent_item_turn_target,
+        path_range=social.SOCIAL_RANGE,
+        path_target_from_turn=social.path_target_agent_from_turn,
     )
 
     ctx.register_prompt_slot(

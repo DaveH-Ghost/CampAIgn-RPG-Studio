@@ -88,6 +88,8 @@ class PluginContext:
         *,
         description: str = "",
         validate_turn: Callable | None = None,
+        path_range: int | None = None,
+        path_target_from_turn: Callable | None = None,
     ) -> None:
         cleaned = verb_id.strip()
         register_turn_verb(
@@ -95,6 +97,8 @@ class PluginContext:
             executor,
             description=description,
             validate_turn=validate_turn,
+            path_range=path_range,
+            path_target_from_turn=path_target_from_turn,
         )
         if cleaned and cleaned not in self._manifest.turn_verb_ids:
             self._manifest.turn_verb_ids.append(cleaned)

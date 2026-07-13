@@ -26,6 +26,10 @@ htmlcov/
 frontend/assets/*
 !frontend/assets/README.md
 
+# Entity template library (local only — keep .gitkeep)
+entity_templates/*
+!entity_templates/.gitkeep
+
 # IDEs & OS
 .idea/
 .vscode/

@@ -60,8 +60,13 @@ def is_inventory_item_action(payload: dict[str, Any]) -> bool:
     return is_inventory_only_handler(payload.get("handler_id"))
 
 
-def inventory_verbs_for_item(item: dict[str, Any], *, drop_verb: str) -> list[str]:
-    verbs = [drop_verb]
+def inventory_verbs_for_item(
+    item: dict[str, Any],
+    *,
+    drop_verb: str,
+    social_verbs: tuple[str, ...] = (),
+) -> list[str]:
+    verbs = [drop_verb, *social_verbs]
     for name, payload in sorted(item.get("actions", {}).items()):
         if name == "pick_up" or not isinstance(payload, dict):
             continue
