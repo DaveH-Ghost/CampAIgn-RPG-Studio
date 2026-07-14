@@ -18,6 +18,7 @@ import { initLorebooks, refreshLorebookList, refreshLorebookScanPanel } from "./
 import { initTemplates } from "./templates.js";
 import { initPlugins } from "./plugins.js";
 import { clearHandlerChoicesCache } from "./objectActions.js";
+import { clearInteractTemplateVarsCache } from "./templateVarsHelp.js";
 import {
   buildPlayerTurnPayloadFromPanel,
   initPlayerTurnPanel,
@@ -617,6 +618,7 @@ initPlugins({
   showToastFn: showToast,
   onPluginsChangedFn: async (snapshot) => {
     clearHandlerChoicesCache();
+    clearInteractTemplateVarsCache();
     await loadPlayerTurnVerbCatalog();
     await refreshAfterMutation(snapshot);
     await syncPlayerTurnPanel(snapshot ?? lastSnapshot);
@@ -727,7 +729,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.4.0";
+    const studioVersion = health.version || "1.4.1";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

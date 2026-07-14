@@ -119,9 +119,14 @@ def use_inventory_item(
     actor_start = agent.position
 
     if action.handler_id:
-        handler_err = run_interaction_handler(session, area, agent, obj, action)
-        if handler_err:
-            return ActionOutcome(result=handler_err)
+        handler_result = run_interaction_handler(session, area, agent, obj, action)
+        if isinstance(handler_result, ActionOutcome):
+            if _handler_consumes_item(action):
+                remaining = items[:index] + items[index + 1 :]
+                state.set_agent_items(session, agent.id, remaining)
+            return handler_result
+        if handler_result:
+            return ActionOutcome(result=handler_result)
 
     if _handler_consumes_item(action):
         remaining = items[:index] + items[index + 1 :]

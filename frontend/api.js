@@ -233,6 +233,15 @@ export async function fetchTurnVerbs() {
   return data;
 }
 
+export async function fetchPlayerTurnAssist() {
+  const res = await fetch("/api/player-turn-assist");
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 export async function putVisionUnits({ units, units_per_tile }) {
   const res = await fetch("/api/vision-units", {
     method: "PUT",
@@ -564,9 +573,7 @@ export function buildAddObjectAction(objectId, {
   passive,
   effect,
   handler,
-  destArea,
-  destX,
-  destY,
+  handlerParams,
   kind = "interact",
   haltMovement,
   deleteAfterTrigger,
@@ -591,8 +598,9 @@ export function buildAddObjectAction(objectId, {
   const selectedHandler = handler || effect;
   if (selectedHandler && selectedHandler !== "none") {
     parts.push(`handler ${selectedHandler}`);
-    if (selectedHandler === "move_area") {
-      parts.push(`dest-area ${destArea}`, `dest-at ${destX},${destY}`);
+    for (const [key, value] of Object.entries(handlerParams || {})) {
+      if (value == null || String(value).trim() === "") continue;
+      parts.push(key, cliQuote(String(value)));
     }
   }
   parts.push(`result ${cliQuote(result)}`, `passive ${cliQuote(passive)}`);

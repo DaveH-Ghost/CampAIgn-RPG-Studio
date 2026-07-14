@@ -42,6 +42,10 @@ def test_get_interaction_handlers_lists_reference_set(client):
     ids = {item["id"] for item in data["handlers"]}
     assert {"delete_self", "random_move_self", "move_area"} <= ids
     assert "inventory_pick_up" not in ids
+    move = next(h for h in data["handlers"] if h["id"] == "move_area")
+    assert move.get("summary_template")
+    field_names = {f["name"] for f in move.get("param_fields") or []}
+    assert {"dest-area", "dest-at"} <= field_names
 
 
 def test_get_interaction_handlers_includes_enabled_plugin_handlers(client):
@@ -50,6 +54,82 @@ def test_get_interaction_handlers_includes_enabled_plugin_handlers(client):
     ids = {item["id"] for item in response.json()["handlers"]}
     assert "inventory_pick_up" in ids
 
+
+def test_skill_check_catalog_includes_param_fields(client):
+    client.post("/api/plugins/skills/enable")
+    response = client.get("/api/interaction-handlers")
+    skill = next(h for h in response.json()["handlers"] if h["id"] == "skill_check")
+    assert "skill_check" in (skill.get("summary_template") or "")
+    names = {f["name"] for f in skill.get("param_fields") or []}
+    assert {"stat", "dc", "pass_handler", "fail_handler"} <= names
+    pass_ref = next(f for f in skill["param_fields"] if f["name"] == "pass_handler")
+    assert pass_ref["type"] == "handler_ref"
+    assert pass_ref.get("param_prefix") == "pass_"
+
+
+def test_player_turn_assist_empty_without_inventory(client):
+    response = client.get("/api/player-turn-assist")
+    assert response.status_code == 200
+    assert response.json()["targets"] == []
+
+
+def test_player_turn_assist_lists_carried_item_verbs(client):
+    from campaign_rpg_engine import ObjectAction
+
+    assert client.post("/api/plugins/inventory/enable").json()["ok"] is True
+    agent = create_agent(
+        name="Hero",
+        position=(0, 0),
+        personality="Hauls things.",
+        is_player=True,
+    )
+    ball = create_object(
+        name="Ball",
+        position=(0, 1),
+        passive_description="A ball.",
+        blocks_movement=False,
+    )
+    add_object_action(
+        ball.id,
+        ObjectAction(
+            name="pick_up",
+            range=1,
+            handler_id="inventory_pick_up",
+            result="You pick it up.",
+            passive_result="picks up the ball.",
+        ),
+    )
+    add_object_action(
+        ball.id,
+        ObjectAction(
+            name="drink",
+            range=0,
+            handler_id="inventory_consume",
+            result="You drink.",
+            passive_result="drinks.",
+        ),
+    )
+    client.post("/api/active-agent", json={"name_or_id": agent.id})
+    pick = client.post(
+        "/api/turn/manual",
+        json={
+            "compound_turn": {
+                "reasoning": "Pick up.",
+                "action": "interact",
+                "target": ball.id,
+                "verb": "pick_up",
+            },
+        },
+    )
+    assert pick.status_code == 200
+    assert pick.json()["ok"] is True
+    assist = client.get("/api/player-turn-assist").json()
+    assert len(assist["targets"]) == 1
+    row = assist["targets"][0]
+    assert row["id"] == ball.id
+    assert "drop" in row["verbs"]
+    assert "drink" in row["verbs"]
+    assert row.get("plugin_id") == "inventory"
 
 def test_get_state_includes_vision_units(client):
     response = client.get("/api/state")
@@ -144,6 +224,7 @@ def test_interact_template_vars(client):
     assert "object_start" in names
     assert "actor_end_area" in names
     assert "{actor}" in data["vars"][0]["placeholder"]
+    assert all(item.get("source") == "core" for item in data["vars"])
 
 
 def test_state_returns_multi_area_snapshot(client):

@@ -12,7 +12,8 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from campaign_rpg_engine import estimate_prompt_tokens, interact_template_var_help
+from campaign_rpg_engine import estimate_prompt_tokens
+from backend.plugin_registry import merged_interact_template_vars
 
 from backend.interaction_handlers_api import get_interaction_handlers_catalog
 from backend.entity_private_data_api import put_entity_private_data
@@ -91,6 +92,7 @@ from backend.memory_module_upload import (
 )
 from backend.plugin_upload import load_all_plugins, upload_plugin
 from backend.plugins_api import (
+    get_player_turn_assist_route,
     get_plugin_panel_route,
     get_plugins_catalog,
     on_session_imported,
@@ -167,6 +169,10 @@ def create_app() -> FastAPI:
     def get_turn_verbs() -> dict[str, object]:
         return get_turn_verbs_catalog(get_session_store().session)
 
+    @app.get("/api/player-turn-assist")
+    def get_player_turn_assist() -> dict[str, object]:
+        return get_player_turn_assist_route(get_session_store().session)
+
     @app.get("/api/health")
     def health() -> dict[str, object]:
         return {
@@ -177,7 +183,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/interact-template-vars")
     def get_interact_template_vars() -> dict[str, object]:
-        return {"vars": interact_template_var_help()}
+        return {"vars": merged_interact_template_vars(get_session_store().session)}
 
     @app.get("/api/state")
     def get_state() -> dict:

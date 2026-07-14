@@ -7,6 +7,7 @@ from backend.plugin_registry import (
     enable_plugin,
     get_plugin_panel,
     list_plugins_catalog,
+    merged_player_turn_assist,
     run_panel_action,
     sync_enabled_plugins_for_session,
 )
@@ -44,6 +45,10 @@ def post_disable_plugin(session, plugin_id: str) -> dict[str, object]:
 
 def get_plugin_panel_route(session, plugin_id: str) -> dict[str, object]:
     return get_plugin_panel(session, plugin_id)
+
+
+def get_player_turn_assist_route(session) -> dict[str, object]:
+    return {"targets": merged_player_turn_assist(session)}
 
 
 def post_plugin_action(session, plugin_id: str, body: dict) -> dict[str, object]:

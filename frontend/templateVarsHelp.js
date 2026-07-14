@@ -4,6 +4,10 @@
 
 let cachedVars = null;
 
+export function clearInteractTemplateVarsCache() {
+  cachedVars = null;
+}
+
 export async function fetchInteractTemplateVars() {
   if (cachedVars) return cachedVars;
   const res = await fetch("/api/interact-template-vars");
@@ -75,10 +79,17 @@ export function attachTemplateVarHelp(labelSpan) {
       return;
     }
     try {
+      // Always refresh so enabling/disabling plugins updates the list.
+      clearInteractTemplateVarsCache();
       const vars = await fetchInteractTemplateVars();
       list.innerHTML = "";
       for (const item of vars) {
         const li = document.createElement("li");
+        if (item.source === "plugin") {
+          li.classList.add("template-var-plugin");
+          const pluginLabel = item.plugin_label || item.plugin_id || "plugin";
+          li.title = `From plugin: ${pluginLabel}`;
+        }
         const code = document.createElement("code");
         code.textContent = item.placeholder;
         li.appendChild(code);

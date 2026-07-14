@@ -283,6 +283,7 @@ def _show_turn_verb(session, agent, area, turn):
 
 def register(ctx):
     interact.apply_perception_patch()
+    interact._REGISTERED_INVENTORY_VERBS.clear()
 
     def on_session_loaded(session, **payload):
         del payload
@@ -352,6 +353,30 @@ def register(ctx):
         description="Lists carried items and inventory verbs",
     )
 
+    def _player_turn_assist(session):
+        if not state.plugin_enabled(session):
+            return []
+        agent_id = getattr(session, "active_agent_id", None)
+        if not agent_id:
+            return []
+        rows: list[dict[str, Any]] = []
+        for item in state.agent_items(session, agent_id):
+            item_id = str(item.get("item_id", "")).strip()
+            if not item_id:
+                continue
+            rows.append(
+                {
+                    "id": item_id,
+                    "label": str(item.get("name") or item_id),
+                    "verbs": interact.inventory_verbs_for_item(
+                        item,
+                        drop_verb=_DROP_VERB,
+                    ),
+                }
+            )
+        return rows
+
+    ctx.register_player_turn_assist(_player_turn_assist)
     ctx.set_panel_builder(_build_panel)
     ctx.register_panel_action("drop_item", _drop_item_action)
     ctx.register_panel_action("use_item", _use_item_action)

@@ -77,6 +77,60 @@ def is_prompt_slot_visible_in_catalog(session, slot_name: str) -> bool:
     return is_plugin_enabled(session, owner)
 
 
+def merged_interact_template_vars(session) -> list[dict[str, str]]:
+    """Core interact template vars plus those from enabled plugins."""
+    from campaign_rpg_engine import interact_template_var_help
+
+    items: list[dict[str, str]] = []
+    for entry in interact_template_var_help():
+        items.append({**entry, "source": "core"})
+    for manifest in list_installed_plugins():
+        if not is_plugin_enabled(session, manifest.plugin_id):
+            continue
+        for entry in manifest.interact_template_vars:
+            name = entry["name"]
+            items.append(
+                {
+                    "name": name,
+                    "placeholder": "{" + name + "}",
+                    "description": entry["description"],
+                    "source": "plugin",
+                    "plugin_id": manifest.plugin_id,
+                    "plugin_label": manifest.label,
+                }
+            )
+    return items
+
+
+def merged_player_turn_assist(session) -> list[dict[str, Any]]:
+    """Merge ``{id, label, verbs}`` rows from enabled plugins' turn-assist builders."""
+    targets: list[dict[str, Any]] = []
+    for manifest in list_installed_plugins():
+        if not is_plugin_enabled(session, manifest.plugin_id):
+            continue
+        builder = manifest.player_turn_assist
+        if builder is None:
+            continue
+        rows = builder(session) or []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            target_id = str(row.get("id", "")).strip()
+            if not target_id:
+                continue
+            verbs_raw = row.get("verbs") or []
+            verbs = [str(v).strip() for v in verbs_raw if str(v).strip()]
+            targets.append(
+                {
+                    "id": target_id,
+                    "label": str(row.get("label") or target_id),
+                    "verbs": verbs,
+                    "plugin_id": manifest.plugin_id,
+                }
+            )
+    return targets
+
+
 def list_installed_plugins() -> list[PluginManifest]:
     return [_REGISTRY[pid] for pid in sorted(_REGISTRY)]
 

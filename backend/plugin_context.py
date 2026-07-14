@@ -29,6 +29,8 @@ class PluginManifest:
     handler_ids: list[str] = field(default_factory=list)
     turn_verb_ids: list[str] = field(default_factory=list)
     panel_actions: dict[str, Callable[..., dict[str, Any]]] = field(default_factory=dict)
+    interact_template_vars: list[dict[str, str]] = field(default_factory=list)
+    player_turn_assist: Callable[[Any], list[dict[str, Any]]] | None = None
 
     def to_catalog_dict(self, *, enabled: bool) -> dict[str, Any]:
         return {
@@ -70,6 +72,8 @@ class PluginContext:
         *,
         description: str = "",
         validate_params: Callable | None = None,
+        param_fields: list[dict[str, Any]] | None = None,
+        summary_template: str = "",
     ) -> None:
         cleaned = handler_id.strip()
         register_interaction_handler(
@@ -77,6 +81,8 @@ class PluginContext:
             handler,
             description=description,
             validate_params=validate_params,
+            param_fields=param_fields,
+            summary_template=summary_template,
         )
         if cleaned and cleaned not in self._manifest.handler_ids:
             self._manifest.handler_ids.append(cleaned)
@@ -134,3 +140,34 @@ class PluginContext:
         handler: Callable[..., dict[str, Any]],
     ) -> None:
         self._manifest.panel_actions[action_id.strip()] = handler
+
+    def register_interact_template_vars(
+        self,
+        vars: list[dict[str, str]],
+    ) -> None:
+        """
+        Extra ``{name}`` placeholders for interact result/passive help and docs.
+
+        Each item needs ``name`` and ``description``. Substitution is still up to
+        the plugin's handlers (e.g. format templates when returning ActionOutcome).
+        """
+        for item in vars:
+            name = str(item.get("name", "")).strip()
+            description = str(item.get("description", "")).strip()
+            if not name or not description:
+                continue
+            self._manifest.interact_template_vars.append(
+                {"name": name, "description": description}
+            )
+
+    def register_player_turn_assist(
+        self,
+        builder: Callable[[Any], list[dict[str, Any]]],
+    ) -> None:
+        """
+        Contribute verb-target rows for the Studio player-turn panel.
+
+        *builder(session)* returns a list of ``{id, label, verbs: [str]}`` for
+        the active agent (or empty). Host merges results from enabled plugins.
+        """
+        self._manifest.player_turn_assist = builder

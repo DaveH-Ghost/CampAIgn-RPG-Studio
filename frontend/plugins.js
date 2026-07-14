@@ -14,9 +14,9 @@ let showToastFn = () => {};
 let onPluginsChangedFn = async () => {};
 let selectedPluginId = null;
 
-export function initPlugins({ showToastFn: toast, onPluginsChangedFn }) {
+export function initPlugins({ showToastFn: toast, onPluginsChangedFn: onChanged }) {
   showToastFn = toast || showToastFn;
-  onPluginsChangedFn = onPluginsChangedFn || onPluginsChangedFn;
+  onPluginsChangedFn = onChanged || onPluginsChangedFn;
 
   const uploadBtn = document.getElementById("plugin-upload-btn");
   const uploadInput = document.getElementById("plugin-upload-input");
@@ -182,6 +182,9 @@ function renderPanelSection(pluginId, section) {
       try {
         const result = await postPluginAction(pluginId, section.id, section.params || {});
         showToastFn(result.message || "Done.");
+        if (result.snapshot) {
+          await onPluginsChangedFn(result.snapshot);
+        }
         await renderPluginPanel(pluginId);
       } catch (err) {
         showToastFn(err.message || "Action failed.");

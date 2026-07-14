@@ -1,53 +1,20 @@
 /**
  * Inline player turn form (1.1.0) and shared field defs for manual compound turns.
+ * Verb/target filtering uses GET /api/player-turn-assist (1.4.2).
  */
 
-import { buildCompoundTurnPayload, fetchTurnVerbs } from "./api.js";
+import {
+  buildCompoundTurnPayload,
+  fetchPlayerTurnAssist,
+  fetchTurnVerbs,
+} from "./api.js";
 import { asArray, normalizeSnapshot } from "./snapshot.js";
 
 /** @type {{ id: string, description?: string }[]} */
 let turnVerbCatalog = [];
 
-const INVENTORY_PICK_UP_HANDLER = "inventory_pick_up";
-
-function isInventoryOnlyHandler(handlerId) {
-  if (!handlerId || handlerId === INVENTORY_PICK_UP_HANDLER) return false;
-  return String(handlerId).startsWith("inventory_");
-}
-
-function inventoryVerbsForItem(item) {
-  const verbs = ["drop"];
-  const actions = item?.actions || {};
-  for (const [name, payload] of Object.entries(actions).sort()) {
-    if (name === "pick_up" || !payload || typeof payload !== "object") continue;
-    if (payload.kind && payload.kind !== "interact") continue;
-    if (isInventoryOnlyHandler(payload.handler_id)) {
-      verbs.push(name);
-    }
-  }
-  return verbs;
-}
-
-function carriedItemsForAgent(snapshot) {
-  const snap = normalizeSnapshot(snapshot);
-  const agentId = snap?.active_agent_id;
-  const byAgent = snap?.extensions?.inventory?.by_agent;
-  if (!agentId || !byAgent || !Array.isArray(byAgent[agentId])) return [];
-  return byAgent[agentId];
-}
-
-function carriedItemById(snapshot, itemId) {
-  const cleaned = String(itemId || "").trim();
-  if (!cleaned) return null;
-  return carriedItemsForAgent(snapshot).find((item) => item?.item_id === cleaned) || null;
-}
-
-function verbsForTurnDropdown(snapshot, targetItemId) {
-  const item = carriedItemById(snapshot, targetItemId);
-  if (!item) return turnVerbCatalog;
-  const allowed = new Set(inventoryVerbsForItem(item));
-  return turnVerbCatalog.filter((verb) => allowed.has(verb.id));
-}
+/** @type {{ id: string, label?: string, verbs: string[] }[]} */
+let assistTargets = [];
 
 export function playerTurnFieldDefs(coordinateMode = "full") {
   const relative = coordinateMode === "relative";
@@ -123,6 +90,19 @@ export function playerTurnFieldDefs(coordinateMode = "full") {
   ];
 }
 
+function assistRowForTarget(targetId) {
+  const cleaned = String(targetId || "").trim();
+  if (!cleaned) return null;
+  return assistTargets.find((row) => row.id === cleaned) || null;
+}
+
+function verbsForTurnDropdown(targetItemId) {
+  const row = assistRowForTarget(targetItemId);
+  if (!row) return turnVerbCatalog;
+  const allowed = new Set(row.verbs || []);
+  return turnVerbCatalog.filter((verb) => allowed.has(verb.id));
+}
+
 function readPanelForm(panelEl) {
   const data = {};
   for (const el of panelEl.querySelectorAll("[name]")) {
@@ -157,12 +137,12 @@ function validatePlayerTurnData(data) {
   return null;
 }
 
-function populateTurnVerbSelect(panelEl, snapshot) {
+function populateTurnVerbSelect(panelEl) {
   const select = panelEl.querySelector("#player-turn-verb-select");
   if (!select) return;
   const previous = select.value;
   const targetId = panelEl.querySelector('[name="target"]')?.value ?? "";
-  const verbs = verbsForTurnDropdown(snapshot, targetId);
+  const verbs = verbsForTurnDropdown(targetId);
   select.innerHTML = "";
   const blank = document.createElement("option");
   blank.value = "";
@@ -183,29 +163,28 @@ function populateTurnVerbSelect(panelEl, snapshot) {
   }
 }
 
-function prefillInventoryVerbTurn(panelEl, snapshot) {
+function prefillAssistVerbTurn(panelEl) {
   const action = panelEl.querySelector('[name="action"]')?.value ?? "none";
   if (action !== "verb") return;
 
   const targetInput = panelEl.querySelector('[name="target"]');
-  const carried = carriedItemsForAgent(snapshot);
-  if (targetInput && !String(targetInput.value || "").trim() && carried.length === 1) {
-    targetInput.value = carried[0].item_id || "";
+  if (targetInput && !String(targetInput.value || "").trim() && assistTargets.length === 1) {
+    targetInput.value = assistTargets[0].id || "";
   }
 
   const targetId = targetInput?.value ?? "";
-  const item = carriedItemById(snapshot, targetId);
-  if (!item) return;
+  const row = assistRowForTarget(targetId);
+  if (!row) return;
 
-  const verbs = inventoryVerbsForItem(item).filter((name) => name !== "drop");
+  const preferred = (row.verbs || []).filter((name) => name !== "drop");
   const select = panelEl.querySelector("#player-turn-verb-select");
-  if (!select || select.value || verbs.length !== 1) return;
-  if ([...select.options].some((opt) => opt.value === verbs[0])) {
-    select.value = verbs[0];
+  if (!select || select.value || preferred.length !== 1) return;
+  if ([...select.options].some((opt) => opt.value === preferred[0])) {
+    select.value = preferred[0];
   }
 }
 
-function syncActionFieldVisibility(panelEl, snapshot) {
+function syncActionFieldVisibility(panelEl) {
   const action = panelEl.querySelector('[name="action"]')?.value ?? "none";
   const show = action === "interact" || action === "emote" || action === "verb";
   const extra = panelEl.querySelector("#player-turn-action-extra");
@@ -240,8 +219,8 @@ function syncActionFieldVisibility(panelEl, snapshot) {
   }
 
   if (isVerbAction) {
-    populateTurnVerbSelect(panelEl, snapshot);
-    prefillInventoryVerbTurn(panelEl, snapshot);
+    populateTurnVerbSelect(panelEl);
+    prefillAssistVerbTurn(panelEl);
   }
 }
 
@@ -268,6 +247,15 @@ async function loadTurnVerbCatalog() {
   }
 }
 
+async function loadPlayerTurnAssist() {
+  try {
+    const data = await fetchPlayerTurnAssist();
+    assistTargets = Array.isArray(data.targets) ? data.targets : [];
+  } catch {
+    assistTargets = [];
+  }
+}
+
 export async function loadPlayerTurnVerbCatalog() {
   await loadTurnVerbCatalog();
 }
@@ -279,7 +267,6 @@ let getSnapshot = () => null;
 let getCoordinateMode = () => "full";
 let onSubmit = async () => {};
 let showToast = () => {};
-let lastSyncedSnapshot = null;
 
 export function initPlayerTurnPanel({
   panelFormEl,
@@ -298,23 +285,21 @@ export function initPlayerTurnPanel({
   onSubmit = onSubmitFn ?? onSubmit;
   showToast = showToastFn ?? showToast;
 
-  void loadTurnVerbCatalog().then(() => {
-    const snapshot = getSnapshot();
-    populateTurnVerbSelect(panelEl, snapshot);
-    syncActionFieldVisibility(panelEl, snapshot);
+  void Promise.all([loadTurnVerbCatalog(), loadPlayerTurnAssist()]).then(() => {
+    syncActionFieldVisibility(panelEl);
   });
 
   const actionSelect = panelEl.querySelector('[name="action"]');
   actionSelect?.addEventListener("change", () => {
-    syncActionFieldVisibility(panelEl, getSnapshot());
+    syncActionFieldVisibility(panelEl);
   });
 
   const targetInput = panelEl.querySelector('[name="target"]');
   targetInput?.addEventListener("input", () => {
     const action = panelEl.querySelector('[name="action"]')?.value ?? "none";
     if (action === "verb") {
-      populateTurnVerbSelect(panelEl, getSnapshot());
-      prefillInventoryVerbTurn(panelEl, getSnapshot());
+      populateTurnVerbSelect(panelEl);
+      prefillAssistVerbTurn(panelEl);
     }
   });
 
@@ -337,20 +322,13 @@ export function initPlayerTurnPanel({
 export async function syncPlayerTurnPanel(snapshot) {
   if (!panelEl) return;
   const snap = normalizeSnapshot(snapshot ?? getSnapshot());
-  const inventoryChanged =
-    JSON.stringify(snap?.extensions?.inventory) !==
-    JSON.stringify(lastSyncedSnapshot?.extensions?.inventory);
-  if (inventoryChanged || !turnVerbCatalog.length) {
-    await loadTurnVerbCatalog();
-  }
-  lastSyncedSnapshot = snap;
+  await Promise.all([loadTurnVerbCatalog(), loadPlayerTurnAssist()]);
 
-  populateTurnVerbSelect(panelEl, snap);
   const active = asArray(snap?.agents).find((agent) => agent.id === snap?.active_agent_id);
   const coordinateMode = getCoordinateMode();
 
   updateMoveHints(panelEl, coordinateMode);
-  syncActionFieldVisibility(panelEl, snap);
+  syncActionFieldVisibility(panelEl);
 
   if (active?.is_player) {
     panelEl.classList.remove("hidden");

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from campaign_rpg_engine import Session, get_handler_registration, list_registered_handlers
+from campaign_rpg_engine import Session, handler_catalog_entry, list_registered_handlers
 
 from backend.plugin_registry import is_handler_visible_in_catalog
 
@@ -12,11 +12,8 @@ def get_interaction_handlers_catalog(session: Session) -> dict[str, object]:
     for handler_id in list_registered_handlers():
         if not is_handler_visible_in_catalog(session, handler_id):
             continue
-        reg = get_handler_registration(handler_id)
-        handlers.append(
-            {
-                "id": handler_id,
-                "description": reg.description if reg else "",
-            }
-        )
+        entry = handler_catalog_entry(handler_id)
+        if entry is None:
+            continue
+        handlers.append(entry)
     return {"handlers": handlers}

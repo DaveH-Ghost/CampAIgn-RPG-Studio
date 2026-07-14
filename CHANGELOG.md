@@ -4,6 +4,45 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.4.2
+
+**Requires:** `campaign-rpg-engine>=1.4.2`
+
+### Plugin fairness — schema-driven action editor + turn assist
+
+- Handlers may declare `param_fields` + `summary_template` (engine registration / Studio `ctx.register_handler`). Catalog returns them on `GET /api/interaction-handlers`.
+- Action editor and CLI builder render/emit generically from schema — **no** core `skill_check` / `move_area` / pass-fail branches in frontend.
+- `register_player_turn_assist` + `GET /api/player-turn-assist`: plugins contribute `{id, label, verbs}` rows; player-turn panel filters verbs from assist (Inventory registers carried items). **Removed** `inventory_*` hardcoding from `playerTurnPanel.js`.
+
+### Skills — pass/fail follow-up handlers
+
+- Optional ``pass_handler`` / ``fail_handler`` on ``skill_check`` (plus ``pass_*`` / ``fail_*`` nested params), declared via `param_fields` / `handler_ref`.
+- Uses engine ``run_named_handler`` after the roll; skills templates still own the spoken line (follow-ups are side effects).
+- Example: DEX check → pass ``inventory_pick_up``, fail ``delete_self`` (trap).
+
+### Action editor
+
+- Viewport-capped modal with scrollable form and sticky Back/Save (from 1.4.1 polish).
+
+---
+
+## 1.4.1
+
+**Requires:** `campaign-rpg-engine>=1.4.1`
+
+### Skills plugin (`plugins/skills/`)
+
+- Agent stats **CON / STR / DEX / WIS / INT / CHM** (1–20, default **10**) and named skills in `private_data` under `skills_plugin`.
+- Handler **`skill_check`** — `handler_params`: `stat`, `dc`, optional `skill`, `fail_result`, `fail_passive`.
+  - **Pass** → action's `result` / `passive_result`.
+  - **Fail** → `ActionOutcome` from fail templates (engine 1.4.1).
+- Prompt slot **`skills`** lists the active agent's stats and skills.
+- Plugins panel: read-only sheet for the active agent; **Initialize stats in private_data** writes default all-10 JSON when missing. Edit values on the agent form afterward. Panel includes a JSON example (`skills`: name → level).
+- Fix: editing **only** agent/object `private_data` in the Edit modal saves correctly (no longer blocked by “No changes applied” from the unrelated edit command).
+- Fix: Plugins panel actions that return a snapshot (e.g. Initialize stats) refresh studio state so Edit agent shows updated `private_data` without a full page reload.
+
+---
+
 ## 1.4.0
 
 **Requires:** `campaign-rpg-engine>=1.4.0`

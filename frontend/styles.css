@@ -1155,6 +1155,37 @@ textarea.player-turn-control {
   padding: 1rem;
 }
 
+#modal-backdrop .modal {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 26rem);
+  max-height: calc(100vh - 2rem);
+  padding: 1rem 1.25rem;
+  background: #222228;
+  border: 1px solid #484858;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#modal-backdrop .modal.modal--wide {
+  width: min(100%, 32rem);
+}
+
+#modal-backdrop .modal-heading {
+  flex: 0 0 auto;
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+#modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .modal {
   width: min(100%, 26rem);
   padding: 1rem 1.25rem;
@@ -1246,10 +1277,31 @@ textarea.player-turn-control {
   min-height: 6rem;
 }
 
+#modal-backdrop .modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-top: auto;
+  padding: 0.65rem 0 0.1rem;
+  background: #222228;
+  border-top: 1px solid #3a3a48;
+}
+
 .modal-actions {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.75rem;
+}
+
+#modal-backdrop .modal-error {
+  flex: 0 0 auto;
+}
+
+#modal-backdrop .modal-cancel {
+  flex: 0 0 auto;
 }
 
 .modal-error {
@@ -1380,8 +1432,16 @@ textarea.player-turn-control {
   color: #9fd4b0;
 }
 
+.template-var-list li.template-var-plugin code {
+  color: #e0b060;
+}
+
 .template-var-list span {
   color: #ccc;
+}
+
+.template-var-list li.template-var-plugin span {
+  color: #d4c4a0;
 }
 
 .toast {

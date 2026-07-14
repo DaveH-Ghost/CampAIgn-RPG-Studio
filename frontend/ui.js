@@ -383,6 +383,7 @@ function showToast(message, isError) {
 
 function closeModal() {
   modalBackdrop.classList.add("hidden");
+  modalBackdrop.querySelector(".modal")?.classList.remove("modal--wide");
   modalForm.innerHTML = "";
   modalError.textContent = "";
 }
@@ -607,7 +608,7 @@ function privateDataField(value = "") {
     value: value ?? "",
     type: "textarea",
     rows: 3,
-    placeholder: "Health, durability, JSON — not used by the engine or LLM",
+    placeholder: "{}",
     group: "advanced",
   };
 }
@@ -619,6 +620,30 @@ async function persistPrivateDataIfChanged(entityId, value, previous) {
   const result = await postEntityPrivateData(entityId, next);
   if (!result.ok) throw new Error(result.message);
   return result;
+}
+
+/**
+ * Run an edit command, then private_data. "No changes applied" on the command is
+ * OK when private_data actually changed (edit_agent/edit_object ignore that field).
+ */
+async function commitEditAndPrivateData(editResult, entityId, nextPrivate, prevPrivate) {
+  const noOpEdit =
+    !editResult.ok && /no changes applied/i.test(String(editResult.message || ""));
+  if (!editResult.ok && !noOpEdit) {
+    throw new Error(editResult.message);
+  }
+  const privateResult = await persistPrivateDataIfChanged(
+    entityId,
+    nextPrivate,
+    prevPrivate,
+  );
+  if (noOpEdit && !privateResult) {
+    throw new Error(editResult.message);
+  }
+  return {
+    message: privateResult?.message ?? editResult.message,
+    snapshot: privateResult?.snapshot ?? editResult.snapshot,
+  };
 }
 
 function objectMovementFields({ blocksMovement, movementExceptions }) {
@@ -1038,14 +1063,14 @@ function openEditObjectModal(entity, areaId) {
       hidden: data.hidden,
     });
     const result = await postCommand(line);
-    if (!result.ok) throw new Error(result.message);
-    const privateResult = await persistPrivateDataIfChanged(
+    const committed = await commitEditAndPrivateData(
+      result,
       entity.id,
       data.privateData,
       entity.private_data,
     );
-    showToast(privateResult?.message ?? result.message, false);
-    await onStateChanged(privateResult?.snapshot ?? result.snapshot);
+    showToast(committed.message, false);
+    await onStateChanged(committed.snapshot);
   });
 }
 
@@ -1153,14 +1178,14 @@ function openEditAgentModal(entity, areaId) {
       y: data.y,
     });
     const result = await postCommand(line);
-    if (!result.ok) throw new Error(result.message);
-    const privateResult = await persistPrivateDataIfChanged(
+    const committed = await commitEditAndPrivateData(
+      result,
       entity.id,
       data.privateData,
       entity.private_data,
     );
-    showToast(privateResult?.message ?? result.message, false);
-    await onStateChanged(privateResult?.snapshot ?? result.snapshot);
+    showToast(committed.message, false);
+    await onStateChanged(committed.snapshot);
   });
 }
 

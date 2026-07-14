@@ -1,5 +1,5 @@
 /**
- * Manage object actions modal (V0.4.0e / V0.6.1 handlers).
+ * Manage object actions modal (V0.4.0e / V0.6.1 handlers / 1.4.2 param_fields).
  */
 
 import {
@@ -8,15 +8,15 @@ import {
   fetchInteractionHandlers,
   postCommand,
 } from "./api.js";
+import {
+  collectHandlerParams,
+  formatHandlerSummaryFromCatalog,
+  renderParamFields,
+} from "./handlerParamSchema.js";
 import { normalizeSnapshot } from "./snapshot.js";
 import { attachTemplateVarHelp } from "./templateVarsHelp.js";
 
-const FALLBACK_HANDLER_CHOICES = [
-  { id: "none", label: "None" },
-  { id: "delete_self", label: "delete_self — remove object" },
-  { id: "random_move_self", label: "random_move_self — move object randomly" },
-  { id: "move_area", label: "move_area — transfer agent to another area" },
-];
+const FALLBACK_HANDLER_CHOICES = [{ id: "none", label: "None" }];
 
 let getSnapshot = () => null;
 let onStateChanged = async () => {};
@@ -30,10 +30,20 @@ let closeModal;
 /** @type {{ id: string, name: string, actions?: string[], actions_detail?: Record<string, object> } | null} */
 let manageObject = null;
 
+/** @type {Record<string, object> | null} */
+let handlerCatalogById = null;
+/** @type {{ id: string, label: string }[] | null} */
 let handlerChoicesCache = null;
 
 export function clearHandlerChoicesCache() {
   handlerChoicesCache = null;
+  handlerCatalogById = null;
+}
+
+async function getHandlerCatalogById() {
+  if (handlerCatalogById) return handlerCatalogById;
+  await getHandlerChoices();
+  return handlerCatalogById || {};
 }
 
 async function getHandlerChoices() {
@@ -41,6 +51,7 @@ async function getHandlerChoices() {
   try {
     const data = await fetchInteractionHandlers();
     const handlers = data?.handlers || [];
+    handlerCatalogById = Object.fromEntries(handlers.map((h) => [h.id, h]));
     handlerChoicesCache = [
       { id: "none", label: "None" },
       ...handlers.map((h) => ({
@@ -49,6 +60,7 @@ async function getHandlerChoices() {
       })),
     ];
   } catch {
+    handlerCatalogById = {};
     handlerChoicesCache = FALLBACK_HANDLER_CHOICES;
   }
   return handlerChoicesCache;
@@ -72,14 +84,7 @@ function listAreaIds() {
 }
 
 function formatHandlerSummary(action) {
-  const handlerId = action?.handler_id;
-  if (!handlerId) return "no handler";
-  if (handlerId === "move_area") {
-    const area = action.handler_params?.["dest-area"] || "?";
-    const at = action.handler_params?.["dest-at"] || "?";
-    return `move_area → ${area} (${at})`;
-  }
-  return handlerId;
+  return formatHandlerSummaryFromCatalog(action, handlerCatalogById || {});
 }
 
 function formatActionSummary(action) {
@@ -125,7 +130,12 @@ async function runCommand(line) {
   }
 }
 
+function setActionModalWide(wide) {
+  modalBackdrop?.querySelector(".modal")?.classList.toggle("modal--wide", Boolean(wide));
+}
+
 function showManageModal() {
+  setActionModalWide(true);
   modalTitle.textContent = `Manage actions — ${manageObject.name}`;
   modalForm.innerHTML = "";
   modalError.textContent = "";
@@ -175,14 +185,15 @@ function showManageModal() {
   addBtn.textContent = "Add action…";
   addBtn.addEventListener("click", () => openActionForm(null, null));
   actions.appendChild(addBtn);
-
   modalForm.appendChild(actions);
+
+  modalForm.onsubmit = (e) => e.preventDefault();
   modalBackdrop.classList.remove("hidden");
 }
 
 export function openManageObjectActionsModal(entity) {
   manageObject = entity;
-  showManageModal();
+  void getHandlerChoices().then(() => showManageModal());
 }
 
 async function removeAction(name) {
@@ -196,34 +207,16 @@ async function removeAction(name) {
   }
 }
 
-function parseHandlerFromAction(action) {
-  const handlerId = action?.handler_id;
-  if (!handlerId) {
-    return { handler: "none", destArea: "", destX: "0", destY: "0" };
-  }
-  if (handlerId === "move_area") {
-    const parts = String(action.handler_params?.["dest-at"] || "0,0").split(",");
-    return {
-      handler: "move_area",
-      destArea: action.handler_params?.["dest-area"] || "",
-      destX: (parts[0] || "0").trim(),
-      destY: (parts[1] || "0").trim(),
-    };
-  }
-  return { handler: handlerId, destArea: "", destX: "0", destY: "0" };
-}
-
 async function openActionForm(existingName, existingAction) {
   const isEdit = existingName != null;
-  const parsed = isEdit
-    ? parseHandlerFromAction(existingAction)
-    : { handler: "none", destArea: "", destX: "0", destY: "0" };
   const areas = listAreaIds();
-  const defaultDestArea = parsed.destArea || areas[0] || "room";
   const handlerChoices = await getHandlerChoices();
-
+  const catalogById = await getHandlerCatalogById();
   const actionKind = existingAction?.kind || "interact";
+  const initialHandler = existingAction?.handler_id || "none";
+  const initialParams = { ...(existingAction?.handler_params || {}) };
 
+  setActionModalWide(true);
   modalTitle.textContent = isEdit
     ? `Edit action — ${existingName}`
     : `Add action — ${manageObject.name}`;
@@ -369,65 +362,32 @@ async function openActionForm(existingName, existingAction) {
     const opt = document.createElement("option");
     opt.value = choice.id;
     opt.textContent = choice.label;
-    if (choice.id === parsed.handler) opt.selected = true;
+    if (choice.id === initialHandler) opt.selected = true;
     handlerSelect.appendChild(opt);
   }
   handlerWrap.appendChild(handlerSelect);
   modalForm.appendChild(handlerWrap);
 
-  const moveFields = document.createElement("div");
-  moveFields.className = "action-move-fields";
+  const paramHost = document.createElement("div");
+  paramHost.className = "action-handler-params";
+  modalForm.appendChild(paramHost);
 
-  const destAreaWrap = document.createElement("label");
-  destAreaWrap.className = "modal-field";
-  const destAreaLabel = document.createElement("span");
-  destAreaLabel.textContent = "Destination area";
-  destAreaWrap.appendChild(destAreaLabel);
-  const destAreaSelect = document.createElement("select");
-  destAreaSelect.name = "destArea";
-  for (const areaId of areas) {
-    const opt = document.createElement("option");
-    opt.value = areaId;
-    opt.textContent = areaId;
-    if (areaId === defaultDestArea) opt.selected = true;
-    destAreaSelect.appendChild(opt);
-  }
-  destAreaWrap.appendChild(destAreaSelect);
-  moveFields.appendChild(destAreaWrap);
-
-  const destRow = document.createElement("div");
-  destRow.className = "action-dest-row";
-
-  const destXWrap = document.createElement("label");
-  destXWrap.className = "modal-field action-dest-coord";
-  const destXLabel = document.createElement("span");
-  destXLabel.textContent = "Dest X";
-  destXWrap.appendChild(destXLabel);
-  const destXInput = document.createElement("input");
-  destXInput.type = "number";
-  destXInput.name = "destX";
-  destXInput.value = parsed.destX;
-  destXWrap.appendChild(destXInput);
-  destRow.appendChild(destXWrap);
-
-  const destYWrap = document.createElement("label");
-  destYWrap.className = "modal-field action-dest-coord";
-  const destYLabel = document.createElement("span");
-  destYLabel.textContent = "Dest Y";
-  destYWrap.appendChild(destYLabel);
-  const destYInput = document.createElement("input");
-  destYInput.type = "number";
-  destYInput.name = "destY";
-  destYInput.value = parsed.destY;
-  destYWrap.appendChild(destYInput);
-  destRow.appendChild(destYWrap);
-
-  moveFields.appendChild(destRow);
-  modalForm.appendChild(moveFields);
-
-  const toggleMoveFields = () => {
-    moveFields.classList.toggle("hidden", handlerSelect.value !== "move_area");
+  const syncParamFields = () => {
+    paramHost.innerHTML = "";
+    const handlerId = handlerSelect.value;
+    if (!handlerId || handlerId === "none") return;
+    const entry = catalogById[handlerId];
+    const paramFields = entry?.param_fields || [];
+    if (!paramFields.length) return;
+    renderParamFields(paramHost, paramFields, {
+      params: initialParams,
+      areas,
+      catalogById,
+      attachTemplateHelp: attachTemplateVarHelp,
+      parentHandlerId: handlerId,
+    });
   };
+
   const syncKindFields = () => {
     const isTrigger = kindSelect.value === "trigger";
     triggerFields.classList.toggle("hidden", !isTrigger);
@@ -438,11 +398,11 @@ async function openActionForm(existingName, existingAction) {
       const current = kindSelect.value;
       wrap.hidden = !allowed.includes(String(current));
     }
-    toggleMoveFields();
   };
-  handlerSelect.addEventListener("change", syncKindFields);
+  handlerSelect.addEventListener("change", syncParamFields);
   kindSelect.addEventListener("change", syncKindFields);
   syncKindFields();
+  syncParamFields();
 
   const actions = document.createElement("div");
   actions.className = "modal-actions";
@@ -463,16 +423,20 @@ async function openActionForm(existingName, existingAction) {
   modalForm.onsubmit = async (e) => {
     e.preventDefault();
     modalError.textContent = "";
+    const handlerId = modalForm.elements.handler?.value || "none";
+    const entry = catalogById[handlerId];
+    const handlerParams =
+      handlerId && handlerId !== "none"
+        ? collectHandlerParams(modalForm, entry?.param_fields || [], catalogById)
+        : {};
     const data = {
       name: modalForm.elements.name.value.trim(),
       range: modalForm.elements.range.value.trim(),
       kind: modalForm.elements.kind.value,
       result: modalForm.elements.result?.value?.trim() || "(trigger)",
       passive: modalForm.elements.passive.value.trim(),
-      handler: modalForm.elements.handler?.value || "none",
-      destArea: modalForm.elements.destArea?.value,
-      destX: modalForm.elements.destX?.value?.trim(),
-      destY: modalForm.elements.destY?.value?.trim(),
+      handler: handlerId,
+      handlerParams,
       haltMovement: modalForm.elements.haltMovement?.checked ?? true,
       deleteAfterTrigger: modalForm.elements.deleteAfterTrigger?.checked ?? true,
       triggerExceptions: modalForm.elements.triggerExceptions?.value?.trim() ?? "",
@@ -496,9 +460,7 @@ async function openActionForm(existingName, existingAction) {
           deleteAfterTrigger: data.kind === "trigger" ? data.deleteAfterTrigger : undefined,
           triggerExceptions: data.kind === "trigger" ? data.triggerExceptions : undefined,
           handler: data.handler,
-          destArea: data.destArea,
-          destX: data.destX,
-          destY: data.destY,
+          handlerParams: data.handlerParams,
         }),
       );
       await refreshManagedObject();
