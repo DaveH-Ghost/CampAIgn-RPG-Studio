@@ -4,6 +4,23 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.5.0
+
+**Requires:** `campaign-rpg-engine>=1.5.0`
+
+### Affinity memory module
+
+- Create-agent catalog includes built-in **`affinity`**: relationships (-10…+10) plus rolling summary (same summary interval/max/tail options as `rolling_summary`).
+- Engine prompt block: Relationships → Summary → recent turns; parallel Call A/B consolidation.
+
+### Removed: custom / uploaded memory modules
+
+- Runtime registration (`register_memory_module_from_path` / `_from_source`), Studio upload UI, and fixture samples are **removed**.
+- Memory modules are **built-in only**: ``recent_turns``, ``salient_turns``, ``rolling_summary``, ``affinity``.
+- Saves referencing unknown ``module_id`` fail with a clear builtins-only error.
+
+---
+
 ## 1.4.2
 
 **Requires:** `campaign-rpg-engine>=1.4.2`

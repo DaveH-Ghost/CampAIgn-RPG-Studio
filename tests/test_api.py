@@ -554,13 +554,20 @@ def test_get_memory_modules(client):
     assert data["ok"] is True
     assert data["default_id"] == "recent_turns"
     ids = {mod["id"] for mod in data["modules"]}
-    assert ids == {"recent_turns", "salient_turns", "rolling_summary"}
+    assert ids == {"recent_turns", "salient_turns", "rolling_summary", "affinity"}
     salient = next(m for m in data["modules"] if m["id"] == "salient_turns")
     assert salient["options"][0]["flag"] == "memory-budget"
     recent = next(m for m in data["modules"] if m["id"] == "recent_turns")
     assert recent["options"][0]["flag"] == "memory-window"
     rolling = next(m for m in data["modules"] if m["id"] == "rolling_summary")
     assert len(rolling["options"]) == 3
+    affinity = next(m for m in data["modules"] if m["id"] == "affinity")
+    assert len(affinity["options"]) == 3
+    assert {opt["flag"] for opt in affinity["options"]} == {
+        "memory-summary-interval",
+        "memory-summary-max",
+        "memory-summary-tail",
+    }
 
 
 def test_create_agent_with_recent_turns_memory_window(client):
@@ -963,22 +970,6 @@ def test_post_delete_area_with_agents_rejected(client):
     assert response.json()["ok"] is False
 
 
-@pytest.fixture(autouse=True)
-def _clear_custom_memory_modules():
-    import shutil
-
-    from backend.memory_module_upload import CUSTOM_MODULES_DIR
-    from campaign_rpg_engine import clear_custom_memory_registrations
-
-    clear_custom_memory_registrations()
-    if CUSTOM_MODULES_DIR.is_dir():
-        shutil.rmtree(CUSTOM_MODULES_DIR)
-    yield
-    clear_custom_memory_registrations()
-    if CUSTOM_MODULES_DIR.is_dir():
-        shutil.rmtree(CUSTOM_MODULES_DIR)
-
-
 def test_get_llm_settings_never_returns_api_key(client):
     response = client.get("/api/settings/llm")
     assert response.status_code == 200
@@ -1007,78 +998,28 @@ def test_put_llm_settings_in_memory(client, monkeypatch):
     assert "api_key" not in get_data
 
 
-def _example_custom_module_path() -> Path:
-    return (
-        Path(__file__).resolve().parent.parent
-        / "fixtures"
-        / "custom_memory"
-        / "rolling_summary_custom.py"
-    )
-
-
-def test_upload_memory_module_lists_in_catalog(client):
-    example = _example_custom_module_path()
-    source = example.read_text(encoding="utf-8")
-    response = client.post(
-        "/api/memory-modules/upload",
-        files={"file": ("rolling_summary_custom.py", source, "text/x-python")},
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["ok"] is True
-    assert data["module_id"] == "rolling_summary_custom"
-
-    catalog = client.get("/api/memory-modules").json()
-    ids = {mod["id"] for mod in catalog["modules"]}
-    assert "rolling_summary_custom" in ids
-    assert catalog["custom_modules"]
-    assert catalog["custom_modules"][0]["id"] == "rolling_summary_custom"
-
-
-def test_cached_modules_reload_from_disk_after_registry_clear(client):
-    example = _example_custom_module_path()
-    source = example.read_text(encoding="utf-8")
-    upload = client.post(
-        "/api/memory-modules/upload",
-        files={"file": ("rolling_summary_custom.py", source, "text/x-python")},
-    )
-    assert upload.status_code == 200
-
-    from backend.memory_module_upload import CUSTOM_MODULES_DIR, load_cached_custom_modules
-    from campaign_rpg_engine import clear_custom_memory_registrations
-
-    assert list(CUSTOM_MODULES_DIR.glob("*.py"))
-
-    clear_custom_memory_registrations()
-
-    loaded = load_cached_custom_modules()
-    assert "rolling_summary_custom" in loaded
-
-    catalog = client.get("/api/memory-modules").json()
-    ids = {mod["id"] for mod in catalog["modules"]}
-    assert "rolling_summary_custom" in ids
-
-
-def test_session_import_fails_without_custom_module(client):
-    from campaign_rpg_engine import clear_custom_memory_registrations, register_memory_module_from_path
-
-    example = _example_custom_module_path()
-    register_memory_module_from_path(example)
+def test_session_import_fails_with_unknown_memory_module(client):
     create_agent(
         name="Archivist",
         position=(2, 2),
         personality="x",
-        memory_module="rolling_summary_custom",
+        memory_module="recent_turns",
     )
     snapshot = client.get("/api/session/export").json()
-
-    clear_custom_memory_registrations()
+    agents = snapshot.get("agents") or []
+    assert agents
+    agents[0]["memory"] = {
+        "module_id": "rolling_summary_custom",
+        "module_state": {},
+        "looked_at": [],
+        "ever_looked": [],
+    }
 
     response = client.post("/api/session/import", json=snapshot)
     assert response.status_code == 400
-    detail = response.json()["detail"]
+    detail = str(response.json()["detail"]).lower()
     assert "rolling_summary_custom" in detail
-    assert "not found" in detail.lower()
+    assert "unsupported" in detail or "unknown" in detail
 
 
 _LOREBOOK_JSON = """{

@@ -86,10 +86,6 @@ from backend.turn_verbs_api import get_turn_verbs_catalog
 from backend.version import engine_version, studio_version
 from backend.vision_units_api import put_vision_units as api_put_vision_units
 from backend.coordinate_mode_api import put_coordinate_mode as api_put_coordinate_mode
-from backend.memory_module_upload import (
-    load_cached_custom_modules,
-    upload_memory_module,
-)
 from backend.plugin_upload import load_all_plugins, upload_plugin
 from backend.plugins_api import (
     get_player_turn_assist_route,
@@ -138,7 +134,6 @@ def _ensure_reference_handlers() -> None:
 @asynccontextmanager
 async def _app_lifespan(_app: FastAPI):
     _ensure_reference_handlers()
-    load_cached_custom_modules()
     load_all_plugins()
     yield
 
@@ -500,24 +495,6 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=result.get("message", "Upload failed"))
         return result
 
-    @app.post("/api/memory-modules/upload")
-    async def upload_memory_module_route(
-        file: UploadFile = File(...),
-    ) -> dict[str, object]:
-        if not file.filename or not file.filename.lower().endswith(".py"):
-            raise HTTPException(status_code=400, detail="Upload must be a .py file.")
-        raw = await file.read()
-        try:
-            source = raw.decode("utf-8")
-        except UnicodeDecodeError as exc:
-            raise HTTPException(
-                status_code=400, detail="Module file must be UTF-8 text."
-            ) from exc
-        try:
-            return upload_memory_module(source=source, filename=file.filename)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-
     @app.get("/api/entity-templates")
     def get_entity_templates_route() -> dict[str, object]:
         return list_entity_templates()
@@ -863,7 +840,7 @@ def main() -> None:
         port=_DEFAULT_PORT,
         reload=True,
         reload_dirs=reload_dirs,
-        reload_excludes=[".custom_modules/*", ".custom_plugins/*"],
+        reload_excludes=[".custom_plugins/*"],
     )
 
 

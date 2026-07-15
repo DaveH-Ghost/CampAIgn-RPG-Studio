@@ -2,7 +2,7 @@
 
 
 
-**CampAIgn RPG Studio 1.4.2** — reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.4.2`).
+**CampAIgn RPG Studio 1.5.0** — reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.5.0`).
 
 
 
@@ -82,7 +82,7 @@ github/
   CampAIgn-RPG-Studio/
 ```
 
-`pyproject.toml` pins **`campaign-rpg-engine>=1.4.2`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
+`pyproject.toml` pins **`campaign-rpg-engine>=1.5.0`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
 
 ```powershell
 cd CampAIgn-RPG-Studio
@@ -121,7 +121,7 @@ Restore `[tool.uv.sources]` for day-to-day co-development.
 
 - **Prompt layout** — reorder blocks, slot settings, lorebook injection
 
-- **Settings** — in-memory LLM key/model; custom memory module upload
+- **Settings** — in-memory LLM key/model
 
 - **Session** — export/import full save JSON
 
@@ -137,7 +137,7 @@ For new extensions, prefer the [**Plugins**](plugins/README.md) tab and `plugins
 
 
 
-Custom memory module sample and upload UI: [`fixtures/custom_memory/`](fixtures/custom_memory/) (Settings → Memory modules).
+Custom plugins sample: [`plugins/`](plugins/) (Plugins tab). Built-in memory modules are selected when creating an agent (no custom memory upload).
 
 
 

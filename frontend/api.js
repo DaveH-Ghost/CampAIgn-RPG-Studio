@@ -712,20 +712,6 @@ export async function putLlmSettings({ api_key, model }) {
   return data;
 }
 
-export async function uploadMemoryModule(file) {
-  const form = new FormData();
-  form.append("file", file, file.name);
-  const res = await fetch("/api/memory-modules/upload", {
-    method: "POST",
-    body: form,
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
-  }
-  return data;
-}
-
 export async function fetchPlugins() {
   const res = await fetch("/api/plugins");
   const data = await res.json();

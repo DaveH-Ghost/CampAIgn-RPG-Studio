@@ -1,11 +1,6 @@
-/** Settings modal: in-memory LLM config + custom memory module upload (V0.4.6). */
+/** Settings modal: in-memory LLM config. */
 
-import {
-  getLlmSettings,
-  getMemoryModules,
-  putLlmSettings,
-  uploadMemoryModule,
-} from "./api.js";
+import { getLlmSettings, putLlmSettings } from "./api.js";
 
 export function initSettings({ showToastFn }) {
   const backdrop = document.getElementById("settings-backdrop");
@@ -15,9 +10,6 @@ export function initSettings({ showToastFn }) {
   const keyStatus = document.getElementById("settings-key-status");
   const modelInput = document.getElementById("settings-model");
   const llmSaveBtn = document.getElementById("settings-llm-save");
-  const moduleFileInput = document.getElementById("settings-module-upload");
-  const moduleUploadBtn = document.getElementById("settings-module-upload-btn");
-  const customList = document.getElementById("settings-custom-modules");
   const errorEl = document.getElementById("settings-error");
 
   if (!backdrop || !openBtn) return;
@@ -32,32 +24,6 @@ export function initSettings({ showToastFn }) {
     if (apiKeyInput) apiKeyInput.value = "";
   }
 
-  async function refreshCustomModuleList() {
-    if (!customList) return;
-    try {
-      const catalog = await getMemoryModules();
-      const customs = catalog.custom_modules || [];
-      customList.innerHTML = "";
-      if (customs.length === 0) {
-        const item = document.createElement("li");
-        item.textContent = "No custom modules loaded.";
-        customList.appendChild(item);
-        return;
-      }
-      for (const mod of customs) {
-        const item = document.createElement("li");
-        item.textContent = mod.filename
-          ? `${mod.label || mod.id} (${mod.id}) — ${mod.filename}`
-          : `${mod.label || mod.id} (${mod.id})`;
-        customList.appendChild(item);
-      }
-    } catch (err) {
-      const item = document.createElement("li");
-      item.textContent = String(err.message || err);
-      customList.appendChild(item);
-    }
-  }
-
   async function openSettings() {
     setError("");
     try {
@@ -69,7 +35,6 @@ export function initSettings({ showToastFn }) {
           : "No API key set in this session.";
       }
       if (apiKeyInput) apiKeyInput.value = "";
-      await refreshCustomModuleList();
       backdrop.classList.remove("hidden");
     } catch (err) {
       showToastFn(String(err.message || err), true);
@@ -107,22 +72,5 @@ export function initSettings({ showToastFn }) {
     }
   });
 
-  moduleUploadBtn?.addEventListener("click", async () => {
-    setError("");
-    const file = moduleFileInput?.files?.[0];
-    if (!file) {
-      setError("Choose a .py file first.");
-      return;
-    }
-    try {
-      const result = await uploadMemoryModule(file);
-      if (moduleFileInput) moduleFileInput.value = "";
-      await refreshCustomModuleList();
-      showToastFn(result.message || `Loaded ${result.module_id}`);
-    } catch (err) {
-      setError(String(err.message || err));
-    }
-  });
-
-  return { refreshCustomModuleList };
+  return {};
 }
