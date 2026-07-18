@@ -4,6 +4,33 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.5.1
+
+**Requires:** `campaign-rpg-engine>=1.5.1`
+
+### Reference handlers — multi-step object actions
+
+- `sequence` — run `handler_1`…`handler_3` in order (nested params use `1_` / `2_` / `3_` prefixes).
+- `set_object_text` — update object `set_pdesc` / `set_desc` (`[none]` / `[empty]` to clear).
+- `set_action_enabled` — show/hide an action on the current object (`target=_self` or name).
+- `spawn_from_template` — spawn an entity-library object template near the actor (optional `dest-area` / `dest-at`).
+- Object actions support `enabled` (Studio checkbox); disabled actions are hidden from vision and cannot be used.
+- Action editor field type `template_id` — dropdown of entity templates (generic; used by spawn + inventory).
+
+### Inventory — grant from template
+
+- `inventory_add_from_template` — put a library object template into the actor's inventory (map-usable like pick_up; inventory plugin only).
+
+### Turn undo
+
+- Studio-only undo restores full session checkpoints (LLM and manual turns); Undo control in the UI.
+
+### Prompt / vision UX (engine)
+
+- `[far]` out-of-range object actions stay visible; `[emote]` third-person tagging; clearer unknown-interact failures with emote nudge.
+
+---
+
 ## 1.5.0
 
 **Requires:** `campaign-rpg-engine>=1.5.0`

@@ -203,13 +203,17 @@ def create_app() -> FastAPI:
     @app.post("/api/command")
     def post_command(body: CommandRequest) -> dict[str, object]:
         """Run a stepper-style command (create/edit/delete, listings)."""
-        session = get_session_store().session
+        store = get_session_store()
+        session = store.session
         result = dispatch_command(session, body.line.strip())
         payload: dict[str, object] = {"ok": result.ok, "message": result.message}
         if result.ok:
+            store.clear_undo()
             payload["snapshot"] = normalize_state_snapshot(
                 session.snapshot(include_private=True)
             )
+            payload["can_undo"] = False
+            payload["undo_remaining"] = 0
         return payload
 
     @app.put("/api/entity-private-data")
@@ -357,6 +361,14 @@ def create_app() -> FastAPI:
             body.compound_turn,
             agent_id=body.agent_id,
         )
+
+    @app.get("/api/turn/undo")
+    def get_turn_undo_status() -> dict[str, object]:
+        return get_session_store().undo_status()
+
+    @app.post("/api/turn/undo")
+    def post_turn_undo() -> dict[str, object]:
+        return get_session_store().undo_turn()
 
     @app.get("/api/prompt")
     def get_prompt(agent_id: str | None = None) -> dict[str, object]:

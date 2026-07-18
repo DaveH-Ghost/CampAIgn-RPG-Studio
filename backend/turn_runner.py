@@ -17,6 +17,7 @@ from campaign_rpg_engine import (
     get_compound_turn,
 )
 
+from backend.session_store import get_session_store
 from backend.snapshot_compat import normalize_state_snapshot
 
 
@@ -51,6 +52,14 @@ def _restore_active_agent(session: Session, previous_active_id: str | None) -> N
         session.active_agent_id = previous_active_id
 
 
+def _undo_fields() -> dict[str, Any]:
+    store = get_session_store()
+    return {
+        "can_undo": store.can_undo,
+        "undo_remaining": store.undo_remaining,
+    }
+
+
 def run_manual_turn(
     session: Session,
     turn_payload: dict[str, Any],
@@ -79,12 +88,15 @@ def run_manual_turn(
     except ValidationError as exc:
         return {"ok": False, "message": str(exc)}
 
+    store = get_session_store()
+    checkpoint = store.capture_checkpoint()
     prev_active = _active_agent_before_explicit_turn(session, agent_id)
     result = session.run_compound_turn(compound_turn, agent_id=agent_id)
     _restore_active_agent(session, prev_active)
     if not result.ok or result.record is None:
         return {"ok": False, "message": result.message}
 
+    store.push_undo(checkpoint)
     return {
         "ok": True,
         "message": result.message,
@@ -93,6 +105,7 @@ def run_manual_turn(
         ),
         "steps": _serialize_steps(result.record),
         "manual_turn": True,
+        **_undo_fields(),
     }
 
 
@@ -138,12 +151,15 @@ def run_llm_turn(
         except LLMParseError as exc:
             return {"ok": False, "message": str(exc)}
 
+        store = get_session_store()
+        checkpoint = store.capture_checkpoint()
         prev_active = _active_agent_before_explicit_turn(session, agent_id)
         result = session.run_compound_turn(compound_turn, agent_id=agent_id)
         _restore_active_agent(session, prev_active)
         if not result.ok or result.record is None:
             return {"ok": False, "message": result.message}
 
+        store.push_undo(checkpoint)
         return {
             "ok": True,
             "message": result.message,
@@ -157,6 +173,7 @@ def run_llm_turn(
             "total_tokens": response.total_tokens,
             "prompt_tokens_estimate": estimate_prompt_tokens(prompt),
             "llm_response": response.raw_response,
+            **_undo_fields(),
         }
     finally:
         session.include_examples = prev_include

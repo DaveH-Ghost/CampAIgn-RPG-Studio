@@ -36,7 +36,7 @@ def register(ctx):
     ctx.register_panel_action("ping", lambda session, params: {"ok": True, "message": "pong"})
 ```
 
-`register_handler` may also pass **`param_fields`** (list of field dicts) and **`summary_template`** (e.g. `"skill_check {stat} DC {dc}"`) so the Studio action editor renders params and manage-list summaries without frontend patches. Field `type` values: `text`, `textarea`, `number`, `select`, `area_id`, `coord`, `handler_ref` (nested handler pick with `param_prefix` / `exclude_handlers`).
+`register_handler` may also pass **`param_fields`** (list of field dicts) and **`summary_template`** (e.g. `"skill_check {stat} DC {dc}"`) so the Studio action editor renders params and manage-list summaries without frontend patches. Field `type` values: `text`, `textarea`, `number`, `select`, `area_id`, `template_id` (entity template library; optional `kind: "object"|"agent"` filter), `coord`, `handler_ref` (nested handler pick with `param_prefix` / `exclude_handlers`).
 
 `register_player_turn_assist(builder)` — `builder(session)` returns `[{id, label, verbs: [str]}, ...]`. Host merges enabled plugins on `GET /api/player-turn-assist` for the player-turn verb/target UI.
 

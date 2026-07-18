@@ -32,17 +32,30 @@ serialization = _import_plugin_module("serialization")
 handlers = _import_plugin_module("handlers")
 interact = _import_plugin_module("interact")
 social = _import_plugin_module("social")
+from_template = _import_plugin_module("from_template")
 
 PLUGIN_ID = state.PLUGIN_ID
 PLUGIN_LABEL = "Inventory"
 PLUGIN_VERSION = "2"
 PLUGIN_DESCRIPTION = (
     "Carry objects off the map. Add pick_up with handler inventory_pick_up; "
+    "inventory_add_from_template grants a library object template into inventory; "
     "inventory-only actions (e.g. drink with inventory_consume) work from inventory "
     "via turn verb matching the action name. Drop, give, and show via turn verbs."
 )
 
 _HANDLER_ID = "inventory_pick_up"
+_HANDLER_ADD_FROM_TEMPLATE = "inventory_add_from_template"
+
+_ADD_FROM_TEMPLATE_PARAM_FIELDS = [
+    {
+        "name": "template_id",
+        "label": "Object template",
+        "type": "template_id",
+        "required": True,
+        "kind": "object",
+    },
+]
 _DROP_VERB = "drop"
 _GIVE_VERB = "give"
 _SHOW_VERB = "show"
@@ -313,10 +326,49 @@ def register(ctx):
         interact.register_item_action_verbs(ctx, item)
         return None
 
+    def validate_add_from_template_params(params: dict[str, str]) -> str | None:
+        template_id = (params.get("template_id") or "").strip()
+        if not template_id:
+            return "inventory_add_from_template requires template_id."
+        return None
+
+    def inventory_add_from_template(session, area, agent, obj, action) -> str | None:
+        del area, obj
+        if session is None:
+            return "inventory_add_from_template requires a session."
+        if not state.plugin_enabled(session):
+            return "Inventory plugin is not enabled."
+        template_id = (action.handler_params.get("template_id") or "").strip()
+        from backend.entity_templates_api import get_entity_template
+
+        loaded = get_entity_template(template_id)
+        if not loaded.get("ok"):
+            return str(loaded.get("message") or f"Template {template_id!r} not found.")
+        template = loaded["template"]
+        if not isinstance(template, dict):
+            return f"Template {template_id!r} is invalid."
+        try:
+            item = from_template.item_from_object_template(session, agent, template)
+        except ValueError as exc:
+            return str(exc)
+        items = state.agent_items(session, agent.id)
+        items.append(item)
+        state.set_agent_items(session, agent.id, items)
+        interact.register_item_action_verbs(ctx, item)
+        return None
+
     ctx.register_handler(
         _HANDLER_ID,
         inventory_pick_up,
         description="Pick up object into agent inventory (inventory plugin)",
+    )
+    ctx.register_handler(
+        _HANDLER_ADD_FROM_TEMPLATE,
+        inventory_add_from_template,
+        description="Add an object template into agent inventory (inventory plugin)",
+        validate_params=validate_add_from_template_params,
+        param_fields=_ADD_FROM_TEMPLATE_PARAM_FIELDS,
+        summary_template="inventory_add_from_template {template_id}",
     )
     ctx.register_handler(
         handlers._HANDLER_CONSUME,

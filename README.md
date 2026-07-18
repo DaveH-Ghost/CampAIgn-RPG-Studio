@@ -2,7 +2,7 @@
 
 
 
-**CampAIgn RPG Studio 1.5.0** — reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.5.0`).
+**CampAIgn RPG Studio 1.5.1** — reference GM web app for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.5.1`).
 
 
 
@@ -82,7 +82,7 @@ github/
   CampAIgn-RPG-Studio/
 ```
 
-`pyproject.toml` pins **`campaign-rpg-engine>=1.5.0`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
+`pyproject.toml` pins **`campaign-rpg-engine>=1.5.1`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
 
 ```powershell
 cd CampAIgn-RPG-Studio
@@ -131,7 +131,7 @@ Restore `[tool.uv.sources]` for day-to-day co-development.
 
 
 
-Demo interaction handlers (`delete_self`, `random_move_self`, `move_area`) live in [`reference_handlers/`](reference_handlers/). They are **app-owned**, not part of the engine — copy this pattern in your own projects.
+Demo interaction handlers (`delete_self`, `random_move_self`, `move_area`, `sequence`, `set_object_text`, `set_action_enabled`, `spawn_from_template`) live in [`reference_handlers/`](reference_handlers/). They are **app-owned**, not part of the engine — copy this pattern in your own projects.
 
 For new extensions, prefer the [**Plugins**](plugins/README.md) tab and `plugins/` packages (handlers, turn verbs, prompt slots, events, panel UI).
 

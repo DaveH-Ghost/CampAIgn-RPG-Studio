@@ -18,12 +18,14 @@ _HANDLER_CONSUME = handlers_mod._HANDLER_CONSUME
 deserialize_actions = serialization.deserialize_actions
 
 _HANDLER_PICK_UP = "inventory_pick_up"
+_HANDLER_ADD_FROM_TEMPLATE = "inventory_add_from_template"
+_GRID_ONLY_HANDLERS = frozenset({_HANDLER_PICK_UP, _HANDLER_ADD_FROM_TEMPLATE})
 _REGISTERED_INVENTORY_VERBS: set[str] = set()
 _PERCEPTION_PATCHED = False
 
 
 def is_grid_only_handler(handler_id: str | None) -> bool:
-    return handler_id == _HANDLER_PICK_UP
+    return handler_id in _GRID_ONLY_HANDLERS
 
 
 def is_inventory_only_handler(handler_id: str | None) -> bool:

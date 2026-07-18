@@ -145,6 +145,27 @@ export async function postManualTurn({ agentId, compoundTurn } = {}) {
   return data;
 }
 
+export async function getTurnUndoStatus() {
+  const res = await fetch("/api/turn/undo");
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function postTurnUndo() {
+  const res = await fetch("/api/turn/undo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 export async function postEvent(text, agentIds = null) {
   const body = { text };
   if (Array.isArray(agentIds) && agentIds.length > 0) {
@@ -442,9 +463,13 @@ export function buildCompoundTurnPayload(data) {
   if (data.move?.trim()) payload.move = data.move.trim();
   if (data.look?.trim()) payload.look = data.look.trim();
   if (data.say?.trim()) payload.say = data.say.trim();
-  if (action === "interact" || action === "emote") {
+  if (action === "interact") {
     payload.target = data.target.trim();
     payload.verb = data.verb.trim();
+  }
+  if (action === "emote") {
+    payload.verb = data.verb.trim();
+    if (data.target?.trim()) payload.target = data.target.trim();
   }
   if (action === "verb") {
     payload.verb = String(data.turn_verb ?? data.verb ?? "").trim();
@@ -578,10 +603,16 @@ export function buildAddObjectAction(objectId, {
   haltMovement,
   deleteAfterTrigger,
   triggerExceptions,
+  enabled,
 }) {
   const parts = [`edit-object ${objectId} add-action ${name} range ${range}`];
   if (kind && kind !== "interact") {
     parts.push(`kind ${kind}`);
+  }
+  if (enabled === false) {
+    parts.push(`enabled false`);
+  } else if (enabled === true) {
+    parts.push(`enabled true`);
   }
   if (kind === "trigger") {
     if (haltMovement !== undefined) {

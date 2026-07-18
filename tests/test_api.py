@@ -40,7 +40,7 @@ def test_get_interaction_handlers_lists_reference_set(client):
     assert response.status_code == 200
     data = response.json()
     ids = {item["id"] for item in data["handlers"]}
-    assert {"delete_self", "random_move_self", "move_area"} <= ids
+    assert {"delete_self", "random_move_self", "move_area", "sequence", "set_object_text", "set_action_enabled", "spawn_from_template"} <= ids
     assert "inventory_pick_up" not in ids
     move = next(h for h in data["handlers"] if h["id"] == "move_area")
     assert move.get("summary_template")
@@ -53,6 +53,20 @@ def test_get_interaction_handlers_includes_enabled_plugin_handlers(client):
     response = client.get("/api/interaction-handlers")
     ids = {item["id"] for item in response.json()["handlers"]}
     assert "inventory_pick_up" in ids
+    assert "inventory_add_from_template" in ids
+    add_handler = next(
+        h for h in response.json()["handlers"] if h["id"] == "inventory_add_from_template"
+    )
+    fields = {f["name"]: f for f in add_handler.get("param_fields") or []}
+    assert fields["template_id"]["type"] == "template_id"
+
+
+def test_spawn_from_template_catalog_has_template_id(client):
+    response = client.get("/api/interaction-handlers")
+    spawn = next(h for h in response.json()["handlers"] if h["id"] == "spawn_from_template")
+    fields = {f["name"]: f for f in spawn.get("param_fields") or []}
+    assert fields["template_id"]["type"] == "template_id"
+    assert fields["template_id"].get("kind") == "object"
 
 
 def test_skill_check_catalog_includes_param_fields(client):

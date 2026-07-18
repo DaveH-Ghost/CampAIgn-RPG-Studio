@@ -5,6 +5,7 @@
 import {
   buildAddObjectAction,
   buildRemoveObjectAction,
+  fetchEntityTemplates,
   fetchInteractionHandlers,
   postCommand,
 } from "./api.js";
@@ -34,10 +35,13 @@ let manageObject = null;
 let handlerCatalogById = null;
 /** @type {{ id: string, label: string }[] | null} */
 let handlerChoicesCache = null;
+/** @type {{ id: string, kind?: string, name?: string }[] | null} */
+let entityTemplatesCache = null;
 
 export function clearHandlerChoicesCache() {
   handlerChoicesCache = null;
   handlerCatalogById = null;
+  entityTemplatesCache = null;
 }
 
 async function getHandlerCatalogById() {
@@ -66,6 +70,17 @@ async function getHandlerChoices() {
   return handlerChoicesCache;
 }
 
+async function getEntityTemplateChoices({ force = false } = {}) {
+  if (!force && entityTemplatesCache) return entityTemplatesCache;
+  try {
+    const data = await fetchEntityTemplates();
+    entityTemplatesCache = data?.templates || [];
+  } catch {
+    entityTemplatesCache = [];
+  }
+  return entityTemplatesCache;
+}
+
 export function initObjectActions(deps) {
   getSnapshot = deps.getSnapshotFn;
   onStateChanged = deps.onStateChangedFn;
@@ -91,6 +106,9 @@ function formatActionSummary(action) {
   const kind = action?.kind || "interact";
   const kindLabel = kind === "trigger" ? "trigger" : "interact";
   let suffix = formatHandlerSummary(action);
+  if (action?.enabled === false) {
+    suffix += " · hidden";
+  }
   if (kind === "trigger") {
     const flags = [];
     if (action?.halt_movement) flags.push("halt");
@@ -212,6 +230,7 @@ async function openActionForm(existingName, existingAction) {
   const areas = listAreaIds();
   const handlerChoices = await getHandlerChoices();
   const catalogById = await getHandlerCatalogById();
+  const templates = await getEntityTemplateChoices({ force: true });
   const actionKind = existingAction?.kind || "interact";
   const initialHandler = existingAction?.handler_id || "none";
   const initialParams = { ...(existingAction?.handler_params || {}) };
@@ -351,6 +370,18 @@ async function openActionForm(existingName, existingAction) {
 
   modalForm.appendChild(triggerFields);
 
+  const enabledWrap = document.createElement("label");
+  enabledWrap.className = "modal-field";
+  const enabledLabel = document.createElement("span");
+  enabledLabel.textContent = "Enabled (visible / usable)";
+  enabledWrap.appendChild(enabledLabel);
+  const enabledInput = document.createElement("input");
+  enabledInput.type = "checkbox";
+  enabledInput.name = "enabled";
+  enabledInput.checked = existingAction?.enabled !== false;
+  enabledWrap.appendChild(enabledInput);
+  modalForm.appendChild(enabledWrap);
+
   const handlerWrap = document.createElement("label");
   handlerWrap.className = "modal-field";
   const handlerLabel = document.createElement("span");
@@ -382,6 +413,7 @@ async function openActionForm(existingName, existingAction) {
     renderParamFields(paramHost, paramFields, {
       params: initialParams,
       areas,
+      templates,
       catalogById,
       attachTemplateHelp: attachTemplateVarHelp,
       parentHandlerId: handlerId,
@@ -437,6 +469,7 @@ async function openActionForm(existingName, existingAction) {
       passive: modalForm.elements.passive.value.trim(),
       handler: handlerId,
       handlerParams,
+      enabled: modalForm.elements.enabled?.checked !== false,
       haltMovement: modalForm.elements.haltMovement?.checked ?? true,
       deleteAfterTrigger: modalForm.elements.deleteAfterTrigger?.checked ?? true,
       triggerExceptions: modalForm.elements.triggerExceptions?.value?.trim() ?? "",
@@ -456,6 +489,7 @@ async function openActionForm(existingName, existingAction) {
           result: data.result,
           passive: data.passive,
           kind: data.kind,
+          enabled: data.enabled,
           haltMovement: data.kind === "trigger" ? data.haltMovement : undefined,
           deleteAfterTrigger: data.kind === "trigger" ? data.deleteAfterTrigger : undefined,
           triggerExceptions: data.kind === "trigger" ? data.triggerExceptions : undefined,

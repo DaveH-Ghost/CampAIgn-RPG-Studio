@@ -183,6 +183,21 @@ button:hover {
   cursor: wait;
 }
 
+.undo-turn-btn {
+  border-color: #6a5a3d;
+  background: #4a3e2d;
+  color: #f0e0c8;
+}
+
+.undo-turn-btn:hover:not(:disabled) {
+  background: #5a4e3a;
+}
+
+.undo-turn-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .emit-event-btn {
   border-color: #6a5a8a;
   background: #3a3548;

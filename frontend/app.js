@@ -8,9 +8,11 @@ import {
   getHealth,
   getPrompt,
   getState,
+  getTurnUndoStatus,
   importSession,
   postManualTurn,
   postTurn,
+  postTurnUndo,
 } from "./api.js";
 import { initPromptLayout, reloadPromptLayoutIfOpen } from "./promptLayout.js";
 import { initAppTabs } from "./tabs.js";
@@ -111,6 +113,7 @@ const loadAreaTemplateBtn = document.getElementById("load-area-template");
 const deleteAreaBtn = document.getElementById("delete-area");
 const activeAgentSelect = document.getElementById("active-agent-select");
 const runTurnBtn = document.getElementById("run-turn");
+const undoTurnBtn = document.getElementById("undo-turn");
 const runTurnHintEl = document.getElementById("run-turn-hint");
 const playerTurnPanelEl = document.getElementById("player-turn-panel");
 const playerTurnHeadingEl = document.getElementById("player-turn-heading");
@@ -122,6 +125,7 @@ const sessionImportInput = document.getElementById("session-import-input");
 
 let lastSnapshot = null;
 let turnInFlight = false;
+let lastUndoRemaining = 0;
 let promptTokenHintSeq = 0;
 
 function resolveActiveAgentIdForPrompt() {
@@ -152,7 +156,25 @@ function findAgentById(agentId) {
 function setTurnBusy(busy) {
   turnInFlight = busy;
   if (runTurnBtn) runTurnBtn.disabled = busy;
+  if (undoTurnBtn && busy) undoTurnBtn.disabled = true;
+  if (undoTurnBtn && !busy) syncUndoTurnButton();
   setPlayerTurnPanelBusy(busy);
+}
+
+function syncUndoTurnButton(status = null) {
+  if (!undoTurnBtn) return;
+  const remaining =
+    status?.undo_remaining ??
+    status?.undoRemaining ??
+    lastUndoRemaining;
+  if (typeof remaining === "number") {
+    lastUndoRemaining = remaining;
+  }
+  const canUndo = Boolean(status?.can_undo ?? lastUndoRemaining > 0);
+  undoTurnBtn.disabled = turnInFlight || !canUndo;
+  undoTurnBtn.title = canUndo
+    ? `Undo last turn (${lastUndoRemaining} available)`
+    : "Nothing to undo";
 }
 
 async function refreshRunTurnTokenHint() {
@@ -402,6 +424,12 @@ async function fetchState() {
     const data = await getState();
     renderState(data);
     updateStatusLine(lastSnapshot);
+    try {
+      const undoStatus = await getTurnUndoStatus();
+      syncUndoTurnButton(undoStatus);
+    } catch {
+      syncUndoTurnButton({ can_undo: false, undo_remaining: 0 });
+    }
   } catch (err) {
     gridEl.innerHTML = "";
     if (gridOverlayEl) gridOverlayEl.innerHTML = "";
@@ -463,10 +491,40 @@ async function executeTurnResult(result, turnMeta = {}) {
   } else {
     await fetchState();
   }
+  syncUndoTurnButton(result);
   recordTurnResult(result, turnMeta);
   const stepCount = Array.isArray(result.steps) ? result.steps.length : 0;
   const suffix = stepCount ? ` (${stepCount} step${stepCount === 1 ? "" : "s"})` : "";
   showToast(`${result.message}${suffix}`, false);
+}
+
+async function undoTurn() {
+  if (turnInFlight || !undoTurnBtn || undoTurnBtn.disabled) return;
+  setTurnBusy(true);
+  statusEl.textContent = "Undoing last turn…";
+  try {
+    const result = await postTurnUndo();
+    if (!result.ok) {
+      showToast(result.message || "Nothing to undo.", true);
+      syncUndoTurnButton(result);
+      statusEl.textContent = "Undo failed";
+      return;
+    }
+    if (result.snapshot) {
+      renderState(result.snapshot);
+      updateStatusLine(result.snapshot);
+    } else {
+      await fetchState();
+    }
+    syncUndoTurnButton(result);
+    showToast(result.message || "Undid last turn.", false);
+    void refreshRunTurnTokenHint();
+  } catch (err) {
+    showToast(String(err.message || err), true);
+    statusEl.textContent = "Error";
+  } finally {
+    setTurnBusy(false);
+  }
 }
 
 async function runManualTurnForAgent(agentId, compoundTurn, turnMeta = {}) {
@@ -674,6 +732,9 @@ initPromptLayout({
 
 document.getElementById("refresh").addEventListener("click", fetchState);
 runTurnBtn.addEventListener("click", runTurn);
+if (undoTurnBtn) {
+  undoTurnBtn.addEventListener("click", undoTurn);
+}
 
 if (sessionExportBtn) {
   sessionExportBtn.addEventListener("click", async () => {
@@ -729,7 +790,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.5.0";
+    const studioVersion = health.version || "1.5.1";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

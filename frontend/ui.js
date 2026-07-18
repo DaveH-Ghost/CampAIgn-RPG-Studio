@@ -1243,10 +1243,13 @@ export async function openPlayerTurnModal(agentName, onSubmit, coordinateMode = 
     playerTurnFieldDefs(coordinateMode),
     async (data) => {
       if (
-        (data.action === "interact" || data.action === "emote")
+        data.action === "interact"
         && (!data.target?.trim() || !data.verb?.trim())
       ) {
-        throw new Error("Interact and emote turns require target and verb.");
+        throw new Error("Interact turns require target and verb.");
+      }
+      if (data.action === "emote" && !data.verb?.trim()) {
+        throw new Error("Emote turns require a verb (target is optional).");
       }
       if (data.action === "verb" && !String(data.turn_verb ?? data.verb ?? "").trim()) {
         throw new Error("Verb turns require a registered turn verb.");

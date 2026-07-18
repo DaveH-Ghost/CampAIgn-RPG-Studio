@@ -34,6 +34,7 @@ export function formatHandlerSummaryFromCatalog(action, catalogById) {
  * @param {{
  *   params: Record<string, string>,
  *   areas: string[],
+ *   templates?: { id: string, kind?: string, name?: string }[],
  *   catalogById: Record<string, object>,
  *   namePrefix?: string,
  *   parentHandlerId?: string,
@@ -45,6 +46,7 @@ export function renderParamFields(host, fields, ctx) {
   const {
     params,
     areas,
+    templates = [],
     catalogById,
     namePrefix = "",
     onChange,
@@ -87,12 +89,56 @@ export function renderParamFields(host, fields, ctx) {
       }
     } else if (type === "area_id") {
       input = document.createElement("select");
-      const current = params[paramName] ?? field.default ?? areas[0] ?? "";
+      const allowEmpty = field.optional || !field.required;
+      const current =
+        params[paramName] ??
+        field.default ??
+        (allowEmpty ? "" : areas[0] ?? "");
+      if (allowEmpty) {
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = field.empty_label || "(default)";
+        input.appendChild(empty);
+      }
       for (const areaId of areas) {
         const o = document.createElement("option");
         o.value = areaId;
         o.textContent = areaId;
         if (areaId === current) o.selected = true;
+        input.appendChild(o);
+      }
+      if (allowEmpty && current === "") {
+        input.value = "";
+      }
+    } else if (type === "template_id") {
+      input = document.createElement("select");
+      const kindFilter = field.kind || "";
+      const choices = (templates || []).filter(
+        (t) => !kindFilter || t.kind === kindFilter,
+      );
+      const current = params[paramName] ?? field.default ?? choices[0]?.id ?? "";
+      if (!choices.length) {
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = "(no object templates — save one in Templates first)";
+        input.appendChild(empty);
+      }
+      for (const tmpl of choices) {
+        const o = document.createElement("option");
+        o.value = tmpl.id;
+        // Show display name first; id is the library stem (json filename without .json).
+        const filename = tmpl.filename || `${tmpl.id}.json`;
+        o.textContent = tmpl.name
+          ? `${tmpl.name} (${filename})`
+          : filename;
+        if (tmpl.id === current) o.selected = true;
+        input.appendChild(o);
+      }
+      if (current && ![...input.options].some((o) => o.value === current)) {
+        const o = document.createElement("option");
+        o.value = current;
+        o.textContent = `${current} (missing from library)`;
+        o.selected = true;
         input.appendChild(o);
       }
     } else if (type === "coord") {
@@ -135,8 +181,15 @@ export function renderParamFields(host, fields, ctx) {
 }
 
 function renderHandlerRefField(host, field, ctx) {
-  const { params, catalogById, namePrefix = "", onChange, areas, attachTemplateHelp } =
-    ctx;
+  const {
+    params,
+    catalogById,
+    namePrefix = "",
+    onChange,
+    areas,
+    templates = [],
+    attachTemplateHelp,
+  } = ctx;
   const paramName = namePrefix + field.name;
   const prefix = field.param_prefix || "";
   const exclude = new Set(field.exclude_handlers || []);
@@ -192,6 +245,7 @@ function renderHandlerRefField(host, field, ctx) {
     renderParamFields(nestedHost, nestedFields, {
       params,
       areas,
+      templates,
       catalogById,
       namePrefix: prefix,
       onChange,

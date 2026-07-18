@@ -69,7 +69,7 @@ export function playerTurnFieldDefs(coordinateMode = "full") {
     },
     {
       name: "target",
-      label: "Target (interact / emote / verb)",
+      label: "Target (required for interact; optional for emote / verb)",
       value: "",
       showWhen: { field: "action", values: ["interact", "emote", "verb"] },
     },
@@ -122,11 +122,13 @@ function readPanelForm(panelEl) {
 
 function validatePlayerTurnData(data) {
   const action = data.action || "none";
-  if (
-    (action === "interact" || action === "emote")
+  if (action === "interact"
     && (!String(data.target ?? "").trim() || !String(data.verb ?? "").trim())
   ) {
-    return "Interact and emote turns require target and verb.";
+    return "Interact turns require target and verb.";
+  }
+  if (action === "emote" && !String(data.verb ?? "").trim()) {
+    return "Emote turns require a verb (target is optional).";
   }
   if (action === "verb" && !String(data.verb ?? "").trim()) {
     return "Verb turns require a registered turn verb.";

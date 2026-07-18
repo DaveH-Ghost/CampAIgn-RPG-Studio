@@ -626,3 +626,113 @@ def test_drink_via_plugins_panel(client):
     assert use.json()["ok"] is True
     session = get_session()
     assert session.get_extension("inventory")["by_agent"][agent.id] == []
+
+
+def test_spawn_from_template_places_object(client):
+    agent = create_agent(
+        name="Barista",
+        position=(1, 1),
+        personality="Helpful.",
+        is_player=True,
+    )
+    counter = create_object(
+        name="Counter",
+        position=(1, 2),
+        passive_description="The front counter.",
+        blocks_movement=False,
+    )
+    add_object_action(
+        counter.id,
+        ObjectAction(
+            name="take menu",
+            range=1,
+            handler_id="spawn_from_template",
+            handler_params={"template_id": "ceramic-ball"},
+            result="You take a menu.",
+            passive_result="{actor} takes a menu.",
+        ),
+    )
+    client.post("/api/active-agent", json={"name_or_id": agent.id})
+    before = {
+        obj.id
+        for area in get_session().areas.values()
+        for obj in area.get_objects()
+    }
+    response = client.post(
+        "/api/turn/manual",
+        json={
+            "compound_turn": {
+                "reasoning": "Grab a menu.",
+                "action": "interact",
+                "target": counter.id,
+                "verb": "take menu",
+            },
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    after = {
+        obj.id: obj
+        for area in get_session().areas.values()
+        for obj in area.get_objects()
+    }
+    new_ids = set(after) - before
+    assert new_ids
+    spawned = after[next(iter(new_ids))]
+    assert spawned.name == "Ceramic Ball"
+
+
+def test_inventory_add_from_template_grants_item(client):
+    _enable_inventory(client)
+    agent = create_agent(
+        name="Patron",
+        position=(0, 0),
+        personality="Hungry.",
+        is_player=True,
+    )
+    box = create_object(
+        name="Supply Box",
+        position=(0, 1),
+        passive_description="A box of supplies.",
+        blocks_movement=False,
+    )
+    add_object_action(
+        box.id,
+        ObjectAction(
+            name="take ball",
+            range=1,
+            handler_id="inventory_add_from_template",
+            handler_params={"template_id": "ceramic-ball"},
+            result="You take a ceramic ball from the box.",
+            passive_result="{actor} takes something from the box.",
+        ),
+    )
+    client.post("/api/active-agent", json={"name_or_id": agent.id})
+    before_ids = {
+        obj.id
+        for area in get_session().areas.values()
+        for obj in area.get_objects()
+    }
+    response = client.post(
+        "/api/turn/manual",
+        json={
+            "compound_turn": {
+                "reasoning": "Take one.",
+                "action": "interact",
+                "target": box.id,
+                "verb": "take ball",
+            },
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    after_ids = {
+        obj.id
+        for area in get_session().areas.values()
+        for obj in area.get_objects()
+    }
+    assert after_ids == before_ids
+    items = get_session().get_extension("inventory")["by_agent"][agent.id]
+    assert len(items) == 1
+    assert items[0]["name"] == "Ceramic Ball"
+    assert items[0]["item_id"] not in before_ids

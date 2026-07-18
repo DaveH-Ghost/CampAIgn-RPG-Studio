@@ -19,6 +19,7 @@ def serialize_action(action: ObjectAction) -> dict[str, Any]:
         "halt_movement": action.halt_movement,
         "delete_after_trigger": action.delete_after_trigger,
         "trigger_exceptions": list(action.trigger_exceptions),
+        "enabled": bool(getattr(action, "enabled", True)),
     }
 
 
@@ -38,6 +39,7 @@ def deserialize_action(data: dict[str, Any]) -> ObjectAction:
         trigger_exceptions=[
             str(x) for x in list(data.get("trigger_exceptions", []))
         ],
+        enabled=bool(data.get("enabled", True)),
     )
 
 
