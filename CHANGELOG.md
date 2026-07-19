@@ -4,6 +4,29 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.5.2
+
+**Requires:** `campaign-rpg-engine>=1.5.2`
+
+### Featherless + OpenRouter
+
+- Settings gear: provider dropdown (OpenRouter | Featherless), API key, model.
+- DeepSeek V4 Flash model ids differ: OpenRouter `deepseek/deepseek-v4-flash` vs Featherless `deepseek-ai/DeepSeek-V4-Flash` (documented in `.env.example`); switching provider in gear remaps that pair.
+- In-memory only for this Studio process; permanent config via `.env` (see `.env.example`).
+
+### Max input tokens
+
+- Default hard cap **32768** estimated input tokens; turns refuse when over (engine `PromptTooLargeError`).
+- Configurable **warning %** (default 90): Run turn button turns yellow at/above threshold, green below.
+- Prompt API returns `over_warning` / `over_limit` / thresholds for the UI.
+
+### Debug on failed turns
+
+- Parse failures return `llm_response` / `prompt`; **Last response (debug)** and **Last prompt (debug)** update even when the turn fails.
+- Engine repairs Featherless-style missing leading `{` on structured turns (see engine 1.5.2).
+
+---
+
 ## 1.5.1
 
 **Requires:** `campaign-rpg-engine>=1.5.1`

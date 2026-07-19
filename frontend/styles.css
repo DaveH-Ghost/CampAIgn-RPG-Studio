@@ -90,7 +90,8 @@ h2 {
   font-size: 0.85rem;
 }
 
-.settings-field input {
+.settings-field input,
+.settings-field select {
   padding: 0.35rem 0.5rem;
   border: 1px solid #444;
   border-radius: 4px;
@@ -176,6 +177,16 @@ button:hover {
 
 .run-turn-btn:hover:not(:disabled) {
   background: #3a5a4a;
+}
+
+.run-turn-btn.run-turn-btn--warn {
+  border-color: #8a7a2d;
+  background: #5a4e1e;
+  color: #f5ecc0;
+}
+
+.run-turn-btn.run-turn-btn--warn:hover:not(:disabled) {
+  background: #6a5e2a;
 }
 
 .run-turn-btn:disabled {

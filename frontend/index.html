@@ -20,7 +20,7 @@
 
     <h1>CampAIgn RPG Studio</h1>
 
-    <p class="subtitle" id="app-subtitle">V1.5.1 — CampAIgn RPG Studio</p>
+    <p class="subtitle" id="app-subtitle">V1.5.2 — CampAIgn RPG Studio</p>
 
     <label class="active-area-label">
 
@@ -620,15 +620,33 @@
 
       <section class="settings-section">
         <h3 class="settings-subheading">LLM (in-memory only)</h3>
-        <p class="settings-hint">Not saved to disk. Restart the server to reset.</p>
+        <p class="settings-hint">
+          Applies to this Studio process only (not saved to disk). For a permanent setup,
+          use <code>.env</code> — see <code>.env.example</code> for OpenRouter and Featherless.
+        </p>
         <label class="settings-field">
-          <span>OpenRouter API key</span>
-          <input type="password" id="settings-api-key" autocomplete="off" placeholder="sk-or-..." />
+          <span>Provider</span>
+          <select id="settings-provider">
+            <option value="openrouter">OpenRouter</option>
+            <option value="featherless">Featherless</option>
+          </select>
+        </label>
+        <label class="settings-field">
+          <span id="settings-api-key-label">API key</span>
+          <input type="password" id="settings-api-key" autocomplete="off" placeholder="API key" />
         </label>
         <p id="settings-key-status" class="settings-key-status"></p>
         <label class="settings-field">
           <span>Model</span>
-          <input type="text" id="settings-model" placeholder="deepseek/deepseek-v4-flash" />
+          <input type="text" id="settings-model" placeholder="model id" />
+        </label>
+        <label class="settings-field">
+          <span>Max input tokens</span>
+          <input type="number" id="settings-max-input-tokens" min="1" step="1" value="32768" />
+        </label>
+        <label class="settings-field">
+          <span>Warning at % of max</span>
+          <input type="number" id="settings-input-warning-percent" min="1" max="100" step="1" value="90" />
         </label>
         <button type="button" id="settings-llm-save" class="settings-action-btn">Apply LLM settings</button>
       </section>

@@ -177,11 +177,20 @@ function syncUndoTurnButton(status = null) {
     : "Nothing to undo";
 }
 
+function applyRunTurnBudgetStyle({ over_warning, over_limit } = {}) {
+  if (!runTurnBtn) return;
+  runTurnBtn.classList.toggle(
+    "run-turn-btn--warn",
+    Boolean(over_warning) && !Boolean(over_limit),
+  );
+}
+
 async function refreshRunTurnTokenHint() {
   if (turnInFlight || !runTurnBtn) return;
   const active = activeAgentFromSnapshot();
   if (active?.is_player) {
     setRunTurnTokenHint("Player agent — use the turn form below (no LLM)");
+    applyRunTurnBudgetStyle({ over_warning: false, over_limit: false });
     return;
   }
   const seq = ++promptTokenHintSeq;
@@ -190,10 +199,16 @@ async function refreshRunTurnTokenHint() {
     const data = await getPrompt(agentId);
     if (seq !== promptTokenHintSeq) return;
     if (data.prompt_tokens != null) {
-      setRunTurnTokenHint(
-        `~${Number(data.prompt_tokens).toLocaleString()} input tokens (estimate)`,
-      );
+      const estimate = Number(data.prompt_tokens).toLocaleString();
+      let hint = `~${estimate} input tokens (estimate)`;
+      if (data.over_limit) {
+        hint += ` — over max ${Number(data.max_input_tokens).toLocaleString()}`;
+      } else if (data.over_warning) {
+        hint += ` — ≥${data.input_warning_percent ?? 90}% of max`;
+      }
+      setRunTurnTokenHint(hint);
     }
+    applyRunTurnBudgetStyle(data);
   } catch {
     // keep previous hint if any
   }
@@ -448,18 +463,7 @@ function updateStatusLine(data) {
   statusEl.textContent = `Turn ${snap.session_turn ?? "?"} — ${area} — ${agentName}`;
 }
 
-function recordTurnResult(result, { agentId, agentName } = {}) {
-  const snap = normalizeSnapshot(result.snapshot || lastSnapshot);
-  const agent = agentId
-    ? asArray(snap.agents).find((item) => item.id === agentId)
-    : asArray(snap.agents).find((item) => item.id === snap.active_agent_id);
-  appendTurnLogEntry({
-    sessionTurn: snap.session_turn ?? "?",
-    agentName: agentName ?? agent?.name ?? "Agent",
-    message: result.message,
-    steps: result.steps,
-  });
-  renderTurnLog(turnLogEl, turnLogEmptyEl);
+function updateDebugPanelsFromResult(result) {
   if (result.prompt) {
     setLastPrompt(result.prompt);
     if (promptDebugEl.open) {
@@ -479,8 +483,24 @@ function recordTurnResult(result, { agentId, agentName } = {}) {
   }
 }
 
+function recordTurnResult(result, { agentId, agentName } = {}) {
+  const snap = normalizeSnapshot(result.snapshot || lastSnapshot);
+  const agent = agentId
+    ? asArray(snap.agents).find((item) => item.id === agentId)
+    : asArray(snap.agents).find((item) => item.id === snap.active_agent_id);
+  appendTurnLogEntry({
+    sessionTurn: snap.session_turn ?? "?",
+    agentName: agentName ?? agent?.name ?? "Agent",
+    message: result.message,
+    steps: result.steps,
+  });
+  renderTurnLog(turnLogEl, turnLogEmptyEl);
+  updateDebugPanelsFromResult(result);
+}
+
 async function executeTurnResult(result, turnMeta = {}) {
   if (!result.ok) {
+    updateDebugPanelsFromResult(result);
     showToast(result.message, true);
     statusEl.textContent = "Turn failed";
     return;
@@ -662,7 +682,12 @@ initDecorations({
   },
   getSnapshot: () => lastSnapshot,
 });
-initSettings({ showToastFn: showToast });
+initSettings({
+  showToastFn: showToast,
+  onSettingsAppliedFn: () => {
+    void refreshRunTurnTokenHint();
+  },
+});
 initAppTabs();
 initLorebooks({
   showToastFn: showToast,
@@ -790,7 +815,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.5.1";
+    const studioVersion = health.version || "1.5.2";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

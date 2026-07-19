@@ -74,8 +74,11 @@ class CoordinateModeRequest(BaseModel):
 
 
 class LlmSettingsRequest(BaseModel):
+    provider: str | None = None
     api_key: str | None = None
     model: str | None = None
+    max_input_tokens: int | None = None
+    input_warning_percent: int | None = None
 
 
 class EntityPrivateDataRequest(BaseModel):

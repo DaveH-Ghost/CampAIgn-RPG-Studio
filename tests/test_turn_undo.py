@@ -109,11 +109,14 @@ def test_failed_llm_parse_does_not_push_undo(client, monkeypatch):
     client.post("/api/active-agent", json={"name_or_id": "Npc"})
 
     def bad_parse(_prompt):
-        raise LLMParseError("bad json")
+        raise LLMParseError("bad json", raw_response='{"reasoning": "broken"')
 
     monkeypatch.setattr("backend.turn_runner.get_compound_turn", bad_parse)
     response = client.post("/api/turn", json={})
-    assert response.json()["ok"] is False
+    data = response.json()
+    assert data["ok"] is False
+    assert data["llm_response"] == '{"reasoning": "broken"'
+    assert data.get("prompt")
     assert client.get("/api/turn/undo").json()["undo_remaining"] == 0
 
 

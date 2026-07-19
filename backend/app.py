@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from campaign_rpg_engine import estimate_prompt_tokens
+from campaign_rpg_engine import estimate_prompt_tokens, prompt_token_budget_status
 from backend.plugin_registry import merged_interact_template_vars
 
 from backend.interaction_handlers_api import get_interaction_handlers_catalog
@@ -376,11 +376,17 @@ def create_app() -> FastAPI:
         if agent_id is not None and session.get_agent(agent_id) is None:
             return {"ok": False, "message": f"Agent {agent_id!r} not found."}
         prompt = session.build_prompt(agent_id)
+        budget = prompt_token_budget_status(prompt)
         return {
             "ok": True,
             "prompt": prompt,
             "length": len(prompt),
-            "prompt_tokens": estimate_prompt_tokens(prompt),
+            "prompt_tokens": budget["estimate"],
+            "max_input_tokens": budget["limit"],
+            "input_warning_percent": budget["warning_percent"],
+            "warning_threshold": budget["warning_threshold"],
+            "over_warning": budget["over_warning"],
+            "over_limit": budget["over_limit"],
             "include_examples": session.include_examples,
         }
 
@@ -765,7 +771,13 @@ def create_app() -> FastAPI:
 
     @app.put("/api/settings/llm")
     def put_llm_settings_route(body: LlmSettingsRequest) -> dict[str, object]:
-        return put_llm_settings(api_key=body.api_key, model=body.model)
+        return put_llm_settings(
+            provider=body.provider,
+            api_key=body.api_key,
+            model=body.model,
+            max_input_tokens=body.max_input_tokens,
+            input_warning_percent=body.input_warning_percent,
+        )
 
     @app.get("/api/session/export")
     def export_session_route() -> JSONResponse:

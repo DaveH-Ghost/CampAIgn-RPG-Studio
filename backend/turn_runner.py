@@ -11,10 +11,12 @@ from pydantic import ValidationError
 from campaign_rpg_engine import (
     AgentCompoundTurn,
     LLMParseError,
+    PromptTooLargeError,
     Session,
     TurnRecord,
     estimate_prompt_tokens,
     get_compound_turn,
+    prompt_token_budget_status,
 )
 
 from backend.session_store import get_session_store
@@ -142,14 +144,40 @@ def run_llm_turn(
         if not gate.ok:
             return {"ok": False, "message": gate.message}
 
+        prompt = None
         try:
             prompt = session.build_prompt(agent_id)
             response = get_compound_turn(prompt)
             compound_turn = response.parsed
+        except PromptTooLargeError as exc:
+            budget = prompt_token_budget_status(prompt or "")
+            return {
+                "ok": False,
+                "message": str(exc),
+                "prompt": prompt,
+                "prompt_tokens_estimate": exc.estimate,
+                "max_input_tokens": exc.limit,
+                "over_limit": True,
+                "over_warning": budget["over_warning"],
+                "warning_threshold": budget["warning_threshold"],
+            }
         except RuntimeError as exc:
-            return {"ok": False, "message": str(exc)}
+            return {
+                "ok": False,
+                "message": str(exc),
+                "prompt": prompt,
+            }
         except LLMParseError as exc:
-            return {"ok": False, "message": str(exc)}
+            payload: dict = {
+                "ok": False,
+                "message": str(exc),
+                "prompt": prompt,
+            }
+            if exc.raw_response:
+                payload["llm_response"] = exc.raw_response
+            if prompt:
+                payload["prompt_tokens_estimate"] = estimate_prompt_tokens(prompt)
+            return payload
 
         store = get_session_store()
         checkpoint = store.capture_checkpoint()

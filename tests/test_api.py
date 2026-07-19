@@ -992,24 +992,71 @@ def test_get_llm_settings_never_returns_api_key(client):
     assert "api_key" not in data
     assert "key_configured" in data
     assert "model" in data
+    assert data["provider"] in ("openrouter", "featherless")
+    assert data["max_input_tokens"] >= 1
+    assert 1 <= data["input_warning_percent"] <= 100
 
 
 def test_put_llm_settings_in_memory(client, monkeypatch):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OPENROUTER_MODEL", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("FEATHERLESS_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_MAX_INPUT_TOKENS", raising=False)
+    monkeypatch.delenv("LLM_INPUT_WARNING_PERCENT", raising=False)
     response = client.put(
         "/api/settings/llm",
-        json={"api_key": "test-key", "model": "test/model"},
+        json={
+            "provider": "featherless",
+            "api_key": "test-key",
+            "model": "test/model",
+            "max_input_tokens": 16000,
+            "input_warning_percent": 85,
+        },
     )
     assert response.status_code == 200
     data = response.json()
     assert data["ok"] is True
+    assert data["provider"] == "featherless"
     assert data["key_configured"] is True
     assert data["model"] == "test/model"
+    assert data["max_input_tokens"] == 16000
+    assert data["input_warning_percent"] == 85
     get_resp = client.get("/api/settings/llm")
     get_data = get_resp.json()
     assert get_data["key_configured"] is True
+    assert get_data["provider"] == "featherless"
     assert "api_key" not in get_data
+
+
+def test_prompt_includes_token_budget_fields(client, monkeypatch):
+    monkeypatch.setenv("LLM_MAX_INPUT_TOKENS", "32768")
+    monkeypatch.setenv("LLM_INPUT_WARNING_PERCENT", "90")
+    create_agent(name="Scout", position=(1, 1), personality="curious")
+    response = client.get("/api/prompt")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert "prompt_tokens" in data
+    assert data["max_input_tokens"] == 32768
+    assert data["input_warning_percent"] == 90
+    assert data["warning_threshold"] == int(32768 * 90 / 100)
+    assert "over_warning" in data
+    assert "over_limit" in data
+
+
+def test_turn_refuses_when_prompt_over_max_input_tokens(client, monkeypatch):
+    monkeypatch.setenv("LLM_MAX_INPUT_TOKENS", "1")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    create_agent(name="Talker", position=(1, 1), personality="verbose")
+    response = client.post("/api/turn", json={})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is False
+    assert data.get("over_limit") is True
+    assert data["max_input_tokens"] == 1
+    assert data["prompt_tokens_estimate"] > 1
+    assert "token" in data["message"].lower() or "limit" in data["message"].lower()
 
 
 def test_session_import_fails_with_unknown_memory_module(client):
