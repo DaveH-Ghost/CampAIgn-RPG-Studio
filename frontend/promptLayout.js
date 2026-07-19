@@ -32,11 +32,12 @@ let openSettingsIndex = null;
 let detailsEl;
 let listEl;
 let statusEl;
-let previewEl;
-let previewEmptyEl;
+let previewBackdropEl;
+let previewBodyEl;
+let previewCloseBtn;
 let saveBtn;
 let resetBtn;
-let refreshPreviewBtn;
+let showPreviewBtn;
 let addTypeSelect;
 let addVariantWrap;
 let addVariantLabel;
@@ -51,11 +52,12 @@ export function initPromptLayout({
   detailsEl: details,
   listEl: list,
   statusEl: status,
-  previewEl: preview,
-  previewEmptyEl: previewEmpty,
   saveBtn: save,
   resetBtn: reset,
-  refreshPreviewBtn: refreshBtn,
+  showPreviewBtn: showPreview,
+  previewBackdropEl: previewBackdrop,
+  previewBodyEl: previewBody,
+  previewCloseBtn: previewClose,
   addTypeSelect: addType,
   addVariantWrap: variantWrap,
   addVariantLabel: variantLabel,
@@ -72,11 +74,14 @@ export function initPromptLayout({
   detailsEl = details;
   listEl = list;
   statusEl = status;
-  previewEl = preview;
-  previewEmptyEl = previewEmpty;
   saveBtn = save;
   resetBtn = reset;
-  refreshPreviewBtn = refreshBtn;
+  showPreviewBtn = showPreview;
+  previewBackdropEl =
+    previewBackdrop ?? document.getElementById("prompt-preview-backdrop");
+  previewBodyEl = previewBody ?? document.getElementById("prompt-preview-body");
+  previewCloseBtn =
+    previewClose ?? document.getElementById("prompt-preview-close");
   addTypeSelect = addType;
   addVariantWrap = variantWrap;
   addVariantLabel = variantLabel;
@@ -90,13 +95,27 @@ export function initPromptLayout({
   getActiveAgentId = getActiveAgentIdFn;
   onPreviewUpdated = onPreviewUpdatedFn ?? onPreviewUpdated;
 
-  saveBtn.addEventListener("click", () => saveLayout());
-  resetBtn.addEventListener("click", () => resetLayout());
-  refreshPreviewBtn.addEventListener("click", () => refreshPreview());
-  addBtn.addEventListener("click", () => {
+  saveBtn?.addEventListener("click", () => {
+    void saveLayout();
+  });
+  resetBtn?.addEventListener("click", () => {
+    void resetLayout();
+  });
+  showPreviewBtn?.addEventListener("click", () => {
+    void showFullPromptPreview();
+  });
+  previewCloseBtn?.addEventListener("click", () => {
+    closeFullPromptPreview();
+  });
+  previewBackdropEl?.addEventListener("click", (e) => {
+    if (e.target === previewBackdropEl) {
+      closeFullPromptPreview();
+    }
+  });
+  addBtn?.addEventListener("click", () => {
     addBlockFromForm().catch((err) => showToast(String(err.message || err), true));
   });
-  addTypeSelect.addEventListener("change", () => syncAddBlockForm());
+  addTypeSelect?.addEventListener("change", () => syncAddBlockForm());
   addVariantSelect?.addEventListener("change", () => syncVariantSubform());
   document.addEventListener("click", (e) => {
     if (openSettingsIndex == null) return;
@@ -104,10 +123,15 @@ export function initPromptLayout({
     if (e.target.closest(".prompt-block-settings-btn")) return;
     closeSlotSettings();
   });
-  detailsEl.addEventListener("toggle", () => {
+  detailsEl?.addEventListener("toggle", () => {
     if (detailsEl.open) {
       loadEditor();
     }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (!previewBackdropEl || previewBackdropEl.classList.contains("hidden")) return;
+    closeFullPromptPreview();
   });
 }
 
@@ -641,22 +665,34 @@ async function resetLayout() {
   }
 }
 
+function closeFullPromptPreview() {
+  previewBackdropEl?.classList.add("hidden");
+}
+
+async function showFullPromptPreview() {
+  try {
+    const prompt = await refreshPreview({ quiet: true });
+    if (prompt == null) return;
+    if (previewBodyEl) previewBodyEl.textContent = prompt;
+    previewBackdropEl?.classList.remove("hidden");
+  } catch (err) {
+    showToast(String(err.message || err), true);
+  }
+}
+
 async function refreshPreview({ quiet = false } = {}) {
   try {
     const agentId = getActiveAgentId();
     const data = await getPrompt(agentId);
     if (!data.ok) throw new Error(data.message);
-    previewEl.textContent = data.prompt;
-    previewEl.classList.remove("hidden");
-    previewEmptyEl.classList.add("hidden");
     await mergeSlotPreviewsFromApi();
     renderBlockList();
     await onPreviewUpdated(data.prompt);
     if (!quiet) showToast("Prompt preview refreshed.", false);
+    return data.prompt;
   } catch (err) {
-    previewEl.classList.add("hidden");
-    previewEmptyEl.classList.remove("hidden");
     if (!quiet) showToast(String(err.message || err), true);
+    return null;
   }
 }
 

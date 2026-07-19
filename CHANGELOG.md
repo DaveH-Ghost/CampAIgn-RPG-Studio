@@ -4,6 +4,23 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.6.1
+
+**Requires:** `campaign-rpg-engine>=1.6.1`
+
+### Prompt layout
+
+- **Show preview** refreshes the assembled prompt and opens it in a centered modal (click outside, Close, or Escape to dismiss).
+- Inline sidebar preview removed; fixed the old duplicate id that wrote prompt text into the Refresh button.
+
+### Token budget UI
+
+- Run turn button turns **red** when the estimate is over the hard max (yellow remains for the soft warning %).
+- Context-menu **Run turn ▶** on an NPC uses the same green / yellow / red coloring (budget for that agent), including when you are currently playing as a player.
+- Banner version reads `pyproject.toml` first so editable checkouts show **1.6.1** without a reinstall.
+
+---
+
 ## 1.6.0
 
 **Requires:** `campaign-rpg-engine>=1.6.0`

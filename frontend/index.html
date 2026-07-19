@@ -20,7 +20,7 @@
 
     <h1>CampAIgn RPG Studio</h1>
 
-    <p class="subtitle" id="app-subtitle">V1.6.0 — CampAIgn RPG Studio</p>
+    <p class="subtitle" id="app-subtitle">V1.6.1 — CampAIgn RPG Studio</p>
 
     <label class="active-area-label">
 
@@ -444,13 +444,9 @@
 
           <button type="button" id="prompt-layout-reset">Reset to default</button>
 
-          <button type="button" id="prompt-layout-preview">Refresh preview</button>
+          <button type="button" id="prompt-layout-show-preview">Show preview</button>
 
         </div>
-
-        <p id="prompt-layout-preview-empty" class="panel-empty">Preview loads when you open this panel or refresh.</p>
-
-        <pre id="prompt-layout-preview" class="panel-text panel-text-debug hidden"></pre>
 
       </details>
 
@@ -608,6 +604,24 @@
 
     </div>
 
+  </div>
+
+  <div id="prompt-preview-backdrop" class="modal-backdrop hidden" role="presentation">
+    <div
+      class="modal modal--wide prompt-preview-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="prompt-preview-title"
+    >
+      <div class="prompt-preview-header">
+        <h2 id="prompt-preview-title" class="modal-heading">Prompt preview</h2>
+        <button type="button" id="prompt-preview-close" class="prompt-preview-close" aria-label="Close">
+          Close
+        </button>
+      </div>
+      <pre id="prompt-preview-body" class="prompt-preview-body"></pre>
+      <p class="prompt-preview-hint">Click outside this window to close.</p>
+    </div>
   </div>
 
 

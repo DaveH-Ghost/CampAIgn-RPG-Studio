@@ -2,7 +2,7 @@
 
 
 
-**CampAIgn RPG Studio 1.6.0** — GM host for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.6.0`). Owns the world/session for authoring and play; player clients attaching later are planned.
+**CampAIgn RPG Studio 1.6.1** — GM host for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.6.1`). Owns the world/session for authoring and play; player clients attaching later are planned.
 
 
 
@@ -82,7 +82,7 @@ github/
   CampAIgn-RPG-Studio/
 ```
 
-`pyproject.toml` pins **`campaign-rpg-engine>=1.6.0`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
+`pyproject.toml` pins **`campaign-rpg-engine>=1.6.1`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
 
 ```powershell
 cd CampAIgn-RPG-Studio

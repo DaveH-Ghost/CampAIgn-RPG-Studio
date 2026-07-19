@@ -99,9 +99,7 @@ const promptLayoutStatusEl = document.getElementById("prompt-layout-status");
 const promptBlockListEl = document.getElementById("prompt-block-list");
 const promptLayoutSaveBtn = document.getElementById("prompt-layout-save");
 const promptLayoutResetBtn = document.getElementById("prompt-layout-reset");
-const promptLayoutPreviewBtn = document.getElementById("prompt-layout-preview");
-const promptLayoutPreviewEl = document.getElementById("prompt-layout-preview");
-const promptLayoutPreviewEmptyEl = document.getElementById("prompt-layout-preview-empty");
+const promptLayoutShowPreviewBtn = document.getElementById("prompt-layout-show-preview");
 const promptAddTypeSelect = document.getElementById("prompt-add-type");
 const promptAddVariantWrap = document.getElementById("prompt-add-variant-wrap");
 const promptAddVariantLabel = document.getElementById("prompt-add-variant-label");
@@ -182,7 +180,10 @@ function syncUndoTurnButton(status = null) {
 
 function applyRunTurnBudgetStyle({ over_warning, over_limit } = {}) {
   if (!runTurnBtn) return;
-  runTurnBtn.classList.toggle("run-turn-btn--warn", Boolean(over_warning) && !over_limit);
+  const over = Boolean(over_limit);
+  const warn = Boolean(over_warning) && !over;
+  runTurnBtn.classList.toggle("run-turn-btn--danger", over);
+  runTurnBtn.classList.toggle("run-turn-btn--warn", warn);
 }
 
 async function refreshRunTurnTokenHint() {
@@ -724,11 +725,12 @@ initPromptLayout({
   detailsEl: promptLayoutEl,
   listEl: promptBlockListEl,
   statusEl: promptLayoutStatusEl,
-  previewEl: promptLayoutPreviewEl,
-  previewEmptyEl: promptLayoutPreviewEmptyEl,
   saveBtn: promptLayoutSaveBtn,
   resetBtn: promptLayoutResetBtn,
-  refreshPreviewBtn: promptLayoutPreviewBtn,
+  showPreviewBtn: promptLayoutShowPreviewBtn,
+  previewBackdropEl: document.getElementById("prompt-preview-backdrop"),
+  previewBodyEl: document.getElementById("prompt-preview-body"),
+  previewCloseBtn: document.getElementById("prompt-preview-close"),
   addTypeSelect: promptAddTypeSelect,
   addVariantWrap: promptAddVariantWrap,
   addVariantLabel: promptAddVariantLabel,
@@ -809,7 +811,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.6.0";
+    const studioVersion = health.version || "1.6.1";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

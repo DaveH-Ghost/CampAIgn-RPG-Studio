@@ -1,12 +1,12 @@
 [project]
 name = "campaign-rpg-studio"
-version = "1.6.0"
+version = "1.6.1"
 description = "GM host for CampAIgn-RPG-Engine — world authoring and session authority"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
-    "campaign-rpg-engine>=1.6.0",
+    "campaign-rpg-engine>=1.6.1",
     "fastapi>=0.115.0",
     "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.32.0",

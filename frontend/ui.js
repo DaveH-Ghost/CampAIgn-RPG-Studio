@@ -14,6 +14,7 @@ import {
   fetchAreaTemplates,
   fetchEntityTemplates,
   getMemoryModules,
+  getPrompt,
   getState,
   memoryOptionFieldName,
   parseCreatedAgentId,
@@ -140,7 +141,7 @@ export function bindGridContextMenu(gridEl) {
     } else {
       const entity = at.agents[0] || at.objects[0];
       const kind = at.agents.length ? "agent" : "object";
-      showEntityMenu(e.clientX, e.clientY, kind, entity.id);
+      void showEntityMenu(e.clientX, e.clientY, kind, entity.id);
     }
   });
 }
@@ -201,7 +202,9 @@ function showMenu(x, y, items) {
     }
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "context-menu-item";
+    btn.className = item.className
+      ? `context-menu-item ${item.className}`
+      : "context-menu-item";
     btn.textContent = item.label;
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -263,7 +266,9 @@ function showManageTileMenu(x, y, tileX, tileY, at) {
   for (const agent of asArray(at.agents)) {
     items.push({
       label: `Agent: ${agent.name}`,
-      action: () => showEntityMenu(x, y, "agent", agent.id),
+      action: () => {
+        void showEntityMenu(x, y, "agent", agent.id);
+      },
     });
   }
   for (const object of asArray(at.objects)) {
@@ -275,7 +280,7 @@ function showManageTileMenu(x, y, tileX, tileY, at) {
   showMenu(x, y, items);
 }
 
-function showEntityMenu(x, y, kind, id) {
+async function showEntityMenu(x, y, kind, id) {
   const entity = findEntity(kind, id);
   if (!entity) return;
 
@@ -284,11 +289,25 @@ function showEntityMenu(x, y, kind, id) {
       entity,
       areaId: activeAreaView(getSnapshot())?.active_area_id,
     };
+    let runTurnClass = "context-menu-item--ok";
+    if (!entity.is_player) {
+      try {
+        const budget = await getPrompt(entity.id);
+        if (budget.over_limit) {
+          runTurnClass = "context-menu-item--danger";
+        } else if (budget.over_warning) {
+          runTurnClass = "context-menu-item--warn";
+        }
+      } catch {
+        runTurnClass = "";
+      }
+    }
     showMenu(x, y, [
       {
         label: "Run turn ▶",
         action: () => onRunAgentTurn(entity.id),
         hidden: Boolean(entity.is_player),
+        className: runTurnClass,
       },
       {
         label: "Manual turn…",
