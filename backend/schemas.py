@@ -167,3 +167,12 @@ class ReorderDecorationRequest(BaseModel):
     decoration_id: str = Field(min_length=1)
     direction: str = Field(min_length=1)
     area_id: str | None = None
+
+
+class CreateSeatRequest(BaseModel):
+    agent_id: str = Field(min_length=1)
+    ttl_seconds: int | None = Field(default=None, ge=60, le=86400)
+
+
+class PlayerTurnRequest(BaseModel):
+    compound_turn: dict[str, object]

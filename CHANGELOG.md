@@ -4,6 +4,25 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.7.0
+
+**Requires:** `campaign-rpg-engine>=1.6.1`
+
+### Player client (`/play/generic`)
+
+- Playable player shell at `/play/generic/` with the same grid art (tokens, decorations) as the GM host.
+- GM right-clicks a player agent → **Copy player join link** (short-lived seat token).
+- Player API: `POST /api/seats`, `GET /api/player/view|me|assist`, `POST /api/player/turn` (Bearer seat or `?seat=`).
+- View is filtered to the seated agent’s area (no hidden objects, no private LLM fields).
+- Play by context menu: move / look / object interact / inventory verbs; **give** / **show** use an agent dropdown.
+- Compound turns: right-click **queues** move/look/action chips under the map; **Say** / **Emote** / **Both** text dock; one **Send** commits the full turn (emote uses the action slot).
+- Right-click a stacked tile opens a picker (all agents/objects on that cell), matching GM stack handling.
+- Left **History** column lists each of the seated agent's compound turns as one block (step results joined), plus witnessed passive results, updated as the session advances.
+- Live sync uses **Server-Sent Events** (`/api/session/stream`, `/api/player/stream`) instead of polling `/api/state` / `/api/player/view`.
+- Seat token storage fails soft when the browser blocks `sessionStorage` (e.g. strict private windows).
+
+---
+
 ## 1.6.1
 
 **Requires:** `campaign-rpg-engine>=1.6.1`

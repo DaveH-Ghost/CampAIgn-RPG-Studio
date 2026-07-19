@@ -12,6 +12,21 @@ export async function getState() {
   return res.json();
 }
 
+export async function createPlayerSeat(agentId, ttlSeconds = null) {
+  const body = { agent_id: agentId };
+  if (ttlSeconds != null) body.ttl_seconds = ttlSeconds;
+  const res = await fetch("/api/seats", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 export async function fetchInteractionHandlers() {
   const res = await fetch("/api/interaction-handlers");
   if (!res.ok) {

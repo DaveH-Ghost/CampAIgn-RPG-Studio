@@ -35,3 +35,6 @@ entity_templates/*
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Accidental frontend tooling installs
+node_modules/

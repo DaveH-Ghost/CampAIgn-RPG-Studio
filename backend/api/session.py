@@ -11,6 +11,7 @@ from backend.plugin_registry import merged_interact_template_vars
 from backend.schemas import ActiveAgentRequest, ActiveAreaRequest, EventRequest
 from backend.session_store import get_session_store
 from backend.snapshot_compat import normalize_state_snapshot
+from backend.sse import sse_streaming_response
 from backend.version import engine_version, studio_version
 
 router = APIRouter()
@@ -23,6 +24,12 @@ def health() -> dict[str, object]:
         "version": studio_version(),
         "campaign_rpg_engine_version": engine_version(),
     }
+
+
+@router.get("/api/session/stream")
+async def session_stream():
+    """Server-Sent Events: push when the live session changes (GM clients)."""
+    return sse_streaming_response()
 
 
 @router.get("/api/interact-template-vars")

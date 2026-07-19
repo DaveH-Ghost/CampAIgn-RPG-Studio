@@ -9,6 +9,7 @@ import {
   buildCreateObject,
   buildEditAgent,
   buildEditObject,
+  createPlayerSeat,
   downloadAreaTemplateFromArea,
   downloadEntityTemplateFromEntity,
   fetchAreaTemplates,
@@ -321,6 +322,13 @@ async function showEntityMenu(x, y, kind, id) {
         hidden: !entity.is_player,
       },
       {
+        label: "Copy player join link",
+        action: () => {
+          void copyPlayerJoinLink(entity.id);
+        },
+        hidden: !entity.is_player,
+      },
+      {
         label: "Play as this agent",
         action: () => runActiveAgent(entity.id),
       },
@@ -366,6 +374,18 @@ async function showEntityMenu(x, y, kind, id) {
         action: () => runDelete(`delete-object ${entity.id}`, entity.name),
       },
     ]);
+  }
+}
+
+async function copyPlayerJoinLink(agentId) {
+  try {
+    const data = await createPlayerSeat(agentId);
+    const url = data.join_url;
+    if (!url) throw new Error("No join URL returned.");
+    await navigator.clipboard.writeText(url);
+    showToast(`Player join link copied for ${data.agent_name || agentId}.`, false);
+  } catch (err) {
+    showToast(String(err.message || err), true);
   }
 }
 

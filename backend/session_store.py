@@ -147,4 +147,9 @@ def get_session_store() -> SessionStore:
 def reset_session_store() -> None:
     """Reset store (tests only)."""
     global _store
+    from backend.player_seats import reset_seats_for_tests
+    from backend.session_events import reset_session_events_for_tests
+
+    reset_seats_for_tests()
+    reset_session_events_for_tests()
     _store = None

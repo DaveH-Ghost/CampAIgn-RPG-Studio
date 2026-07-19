@@ -434,8 +434,8 @@ function renderState(data) {
   void refreshRunTurnTokenHint();
 }
 
-async function fetchState() {
-  statusEl.textContent = "Fetching…";
+async function fetchState({ quiet = false } = {}) {
+  if (!quiet) statusEl.textContent = "Fetching…";
   try {
     const data = await getState();
     renderState(data);
@@ -447,6 +447,7 @@ async function fetchState() {
       syncUndoTurnButton({ can_undo: false, undo_remaining: 0 });
     }
   } catch (err) {
+    if (quiet) return;
     gridEl.innerHTML = "";
     if (gridOverlayEl) gridOverlayEl.innerHTML = "";
     gridEl.classList.add("grid-empty");
@@ -454,6 +455,41 @@ async function fetchState() {
     statusEl.textContent = `Error — ${err.message || err}`;
     showToast(String(err.message || err), true);
   }
+}
+
+/** Pull remote session changes (e.g. /play client turns) without stomping an in-flight GM turn. */
+async function refreshRemoteState() {
+  if (turnInFlight) return;
+  try {
+    const data = await getState();
+    const snap = normalizeSnapshot(data);
+    if (
+      lastSnapshot &&
+      lastSnapshot.session_turn === snap.session_turn &&
+      lastSnapshot.active_agent_id === snap.active_agent_id &&
+      lastSnapshot.active_area_id === snap.active_area_id
+    ) {
+      return;
+    }
+    renderState(data);
+    updateStatusLine(lastSnapshot);
+    try {
+      const undoStatus = await getTurnUndoStatus();
+      syncUndoTurnButton(undoStatus);
+    } catch {
+      /* keep prior undo UI */
+    }
+  } catch {
+    /* ignore transient stream refresh errors */
+  }
+}
+
+function startSessionStream() {
+  if (typeof EventSource === "undefined") return;
+  const source = new EventSource("/api/session/stream");
+  source.addEventListener("change", () => {
+    void refreshRemoteState();
+  });
 }
 
 function updateStatusLine(data) {
@@ -811,7 +847,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.6.1";
+    const studioVersion = health.version || "1.7.0";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`
@@ -824,3 +860,4 @@ async function refreshBanner() {
 renderTurnLog(turnLogEl, turnLogEmptyEl);
 void refreshBanner();
 fetchState();
+startSessionStream();

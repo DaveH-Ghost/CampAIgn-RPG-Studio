@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from backend.api import (
     lorebooks,
     misc,
+    player,
     plugins,
     prompt,
     session,
@@ -31,6 +32,7 @@ ROUTERS = (
     plugins.router,
     settings.router,
     misc.router,
+    player.router,
 )
 
 

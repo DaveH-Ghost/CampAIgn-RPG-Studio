@@ -21,6 +21,7 @@ from backend.version import studio_version
 
 _STUDIO_DIR = Path(__file__).resolve().parent.parent
 _FRONTEND_DIR = _STUDIO_DIR / "frontend"
+_PLAY_GENERIC_DIR = _STUDIO_DIR / "play" / "generic"
 # Sibling engine checkout (co-dev); optional for uvicorn reload.
 _ENGINE_ROOT = _STUDIO_DIR.parent / "CampAIgn-RPG-Engine"
 
@@ -56,14 +57,46 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def publish_api_mutations(request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        if (
+            request.method in {"POST", "PUT", "PATCH", "DELETE"}
+            and path.startswith("/api/")
+            and "/stream" not in path
+            and response.status_code < 400
+        ):
+            from backend.session_events import publish_session_changed
+
+            publish_session_changed()
+        return response
+
     register_routers(app)
 
     @app.get("/")
     def index() -> FileResponse:
         return FileResponse(_FRONTEND_DIR / "index.html")
 
+    @app.get("/play/generic")
+    @app.get("/play/generic/")
+    def play_generic_index() -> FileResponse:
+        return FileResponse(
+            _PLAY_GENERIC_DIR / "index.html",
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate",
+                "Pragma": "no-cache",
+            },
+        )
+
     if _FRONTEND_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=_FRONTEND_DIR), name="static")
+    if _PLAY_GENERIC_DIR.is_dir():
+        app.mount(
+            "/play/generic/assets",
+            StaticFiles(directory=_PLAY_GENERIC_DIR),
+            name="play_generic",
+        )
 
     return app
 

@@ -2,7 +2,7 @@
 
 
 
-**CampAIgn RPG Studio 1.6.1** — GM host for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.6.1`). Owns the world/session for authoring and play; player clients attaching later are planned.
+**CampAIgn RPG Studio 1.7.0** — GM host for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.6.1`). Owns the world/session for authoring and play; players join via `/play/generic/` with a short-lived seat link.
 
 
 
@@ -33,6 +33,13 @@ uv run campaign-rpg-studio
 
 
 Open [http://127.0.0.1:8765](http://127.0.0.1:8765). Right-click the grid to edit; switch **Area** for multi-room sessions; **Emit event…** for GM narration; **Run turn ▶** for the active agent.
+
+### Player client
+
+1. Mark an agent as a **player** (create/edit agent).
+2. Right-click that agent → **Copy player join link**.
+3. Open the link (or [http://127.0.0.1:8765/play/generic/](http://127.0.0.1:8765/play/generic/) after pasting a `?seat=` token).
+4. Right-click the grid / entities / inventory to **queue** a compound turn; edit Say/Emote under the map, then **Send**.
 
 
 

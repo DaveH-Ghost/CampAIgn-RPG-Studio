@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>CampAIgn — Play</title>
+  <link rel="stylesheet" href="/static/styles.css?v=1.7.0" />
+  <link rel="stylesheet" href="/play/generic/assets/styles.css?v=1.7.0m" />
+</head>
+<body class="play-client">
+  <header class="play-header">
+    <h1>CampAIgn Play</h1>
+    <p class="subtitle" id="play-subtitle">Generic player client</p>
+    <p class="play-status" id="play-status" aria-live="polite">Starting…</p>
+  </header>
+
+  <div id="play-no-seat" class="play-banner hidden">
+    <p>No seat token. Ask the GM to copy a <strong>player join link</strong> for your agent.</p>
+  </div>
+
+  <div class="play-layout">
+    <aside class="play-history-col" aria-label="Play history">
+      <section class="play-panel play-history-panel">
+        <h2>History</h2>
+        <ol id="play-history" class="play-history"></ol>
+        <p id="play-history-empty" class="panel-empty">Nothing yet — act, or watch others nearby.</p>
+      </section>
+    </aside>
+
+    <main class="play-main">
+      <div id="grid-viewport" class="grid-viewport" aria-label="Area grid">
+        <div id="grid-viewport-background" class="grid-viewport-background" aria-hidden="true"></div>
+        <div id="grid-world" class="grid-world">
+          <div id="grid-sprites" class="grid-sprites" aria-hidden="true"></div>
+          <div id="grid" class="grid" role="grid"></div>
+          <div id="grid-lines" class="grid-lines" aria-hidden="true"></div>
+          <div id="grid-overlay" class="grid-overlay"></div>
+        </div>
+      </div>
+
+      <div class="play-turn-dock">
+        <div class="play-pending" aria-live="polite">
+          <div id="play-pending-chips" class="play-pending-chips"></div>
+          <p id="play-pending-empty" class="play-pending-empty">
+            Right-click the map to queue move, look, or actions — then Send.
+          </p>
+          <button type="button" id="play-pending-clear" class="play-pending-clear hidden">
+            Clear all
+          </button>
+        </div>
+
+        <form id="play-composer" class="play-composer" autocomplete="off">
+          <label class="play-composer-mode-label" for="play-composer-mode">Mode</label>
+          <select id="play-composer-mode" class="play-composer-mode" aria-label="Say, emote, or both">
+            <option value="say" selected>Say</option>
+            <option value="emote">Emote</option>
+            <option value="both">Both</option>
+          </select>
+          <div id="play-composer-fields" class="play-composer-fields" data-mode="say">
+            <input
+              id="play-composer-say"
+              class="play-composer-text play-composer-say"
+              type="text"
+              maxlength="500"
+              placeholder="Say something…"
+              aria-label="Say dialogue"
+            />
+            <input
+              id="play-composer-emote"
+              class="play-composer-text play-composer-emote"
+              type="text"
+              maxlength="200"
+              placeholder="Emote (past tense, e.g. waved)"
+              aria-label="Emote text"
+            />
+          </div>
+          <button type="submit" id="play-composer-send" class="play-composer-send">Send</button>
+        </form>
+        <p class="play-composer-note">
+          Emote uses your action slot (same slot as interact / inventory verbs). Say can combine with either.
+        </p>
+      </div>
+    </main>
+
+    <aside class="play-sidebar">
+      <section class="play-panel">
+        <h2>You</h2>
+        <p id="play-you" class="play-meta">—</p>
+      </section>
+      <section class="play-panel">
+        <h2>Vision</h2>
+        <pre id="play-vision" class="play-vision"></pre>
+      </section>
+      <section class="play-panel">
+        <h2>Inventory</h2>
+        <ul id="play-inventory" class="play-inventory"></ul>
+        <p id="play-inventory-empty" class="panel-empty">No carried items.</p>
+      </section>
+      <p class="play-hint">
+        Right-click to queue parts of a compound turn. Edit say/emote below the map, then Send once.
+      </p>
+    </aside>
+  </div>
+
+  <div id="context-menu" class="context-menu hidden" role="menu"></div>
+
+  <div id="play-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2 id="play-modal-title" class="modal-heading"></h2>
+      <form id="play-modal-form"></form>
+      <p id="play-modal-error" class="modal-error" aria-live="polite"></p>
+      <div class="play-modal-actions">
+        <button type="button" id="play-modal-cancel" class="modal-cancel">Cancel</button>
+        <button type="submit" form="play-modal-form" id="play-modal-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <script type="module">
+    const bust = "1.7.0m";
+    import(`/play/generic/assets/app.js?v=${bust}`).catch((err) => {
+      const status = document.getElementById("play-status");
+      if (status) status.textContent = `JS failed: ${err?.message || err}`;
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
