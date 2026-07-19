@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from backend.snapshot_compat import normalize_state_snapshot
 from campaign_rpg_engine import Session
+
+from backend.snapshot_compat import normalize_state_snapshot
 
 
 def put_vision_units(

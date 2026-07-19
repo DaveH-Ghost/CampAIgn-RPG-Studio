@@ -38,13 +38,7 @@ export function normalizeSnapshot(snapshot) {
     for (const [areaId, area] of Object.entries(snapshot.areas)) {
       areas[areaId] = normalizeAreaBlock(area);
     }
-    const {
-      grid: _g,
-      area_description: _d,
-      objects: _o,
-      recent_events: _e,
-      ...rest
-    } = snapshot;
+    const { grid: _g, area_description: _d, objects: _o, recent_events: _e, ...rest } = snapshot;
     return {
       ...rest,
       active_area_id: snapshot.active_area_id || DEFAULT_AREA_ID,

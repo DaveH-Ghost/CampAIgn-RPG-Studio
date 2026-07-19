@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Sync
+        run: uv sync --group dev
+      - name: Ruff check
+        run: uv run ruff check backend tests plugins reference_handlers
+      - name: Ruff format
+        run: uv run ruff format --check backend tests plugins reference_handlers
+      - name: Biome (frontend)
+        run: npx --yes @biomejs/biome@1.9.4 check frontend
+      - name: Pytest
+        run: uv run pytest

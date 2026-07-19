@@ -43,8 +43,7 @@ export function syncVisionUnitsFromSnapshot(snapshot) {
   }
   if (document.activeElement !== unitsPerTileInput) {
     const perTile = snap.vision_units_per_tile;
-    unitsPerTileInput.value =
-      perTile == null || perTile === "" ? "" : String(perTile);
+    unitsPerTileInput.value = perTile == null || perTile === "" ? "" : String(perTile);
   }
 }
 
@@ -87,8 +86,7 @@ async function saveVisionUnits() {
     }
     if (document.activeElement !== unitsPerTileInput) {
       const perTile = result.vision_units_per_tile;
-      unitsPerTileInput.value =
-        perTile == null || perTile === "" ? "" : String(perTile);
+      unitsPerTileInput.value = perTile == null || perTile === "" ? "" : String(perTile);
     }
     if (result.snapshot) {
       await onUpdatedFn(result.snapshot);

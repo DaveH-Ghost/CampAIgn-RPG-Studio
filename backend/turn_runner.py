@@ -6,8 +6,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import ValidationError
-
 from campaign_rpg_engine import (
     AgentCompoundTurn,
     LLMParseError,
@@ -18,6 +16,7 @@ from campaign_rpg_engine import (
     get_compound_turn,
     prompt_token_budget_status,
 )
+from pydantic import ValidationError
 
 from backend.session_store import get_session_store
 from backend.snapshot_compat import normalize_state_snapshot
@@ -102,9 +101,7 @@ def run_manual_turn(
     return {
         "ok": True,
         "message": result.message,
-        "snapshot": normalize_state_snapshot(
-            session.snapshot(include_private=True)
-        ),
+        "snapshot": normalize_state_snapshot(session.snapshot(include_private=True)),
         "steps": _serialize_steps(result.record),
         "manual_turn": True,
         **_undo_fields(),
@@ -135,8 +132,7 @@ def run_llm_turn(
             return {
                 "ok": False,
                 "message": (
-                    f"{agent.name} is a player agent; use the manual turn form "
-                    "(Run turn ▶)."
+                    f"{agent.name} is a player agent; use the manual turn form (Run turn ▶)."
                 ),
             }
 
@@ -191,9 +187,7 @@ def run_llm_turn(
         return {
             "ok": True,
             "message": result.message,
-            "snapshot": normalize_state_snapshot(
-                session.snapshot(include_private=True)
-            ),
+            "snapshot": normalize_state_snapshot(session.snapshot(include_private=True)),
             "steps": _serialize_steps(result.record),
             "prompt": prompt,
             "prompt_tokens": response.prompt_tokens,

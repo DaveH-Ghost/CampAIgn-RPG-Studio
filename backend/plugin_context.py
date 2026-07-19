@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 from campaign_rpg_engine import (
-    register_event_listener,
     register_interaction_handler,
     register_prompt_slot,
     register_turn_verb,
@@ -156,9 +156,7 @@ class PluginContext:
             description = str(item.get("description", "")).strip()
             if not name or not description:
                 continue
-            self._manifest.interact_template_vars.append(
-                {"name": name, "description": description}
-            )
+            self._manifest.interact_template_vars.append({"name": name, "description": description})
 
     def register_player_turn_assist(
         self,

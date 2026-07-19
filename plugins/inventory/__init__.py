@@ -139,9 +139,7 @@ def _drop_item(session, agent, item_id: str) -> dict[str, Any]:
             width=int(item.get("width", 1)),
             height=int(item.get("height", 1)),
             blocks_movement=bool(item.get("blocks_movement", True)),
-            movement_exceptions=[
-                str(x) for x in list(item.get("movement_exceptions", []))
-            ],
+            movement_exceptions=[str(x) for x in list(item.get("movement_exceptions", []))],
             hidden=bool(item.get("hidden", False)),
             actions=actions or None,
             object_id=item_id,
@@ -199,8 +197,7 @@ def _build_panel(session):
         {
             "type": "text",
             "content": (
-                f"Carried by {agent.name}: {len(items)} item"
-                f"{'' if len(items) == 1 else 's'}."
+                f"Carried by {agent.name}: {len(items)} item{'' if len(items) == 1 else 's'}."
             ),
         },
     ]

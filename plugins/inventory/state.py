@@ -38,9 +38,7 @@ def set_agent_items(session, agent_id: str, items: list[dict[str, Any]]) -> None
     ext["by_agent"][agent_id] = items
 
 
-def find_item(
-    session, agent_id: str, item_id: str
-) -> tuple[list[dict[str, Any]], int | None]:
+def find_item(session, agent_id: str, item_id: str) -> tuple[list[dict[str, Any]], int | None]:
     items = agent_items(session, agent_id)
     for index, item in enumerate(items):
         if item.get("item_id") == item_id:

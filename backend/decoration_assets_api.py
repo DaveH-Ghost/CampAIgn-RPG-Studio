@@ -24,10 +24,7 @@ def _sanitize_filename(filename: str) -> str:
         stem = "image.png"
     suffix = Path(stem).suffix.lower()
     if suffix not in _ALLOWED_SUFFIXES:
-        raise ValueError(
-            "Image must be PNG, JPG, GIF, WebP, or SVG "
-            f"(got {suffix!r})."
-        )
+        raise ValueError(f"Image must be PNG, JPG, GIF, WebP, or SVG (got {suffix!r}).")
     return stem
 
 

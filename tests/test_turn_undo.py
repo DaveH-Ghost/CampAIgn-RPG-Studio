@@ -1,11 +1,10 @@
 """Turn undo via full session checkpoints (Studio)."""
 
 import pytest
-from fastapi.testclient import TestClient
-
 from backend.app import create_app
 from backend.session_store import get_session_store, reset_session_store
 from campaign_rpg_engine import AgentCompoundTurn, LLMParseError, LLMResponse
+from fastapi.testclient import TestClient
 from tests.world_helpers import create_agent
 
 
@@ -61,9 +60,7 @@ def test_manual_turn_then_undo_restores_position_and_turn(client):
     assert moved.json()["undo_remaining"] == 1
     assert moved.json()["can_undo"] is True
     assert moved.json()["snapshot"]["session_turn"] == 1
-    updated = next(
-        item for item in moved.json()["snapshot"]["agents"] if item["id"] == agent.id
-    )
+    updated = next(item for item in moved.json()["snapshot"]["agents"] if item["id"] == agent.id)
     assert updated["position"] == [2, 0]
 
     undone = client.post("/api/turn/undo")
@@ -72,9 +69,7 @@ def test_manual_turn_then_undo_restores_position_and_turn(client):
     assert data["can_undo"] is False
     assert data["undo_remaining"] == 0
     assert data["snapshot"]["session_turn"] == 0
-    restored = next(
-        item for item in data["snapshot"]["agents"] if item["id"] == agent.id
-    )
+    restored = next(item for item in data["snapshot"]["agents"] if item["id"] == agent.id)
     assert restored["position"] == [0, 0]
 
 

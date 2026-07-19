@@ -1,15 +1,18 @@
 """campaign-rpg-studio API tests (V0.3.1–0.4.0c2)."""
 
-from pathlib import Path
-
 import pytest
-from fastapi.testclient import TestClient
-
 from backend.app import create_app
 from backend.session_store import get_session_store, reset_session_store
 from backend.version import studio_version
 from campaign_rpg_engine import AgentCompoundTurn, LLMResponse, ObjectAction, SessionResult
-from tests.world_helpers import add_object_action, create_agent, create_object, edit_agent, edit_object
+from fastapi.testclient import TestClient
+from tests.world_helpers import (
+    add_object_action,
+    create_agent,
+    create_object,
+    edit_agent,
+    edit_object,
+)
 
 ROOM = "room"
 HALL = "hall"
@@ -40,7 +43,15 @@ def test_get_interaction_handlers_lists_reference_set(client):
     assert response.status_code == 200
     data = response.json()
     ids = {item["id"] for item in data["handlers"]}
-    assert {"delete_self", "random_move_self", "move_area", "sequence", "set_object_text", "set_action_enabled", "spawn_from_template"} <= ids
+    assert {
+        "delete_self",
+        "random_move_self",
+        "move_area",
+        "sequence",
+        "set_object_text",
+        "set_action_enabled",
+        "spawn_from_template",
+    } <= ids
     assert "inventory_pick_up" not in ids
     move = next(h for h in data["handlers"] if h["id"] == "move_area")
     assert move.get("summary_template")
@@ -144,6 +155,7 @@ def test_player_turn_assist_lists_carried_item_verbs(client):
     assert "drop" in row["verbs"]
     assert "drink" in row["verbs"]
     assert row.get("plugin_id") == "inventory"
+
 
 def test_get_state_includes_vision_units(client):
     response = client.get("/api/state")
@@ -343,6 +355,8 @@ def test_post_event_empty_agent_ids_broadcasts(client):
     assert _room(data["snapshot"])["recent_events"] == [
         {"session_turn": 0, "text": "Everyone hears."}
     ]
+
+
 def test_post_active_area_switch(client):
     response = client.post("/api/active-area", json={"area_id": HALL})
     assert response.status_code == 200
@@ -530,9 +544,7 @@ def test_get_prompt_block_catalog(client):
 
     client.post("/api/plugins/inventory/enable")
     enabled = client.get("/api/prompt-block-catalog").json()
-    plugin_entry = next(
-        item for item in enabled["block_types"] if item["type"] == "plugin_slot"
-    )
+    plugin_entry = next(item for item in enabled["block_types"] if item["type"] == "plugin_slot")
     assert "inventory" in {opt["name"] for opt in plugin_entry["options"]}
 
 
@@ -611,9 +623,7 @@ def test_create_agent_with_salient_memory(client):
         memory_module="salient_turns",
         memory_budget=1200,
     )
-    agent = next(
-        a for a in client.get("/api/state").json()["agents"] if a["name"] == "Scribe"
-    )
+    agent = next(a for a in client.get("/api/state").json()["agents"] if a["name"] == "Scribe")
     assert agent["memory_module"] == "salient_turns"
 
 
@@ -859,10 +869,7 @@ def test_command_dispatch_create_object(client):
     data = response.json()
     assert data["ok"] is True
     assert "snapshot" in data
-    assert any(
-        o["name"] == "CLI Crate"
-        for o in data["snapshot"]["areas"]["room"]["objects"]
-    )
+    assert any(o["name"] == "CLI Crate" for o in data["snapshot"]["areas"]["room"]["objects"])
 
 
 def test_post_command_invalid(client):
@@ -925,9 +932,7 @@ def test_edit_agent_move_speed(client):
     )
     edit_agent(walker.id, move_speed=2)
 
-    updated = next(
-        a for a in client.get("/api/state").json()["agents"] if a["id"] == walker.id
-    )
+    updated = next(a for a in client.get("/api/state").json()["agents"] if a["id"] == walker.id)
     assert updated["move_speed"] == 2
 
 

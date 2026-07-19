@@ -2,7 +2,6 @@
  * Context menu, modals, toast (V0.3.1c).
  */
 
-import { isSceneEditMode } from "./decorations.js";
 import {
   buildCompoundTurnPayload,
   buildCreateAgent,
@@ -10,34 +9,41 @@ import {
   buildCreateObject,
   buildEditAgent,
   buildEditObject,
+  downloadAreaTemplateFromArea,
+  downloadEntityTemplateFromEntity,
+  fetchAreaTemplates,
+  fetchEntityTemplates,
   getMemoryModules,
   getState,
   memoryOptionFieldName,
-  parseCreatedObjectId,
   parseCreatedAgentId,
-  postEntityPrivateData,
+  parseCreatedObjectId,
   postActiveAgent,
   postActiveArea,
   postCommand,
   postCreateArea,
   postDeleteArea,
   postEditArea,
+  postEntityPrivateData,
   postEvent,
-  fetchEntityTemplates,
-  downloadEntityTemplateFromEntity,
-  postSaveEntityTemplate,
-  postSpawnEntityFromTemplate,
-  postSpawnEntityTemplate,
-  fetchAreaTemplates,
-  downloadAreaTemplateFromArea,
   postSaveAreaTemplate,
+  postSaveEntityTemplate,
   postSpawnAreaFromTemplate,
   postSpawnAreaTemplate,
+  postSpawnEntityFromTemplate,
+  postSpawnEntityTemplate,
 } from "./api.js";
-import { activeAreaView, asArray, DEFAULT_AREA_ID, normalizeSnapshot, objectOccupiesTile } from "./snapshot.js";
+import { isSceneEditMode } from "./decorations.js";
 import { CELL_SIZE } from "./gridViewport.js";
 import { initObjectActions, openManageObjectActionsModal } from "./objectActions.js";
-import { playerTurnFieldDefs, loadPlayerTurnVerbCatalog } from "./playerTurnPanel.js";
+import { loadPlayerTurnVerbCatalog, playerTurnFieldDefs } from "./playerTurnPanel.js";
+import {
+  DEFAULT_AREA_ID,
+  activeAreaView,
+  asArray,
+  normalizeSnapshot,
+  objectOccupiesTile,
+} from "./snapshot.js";
 
 let menuEl;
 let modalBackdrop;
@@ -50,12 +56,7 @@ let onStateChanged = async () => {};
 let onRunAgentTurn = async () => {};
 let getCoordinateMode = () => "full";
 
-export function initUi({
-  getSnapshotFn,
-  onStateChangedFn,
-  onRunAgentTurnFn,
-  getCoordinateModeFn,
-}) {
+export function initUi({ getSnapshotFn, onStateChangedFn, onRunAgentTurnFn, getCoordinateModeFn }) {
   getSnapshot = getSnapshotFn;
   onStateChanged = onStateChangedFn;
   onRunAgentTurn = onRunAgentTurnFn ?? onRunAgentTurn;
@@ -147,9 +148,7 @@ export function bindGridContextMenu(gridEl) {
 function entitiesAt(x, y) {
   const snap = activeAreaView(getSnapshot());
   if (!snap?.grid) return { agents: [], objects: [] };
-  const agents = asArray(snap.agents).filter(
-    (a) => a.position[0] === x && a.position[1] === y,
-  );
+  const agents = asArray(snap.agents).filter((a) => a.position[0] === x && a.position[1] === y);
   const objects = asArray(snap.objects).filter((o) => objectOccupiesTile(o, x, y));
   return { agents, objects };
 }
@@ -165,8 +164,7 @@ function findAgentWithArea(agentId) {
   const snap = normalizeSnapshot(getSnapshot());
   const entity = asArray(snap?.agents).find((a) => a.id === agentId);
   if (!entity) return null;
-  const areaId =
-    entity.area_id ?? activeAreaView(getSnapshot())?.active_area_id ?? DEFAULT_AREA_ID;
+  const areaId = entity.area_id ?? activeAreaView(getSnapshot())?.active_area_id ?? DEFAULT_AREA_ID;
   return { entity, areaId };
 }
 
@@ -282,8 +280,10 @@ function showEntityMenu(x, y, kind, id) {
   if (!entity) return;
 
   if (kind === "agent") {
-    const agentCtx =
-      findAgentWithArea(id) ?? { entity, areaId: activeAreaView(getSnapshot())?.active_area_id };
+    const agentCtx = findAgentWithArea(id) ?? {
+      entity,
+      areaId: activeAreaView(getSnapshot())?.active_area_id,
+    };
     showMenu(x, y, [
       {
         label: "Run turn ▶",
@@ -319,7 +319,10 @@ function showEntityMenu(x, y, kind, id) {
       },
     ]);
   } else {
-    const objectCtx = findObjectWithArea(id) ?? { entity, areaId: activeAreaView(getSnapshot())?.active_area_id };
+    const objectCtx = findObjectWithArea(id) ?? {
+      entity,
+      areaId: activeAreaView(getSnapshot())?.active_area_id,
+    };
     showMenu(x, y, [
       {
         label: "Edit…",
@@ -627,16 +630,11 @@ async function persistPrivateDataIfChanged(entityId, value, previous) {
  * OK when private_data actually changed (edit_agent/edit_object ignore that field).
  */
 async function commitEditAndPrivateData(editResult, entityId, nextPrivate, prevPrivate) {
-  const noOpEdit =
-    !editResult.ok && /no changes applied/i.test(String(editResult.message || ""));
+  const noOpEdit = !editResult.ok && /no changes applied/i.test(String(editResult.message || ""));
   if (!editResult.ok && !noOpEdit) {
     throw new Error(editResult.message);
   }
-  const privateResult = await persistPrivateDataIfChanged(
-    entityId,
-    nextPrivate,
-    prevPrivate,
-  );
+  const privateResult = await persistPrivateDataIfChanged(entityId, nextPrivate, prevPrivate);
   if (noOpEdit && !privateResult) {
     throw new Error(editResult.message);
   }
@@ -668,76 +666,90 @@ function objectMovementFields({ blocksMovement, movementExceptions }) {
 }
 
 function openCreateObjectModal(x, y) {
-  openModal("Create object", [
-    { name: "name", label: "Name", value: "New Object", required: true, group: "basic" },
-    {
-      name: "pdesc",
-      label: "Passive description",
-      value: "An object.",
-      type: "textarea",
-      group: "descriptions",
+  openModal(
+    "Create object",
+    [
+      { name: "name", label: "Name", value: "New Object", required: true, group: "basic" },
+      {
+        name: "pdesc",
+        label: "Passive description",
+        value: "An object.",
+        type: "textarea",
+        group: "descriptions",
+      },
+      {
+        name: "desc",
+        label: "Detailed description",
+        value: "A new object.",
+        type: "textarea",
+        group: "descriptions",
+      },
+      {
+        name: "x",
+        label: "X",
+        value: String(x),
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      {
+        name: "y",
+        label: "Y",
+        value: String(y),
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      {
+        name: "width",
+        label: "Width (tiles)",
+        value: "1",
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      {
+        name: "height",
+        label: "Height (tiles)",
+        value: "1",
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      ...objectMovementFields({ blocksMovement: true, movementExceptions: "" }),
+      objectHiddenField(false),
+      {
+        name: "appearance",
+        label: "Token image path",
+        value: "",
+        placeholder: "tokens/my-object.svg",
+        group: "advanced",
+      },
+      privateDataField(),
+    ],
+    async (data) => {
+      const line = buildCreateObject({
+        name: data.name,
+        pdesc: data.pdesc,
+        desc: data.desc,
+        appearance: data.appearance,
+        x: data.x,
+        y: data.y,
+        width: data.width,
+        height: data.height,
+        blocksMovement: data.blocksMovement,
+        movementExceptions: data.movementExceptions,
+        hidden: data.hidden,
+      });
+      const result = await postCommand(line);
+      if (!result.ok) throw new Error(result.message);
+      const objectId = parseCreatedObjectId(result.message);
+      if (!objectId) throw new Error("Created object id not found in response.");
+      const privateResult = await persistPrivateDataIfChanged(objectId, data.privateData, "");
+      showToast(privateResult?.message ?? result.message, false);
+      await onStateChanged(privateResult?.snapshot ?? result.snapshot);
     },
-    {
-      name: "desc",
-      label: "Detailed description",
-      value: "A new object.",
-      type: "textarea",
-      group: "descriptions",
-    },
-    { name: "x", label: "X", value: String(x), type: "number", required: true, group: "placement" },
-    { name: "y", label: "Y", value: String(y), type: "number", required: true, group: "placement" },
-    {
-      name: "width",
-      label: "Width (tiles)",
-      value: "1",
-      type: "number",
-      required: true,
-      group: "placement",
-    },
-    {
-      name: "height",
-      label: "Height (tiles)",
-      value: "1",
-      type: "number",
-      required: true,
-      group: "placement",
-    },
-    ...objectMovementFields({ blocksMovement: true, movementExceptions: "" }),
-    objectHiddenField(false),
-    {
-      name: "appearance",
-      label: "Token image path",
-      value: "",
-      placeholder: "tokens/my-object.svg",
-      group: "advanced",
-    },
-    privateDataField(),
-  ], async (data) => {
-    const line = buildCreateObject({
-      name: data.name,
-      pdesc: data.pdesc,
-      desc: data.desc,
-      appearance: data.appearance,
-      x: data.x,
-      y: data.y,
-      width: data.width,
-      height: data.height,
-      blocksMovement: data.blocksMovement,
-      movementExceptions: data.movementExceptions,
-      hidden: data.hidden,
-    });
-    const result = await postCommand(line);
-    if (!result.ok) throw new Error(result.message);
-    const objectId = parseCreatedObjectId(result.message);
-    if (!objectId) throw new Error("Created object id not found in response.");
-    const privateResult = await persistPrivateDataIfChanged(
-      objectId,
-      data.privateData,
-      "",
-    );
-    showToast(privateResult?.message ?? result.message, false);
-    await onStateChanged(privateResult?.snapshot ?? result.snapshot);
-  });
+  );
 }
 
 function openCreateHiddenTriggerModal(x, y) {
@@ -918,8 +930,7 @@ function openCreateAgentModal(x, y) {
     const memoryOptionFields = [];
     for (const mod of catalog.modules) {
       for (const opt of mod.options || []) {
-        const placeholder =
-          opt.max != null ? `${opt.min}–${opt.max}` : `${opt.min}+`;
+        const placeholder = opt.max != null ? `${opt.min}–${opt.max}` : `${opt.min}+`;
         memoryOptionFields.push({
           name: memoryOptionFieldName(opt.flag),
           label: opt.label,
@@ -960,11 +971,7 @@ function openCreateAgentModal(x, y) {
       if (!result.ok) throw new Error(result.message);
       const agentId = parseCreatedAgentId(result.message);
       if (!agentId) throw new Error("Created agent id not found in response.");
-      const privateResult = await persistPrivateDataIfChanged(
-        agentId,
-        data.privateData,
-        "",
-      );
+      const privateResult = await persistPrivateDataIfChanged(agentId, data.privateData, "");
       showToast(privateResult?.message ?? result.message, false);
       await onStateChanged(privateResult?.snapshot ?? result.snapshot);
     });
@@ -972,221 +979,227 @@ function openCreateAgentModal(x, y) {
 }
 
 function openEditObjectModal(entity, areaId) {
-  const resolvedAreaId =
-    areaId ?? activeAreaView(getSnapshot())?.active_area_id ?? DEFAULT_AREA_ID;
+  const resolvedAreaId = areaId ?? activeAreaView(getSnapshot())?.active_area_id ?? DEFAULT_AREA_ID;
   const areaOptions = listAreaOptions();
 
-  openModal(`Edit object — ${entity.name}`, [
-    { name: "name", label: "Name", value: entity.name, required: true, group: "basic" },
-    {
-      name: "pdesc",
-      label: "Passive description",
-      value: entity.passive_description ?? "",
-      type: "textarea",
-      group: "descriptions",
+  openModal(
+    `Edit object — ${entity.name}`,
+    [
+      { name: "name", label: "Name", value: entity.name, required: true, group: "basic" },
+      {
+        name: "pdesc",
+        label: "Passive description",
+        value: entity.passive_description ?? "",
+        type: "textarea",
+        group: "descriptions",
+      },
+      {
+        name: "desc",
+        label: "Detailed description",
+        value: entity.description ?? "",
+        type: "textarea",
+        group: "descriptions",
+      },
+      {
+        name: "areaId",
+        label: "Area",
+        type: "select",
+        value: resolvedAreaId,
+        options: areaOptions,
+        group: "placement",
+      },
+      {
+        name: "x",
+        label: "X",
+        value: String(entity.position[0]),
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      {
+        name: "y",
+        label: "Y",
+        value: String(entity.position[1]),
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      {
+        name: "width",
+        label: "Width (tiles)",
+        value: String(entity.width ?? 1),
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      {
+        name: "height",
+        label: "Height (tiles)",
+        value: String(entity.height ?? 1),
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      ...objectMovementFields({
+        blocksMovement: entity.blocks_movement !== false,
+        movementExceptions: (entity.movement_exceptions || []).join(", "),
+      }),
+      objectHiddenField(!!entity.hidden),
+      {
+        name: "appearance",
+        label: "Token image path",
+        value: entity.appearance ?? "",
+        placeholder: "tokens/my-object.svg",
+        group: "advanced",
+      },
+      privateDataField(entity.private_data),
+    ],
+    async (data) => {
+      const line = buildEditObject({
+        id: entity.id,
+        name: data.name,
+        pdesc: data.pdesc || undefined,
+        desc: data.desc || undefined,
+        appearance: data.appearance,
+        areaId: data.areaId,
+        sourceAreaId: resolvedAreaId,
+        x: data.x,
+        y: data.y,
+        width: data.width,
+        height: data.height,
+        blocksMovement: data.blocksMovement,
+        movementExceptions: data.blocksMovement ? data.movementExceptions : "",
+        hidden: data.hidden,
+      });
+      const result = await postCommand(line);
+      const committed = await commitEditAndPrivateData(
+        result,
+        entity.id,
+        data.privateData,
+        entity.private_data,
+      );
+      showToast(committed.message, false);
+      await onStateChanged(committed.snapshot);
     },
-    {
-      name: "desc",
-      label: "Detailed description",
-      value: entity.description ?? "",
-      type: "textarea",
-      group: "descriptions",
-    },
-    {
-      name: "areaId",
-      label: "Area",
-      type: "select",
-      value: resolvedAreaId,
-      options: areaOptions,
-      group: "placement",
-    },
-    {
-      name: "x",
-      label: "X",
-      value: String(entity.position[0]),
-      type: "number",
-      required: true,
-      group: "placement",
-    },
-    {
-      name: "y",
-      label: "Y",
-      value: String(entity.position[1]),
-      type: "number",
-      required: true,
-      group: "placement",
-    },
-    {
-      name: "width",
-      label: "Width (tiles)",
-      value: String(entity.width ?? 1),
-      type: "number",
-      required: true,
-      group: "placement",
-    },
-    {
-      name: "height",
-      label: "Height (tiles)",
-      value: String(entity.height ?? 1),
-      type: "number",
-      required: true,
-      group: "placement",
-    },
-    ...objectMovementFields({
-      blocksMovement: entity.blocks_movement !== false,
-      movementExceptions: (entity.movement_exceptions || []).join(", "),
-    }),
-    objectHiddenField(!!entity.hidden),
-    {
-      name: "appearance",
-      label: "Token image path",
-      value: entity.appearance ?? "",
-      placeholder: "tokens/my-object.svg",
-      group: "advanced",
-    },
-    privateDataField(entity.private_data),
-  ], async (data) => {
-    const line = buildEditObject({
-      id: entity.id,
-      name: data.name,
-      pdesc: data.pdesc || undefined,
-      desc: data.desc || undefined,
-      appearance: data.appearance,
-      areaId: data.areaId,
-      sourceAreaId: resolvedAreaId,
-      x: data.x,
-      y: data.y,
-      width: data.width,
-      height: data.height,
-      blocksMovement: data.blocksMovement,
-      movementExceptions: data.blocksMovement ? data.movementExceptions : "",
-      hidden: data.hidden,
-    });
-    const result = await postCommand(line);
-    const committed = await commitEditAndPrivateData(
-      result,
-      entity.id,
-      data.privateData,
-      entity.private_data,
-    );
-    showToast(committed.message, false);
-    await onStateChanged(committed.snapshot);
-  });
+  );
 }
 
 function openEditAgentModal(entity, areaId) {
-  const resolvedAreaId =
-    areaId ?? activeAreaView(getSnapshot())?.active_area_id ?? DEFAULT_AREA_ID;
+  const resolvedAreaId = areaId ?? activeAreaView(getSnapshot())?.active_area_id ?? DEFAULT_AREA_ID;
   const areaOptions = listAreaOptions();
 
-  openModal(`Edit agent — ${entity.name}`, [
-    { name: "name", label: "Name", value: entity.name, required: true, group: "basic" },
-    {
-      name: "personality",
-      label: "Personality (LLM)",
-      value: entity.personality ?? "",
-      type: "textarea",
-      group: "basic",
+  openModal(
+    `Edit agent — ${entity.name}`,
+    [
+      { name: "name", label: "Name", value: entity.name, required: true, group: "basic" },
+      {
+        name: "personality",
+        label: "Personality (LLM)",
+        value: entity.personality ?? "",
+        type: "textarea",
+        group: "basic",
+      },
+      {
+        name: "pdesc",
+        label: "Passive description",
+        value: entity.passive_description ?? "",
+        type: "textarea",
+        group: "descriptions",
+      },
+      {
+        name: "desc",
+        label: "Detailed description",
+        value: entity.description ?? "",
+        type: "textarea",
+        group: "descriptions",
+      },
+      {
+        name: "moveSpeed",
+        label: "Move speed (steps per turn)",
+        value: entity.move_speed != null ? String(entity.move_speed) : "",
+        type: "number",
+        placeholder: "blank = unlimited (teleport)",
+        group: "simulation",
+      },
+      {
+        name: "isPlayer",
+        label: "Player (manual turns, no LLM)",
+        type: "checkbox",
+        value: Boolean(entity.is_player),
+        group: "simulation",
+      },
+      ...objectMovementFields({
+        blocksMovement: entity.blocks_movement === true,
+        movementExceptions: (entity.movement_exceptions || []).join(", "),
+      }),
+      {
+        name: "memoryModule",
+        label: "Memory module (set at creation)",
+        type: "readonly",
+        value: entity.memory_module ?? "recent_turns",
+        group: "simulation",
+      },
+      {
+        name: "areaId",
+        label: "Area",
+        type: "select",
+        value: resolvedAreaId,
+        options: areaOptions,
+        group: "placement",
+      },
+      {
+        name: "x",
+        label: "X",
+        value: String(entity.position[0]),
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      {
+        name: "y",
+        label: "Y",
+        value: String(entity.position[1]),
+        type: "number",
+        required: true,
+        group: "placement",
+      },
+      {
+        name: "appearance",
+        label: "Token image path",
+        value: entity.appearance ?? "",
+        placeholder: "tokens/my-agent.svg",
+        group: "advanced",
+      },
+      privateDataField(entity.private_data),
+    ],
+    async (data) => {
+      const line = buildEditAgent({
+        id: entity.id,
+        name: data.name,
+        pdesc: data.pdesc || undefined,
+        desc: data.desc || undefined,
+        personality: data.personality || undefined,
+        appearance: data.appearance,
+        moveSpeed: data.moveSpeed,
+        isPlayer: data.isPlayer,
+        blocksMovement: data.blocksMovement,
+        movementExceptions: data.blocksMovement ? data.movementExceptions : "",
+        areaId: data.areaId,
+        sourceAreaId: resolvedAreaId,
+        x: data.x,
+        y: data.y,
+      });
+      const result = await postCommand(line);
+      const committed = await commitEditAndPrivateData(
+        result,
+        entity.id,
+        data.privateData,
+        entity.private_data,
+      );
+      showToast(committed.message, false);
+      await onStateChanged(committed.snapshot);
     },
-    {
-      name: "pdesc",
-      label: "Passive description",
-      value: entity.passive_description ?? "",
-      type: "textarea",
-      group: "descriptions",
-    },
-    {
-      name: "desc",
-      label: "Detailed description",
-      value: entity.description ?? "",
-      type: "textarea",
-      group: "descriptions",
-    },
-    {
-      name: "moveSpeed",
-      label: "Move speed (steps per turn)",
-      value: entity.move_speed != null ? String(entity.move_speed) : "",
-      type: "number",
-      placeholder: "blank = unlimited (teleport)",
-      group: "simulation",
-    },
-    {
-      name: "isPlayer",
-      label: "Player (manual turns, no LLM)",
-      type: "checkbox",
-      value: Boolean(entity.is_player),
-      group: "simulation",
-    },
-    ...objectMovementFields({
-      blocksMovement: entity.blocks_movement === true,
-      movementExceptions: (entity.movement_exceptions || []).join(", "),
-    }),
-    {
-      name: "memoryModule",
-      label: "Memory module (set at creation)",
-      type: "readonly",
-      value: entity.memory_module ?? "recent_turns",
-      group: "simulation",
-    },
-    {
-      name: "areaId",
-      label: "Area",
-      type: "select",
-      value: resolvedAreaId,
-      options: areaOptions,
-      group: "placement",
-    },
-    {
-      name: "x",
-      label: "X",
-      value: String(entity.position[0]),
-      type: "number",
-      required: true,
-      group: "placement",
-    },
-    {
-      name: "y",
-      label: "Y",
-      value: String(entity.position[1]),
-      type: "number",
-      required: true,
-      group: "placement",
-    },
-    {
-      name: "appearance",
-      label: "Token image path",
-      value: entity.appearance ?? "",
-      placeholder: "tokens/my-agent.svg",
-      group: "advanced",
-    },
-    privateDataField(entity.private_data),
-  ], async (data) => {
-    const line = buildEditAgent({
-      id: entity.id,
-      name: data.name,
-      pdesc: data.pdesc || undefined,
-      desc: data.desc || undefined,
-      personality: data.personality || undefined,
-      appearance: data.appearance,
-      moveSpeed: data.moveSpeed,
-      isPlayer: data.isPlayer,
-      blocksMovement: data.blocksMovement,
-      movementExceptions: data.blocksMovement ? data.movementExceptions : "",
-      areaId: data.areaId,
-      sourceAreaId: resolvedAreaId,
-      x: data.x,
-      y: data.y,
-    });
-    const result = await postCommand(line);
-    const committed = await commitEditAndPrivateData(
-      result,
-      entity.id,
-      data.privateData,
-      entity.private_data,
-    );
-    showToast(committed.message, false);
-    await onStateChanged(committed.snapshot);
-  });
+  );
 }
 
 function buildAgentMultiselectOptions(snapshot) {
@@ -1242,10 +1255,7 @@ export async function openPlayerTurnModal(agentName, onSubmit, coordinateMode = 
     `Player turn — ${agentName}`,
     playerTurnFieldDefs(coordinateMode),
     async (data) => {
-      if (
-        data.action === "interact"
-        && (!data.target?.trim() || !data.verb?.trim())
-      ) {
+      if (data.action === "interact" && (!data.target?.trim() || !data.verb?.trim())) {
         throw new Error("Interact turns require target and verb.");
       }
       if (data.action === "emote" && !data.verb?.trim()) {
@@ -1378,12 +1388,8 @@ export function openEditAreaModal() {
   }
   const block = snap.areas[areaId];
   const grid = block.grid || {};
-  const width = grid.max_x != null && grid.min_x != null
-    ? grid.max_x - grid.min_x + 1
-    : 5;
-  const height = grid.max_y != null && grid.min_y != null
-    ? grid.max_y - grid.min_y + 1
-    : 5;
+  const width = grid.max_x != null && grid.min_x != null ? grid.max_x - grid.min_x + 1 : 5;
+  const height = grid.max_y != null && grid.min_y != null ? grid.max_y - grid.min_y + 1 : 5;
 
   openModal(
     `Edit area — ${areaId}`,
@@ -1395,7 +1401,13 @@ export function openEditAreaModal() {
         type: "textarea",
       },
       { name: "width", label: "Grid width", value: String(width), type: "number", required: true },
-      { name: "height", label: "Grid height", value: String(height), type: "number", required: true },
+      {
+        name: "height",
+        label: "Grid height",
+        value: String(height),
+        type: "number",
+        required: true,
+      },
     ],
     async (data) => {
       const result = await postEditArea({
@@ -1443,11 +1455,13 @@ export function bindAreaManageButtons({ createBtn, editBtn, deleteBtn, saveAreaB
 }
 
 function slugifyTemplateFilename(name) {
-  return String(name || "template")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "template";
+  return (
+    String(name || "template")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "template"
+  );
 }
 
 async function openSaveEntityModal(kind, entity) {
@@ -1761,15 +1775,15 @@ export async function openLoadAreaTemplateModal() {
             const targetAreaId =
               mode === "replace"
                 ? activeAreaId
-                : String(data.areaId || "").trim().toLowerCase();
+                : String(data.areaId || "")
+                    .trim()
+                    .toLowerCase();
             if (!targetAreaId) {
               throw new Error("Target area id is required.");
             }
             if (
               mode === "replace" &&
-              !window.confirm(
-                `Replace all contents of area "${targetAreaId}" with this template?`,
-              )
+              !window.confirm(`Replace all contents of area "${targetAreaId}" with this template?`)
             ) {
               return false;
             }
@@ -1795,15 +1809,15 @@ export async function openLoadAreaTemplateModal() {
             const targetAreaId =
               mode === "replace"
                 ? activeAreaId
-                : String(data.areaId || "").trim().toLowerCase();
+                : String(data.areaId || "")
+                    .trim()
+                    .toLowerCase();
             if (!targetAreaId) {
               throw new Error("Target area id is required.");
             }
             if (
               mode === "replace" &&
-              !window.confirm(
-                `Replace all contents of area "${targetAreaId}" with this template?`,
-              )
+              !window.confirm(`Replace all contents of area "${targetAreaId}" with this template?`)
             ) {
               return false;
             }

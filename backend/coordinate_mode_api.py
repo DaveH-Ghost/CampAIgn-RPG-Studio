@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from backend.snapshot_compat import normalize_state_snapshot
 from campaign_rpg_engine import Session
 from campaign_rpg_engine.coordinate_mode import COORDINATE_MODE_RELATIVE
+
+from backend.snapshot_compat import normalize_state_snapshot
 
 
 def put_coordinate_mode(session: Session, *, mode: str) -> dict[str, object]:

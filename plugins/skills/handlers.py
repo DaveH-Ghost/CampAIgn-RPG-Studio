@@ -248,9 +248,7 @@ def skill_check(session, area, agent, obj, action) -> ActionOutcome | str | None
     fail_result = str(params.get("fail_result") or "").strip() or (
         f"You fail the {outcome['stat']} check."
     )
-    fail_passive = str(params.get("fail_passive") or "").strip() or (
-        "{actor} fails a check."
-    )
+    fail_passive = str(params.get("fail_passive") or "").strip() or ("{actor} fails a check.")
     return ActionOutcome(
         result=format_with_roll_vars(fail_result, ctx, outcome),
         passive_result=format_with_roll_vars(fail_passive, ctx, outcome),

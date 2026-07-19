@@ -2,7 +2,6 @@
  * campaign-rpg-studio frontend — grid, edit menus, LLM turn, sidebar (V0.3.1b–0.4.0c2).
  */
 
-import { hasAppearance, resolveAppearanceUrl } from "./appearance.js";
 import {
   exportSession,
   getHealth,
@@ -14,24 +13,12 @@ import {
   postTurn,
   postTurnUndo,
 } from "./api.js";
-import { initPromptLayout, reloadPromptLayoutIfOpen } from "./promptLayout.js";
-import { initAppTabs } from "./tabs.js";
-import { initLorebooks, refreshLorebookList, refreshLorebookScanPanel } from "./lorebooks.js";
-import { initTemplates } from "./templates.js";
-import { initPlugins } from "./plugins.js";
-import { clearHandlerChoicesCache } from "./objectActions.js";
-import { clearInteractTemplateVarsCache } from "./templateVarsHelp.js";
-import {
-  buildPlayerTurnPayloadFromPanel,
-  initPlayerTurnPanel,
-  loadPlayerTurnVerbCatalog,
-  setPlayerTurnPanelBusy,
-  syncPlayerTurnPanel,
-} from "./playerTurnPanel.js";
-import { initVisionUnits, syncVisionUnitsFromSnapshot } from "./visionUnits.js";
+import { hasAppearance, resolveAppearanceUrl } from "./appearance.js";
 import { initCoordinateMode, syncCoordinateModeFromSnapshot } from "./coordinateMode.js";
 import { initDecorations, renderSceneDecorations } from "./decorations.js";
-import { initGridViewport, maybeCenterGrid, CELL_SIZE } from "./gridViewport.js";
+import { CELL_SIZE, initGridViewport, maybeCenterGrid } from "./gridViewport.js";
+import { initLorebooks, refreshLorebookList, refreshLorebookScanPanel } from "./lorebooks.js";
+import { clearHandlerChoicesCache } from "./objectActions.js";
 import {
   appendTurnLogEntry,
   bindPromptDebug,
@@ -46,7 +33,26 @@ import {
   setLastPrompt,
   setLastResponse,
 } from "./panels.js";
-import { activeAreaView, asArray, isMultiTileObject, normalizeSnapshot, objectFootprintSize } from "./snapshot.js";
+import {
+  buildPlayerTurnPayloadFromPanel,
+  initPlayerTurnPanel,
+  loadPlayerTurnVerbCatalog,
+  setPlayerTurnPanelBusy,
+  syncPlayerTurnPanel,
+} from "./playerTurnPanel.js";
+import { initPlugins } from "./plugins.js";
+import { initPromptLayout, reloadPromptLayoutIfOpen } from "./promptLayout.js";
+import { initSettings } from "./settings.js";
+import {
+  activeAreaView,
+  asArray,
+  isMultiTileObject,
+  normalizeSnapshot,
+  objectFootprintSize,
+} from "./snapshot.js";
+import { initAppTabs } from "./tabs.js";
+import { clearInteractTemplateVarsCache } from "./templateVarsHelp.js";
+import { initTemplates } from "./templates.js";
 import {
   bindActiveAgentSelect,
   bindActiveAreaSelect,
@@ -59,7 +65,7 @@ import {
   renderActiveAreaSelect,
   showToast,
 } from "./ui.js";
-import { initSettings } from "./settings.js";
+import { initVisionUnits, syncVisionUnitsFromSnapshot } from "./visionUnits.js";
 
 const subtitleEl = document.getElementById("app-subtitle");
 const statusEl = document.getElementById("status");
@@ -163,10 +169,7 @@ function setTurnBusy(busy) {
 
 function syncUndoTurnButton(status = null) {
   if (!undoTurnBtn) return;
-  const remaining =
-    status?.undo_remaining ??
-    status?.undoRemaining ??
-    lastUndoRemaining;
+  const remaining = status?.undo_remaining ?? status?.undoRemaining ?? lastUndoRemaining;
   if (typeof remaining === "number") {
     lastUndoRemaining = remaining;
   }
@@ -179,10 +182,7 @@ function syncUndoTurnButton(status = null) {
 
 function applyRunTurnBudgetStyle({ over_warning, over_limit } = {}) {
   if (!runTurnBtn) return;
-  runTurnBtn.classList.toggle(
-    "run-turn-btn--warn",
-    Boolean(over_warning) && !Boolean(over_limit),
-  );
+  runTurnBtn.classList.toggle("run-turn-btn--warn", Boolean(over_warning) && !over_limit);
 }
 
 async function refreshRunTurnTokenHint() {
@@ -459,7 +459,7 @@ function updateStatusLine(data) {
   const snap = normalizeSnapshot(data);
   const active = asArray(snap.agents).find((a) => a.id === snap.active_agent_id);
   const area = snap.active_area_id ?? "area";
-  const agentName = active ? active.name : snap.active_agent_id ?? "—";
+  const agentName = active ? active.name : (snap.active_agent_id ?? "—");
   statusEl.textContent = `Turn ${snap.session_turn ?? "?"} — ${area} — ${agentName}`;
 }
 
@@ -650,7 +650,6 @@ initPlayerTurnPanel({
   submitBtnEl: playerTurnSubmitBtn,
   getSnapshotFn: () => lastSnapshot,
   getCoordinateModeFn: getCoordinateMode,
-  showToastFn: showToast,
   onSubmitFn: async (compoundTurn) => {
     const active = activeAgentFromSnapshot();
     if (!active?.is_player) {
@@ -720,12 +719,7 @@ bindAreaManageButtons({
 });
 bindEmitEventButton(emitEventBtn);
 bindPromptDebug(promptDebugEl, lastPromptEl, lastPromptEmptyEl, () => getPrompt());
-bindResponseDebug(
-  responseDebugEl,
-  lastResponseEl,
-  lastResponseEmptyEl,
-  lastResponseTokensEl,
-);
+bindResponseDebug(responseDebugEl, lastResponseEl, lastResponseEmptyEl, lastResponseTokensEl);
 initPromptLayout({
   detailsEl: promptLayoutEl,
   listEl: promptBlockListEl,
@@ -815,7 +809,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.5.2";
+    const studioVersion = health.version || "1.6.0";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

@@ -2,7 +2,6 @@
  * Scene decorations — render layers and edit-scene UI (V1.3.0).
  */
 
-import { resolveAppearanceUrl } from "./appearance.js";
 import {
   deleteDecoration,
   postCreateDecoration,
@@ -10,6 +9,7 @@ import {
   updateDecoration,
   uploadDecorationAsset,
 } from "./api.js";
+import { resolveAppearanceUrl } from "./appearance.js";
 import { CELL_SIZE } from "./gridViewport.js";
 import { activeAreaView, asArray } from "./snapshot.js";
 
@@ -100,12 +100,7 @@ function sortedDecorations(decorations) {
 }
 
 export function renderSceneDecorations(view, elements) {
-  const {
-    gridViewportBackgroundEl,
-    gridSpritesEl,
-    gridLinesEl,
-    gridEl,
-  } = elements;
+  const { gridViewportBackgroundEl, gridSpritesEl, gridLinesEl, gridEl } = elements;
   const { grid } = view;
   if (!grid || !gridSpritesEl) {
     if (gridViewportBackgroundEl) gridViewportBackgroundEl.innerHTML = "";
@@ -229,7 +224,7 @@ function backgroundSizeCss(width, height) {
 function parseBackgroundTileDim(value) {
   const trimmed = String(value ?? "").trim();
   if (!trimmed) return 0;
-  const parsed = parseInt(trimmed, 10);
+  const parsed = Number.parseInt(trimmed, 10);
   return Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
 }
 
@@ -308,12 +303,7 @@ function onResizePointerDown(event, decoration, corner) {
     if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
       resizeState.moved = true;
     }
-    const geometry = computeResizedGeometry(
-      resizeState.corner,
-      resizeState.origin,
-      dx,
-      dy,
-    );
+    const geometry = computeResizedGeometry(resizeState.corner, resizeState.origin, dx, dy);
     applySpriteGeometry(getSpriteElement(resizeState.id), geometry);
     syncDetailFormGeometry(geometry);
   };
@@ -331,10 +321,10 @@ function onResizePointerDown(event, decoration, corner) {
     const el = getSpriteElement(state.id);
     const payload = {
       decoration_id: state.id,
-      x: el ? parseInt(el.style.left, 10) : state.origin.x,
-      y: el ? parseInt(el.style.top, 10) : state.origin.y,
-      width: el ? parseInt(el.style.width, 10) : state.origin.width,
-      height: el ? parseInt(el.style.height, 10) : state.origin.height,
+      x: el ? Number.parseInt(el.style.left, 10) : state.origin.x,
+      y: el ? Number.parseInt(el.style.top, 10) : state.origin.y,
+      width: el ? Number.parseInt(el.style.width, 10) : state.origin.width,
+      height: el ? Number.parseInt(el.style.height, 10) : state.origin.height,
     };
     try {
       const data = await updateDecoration(payload);
@@ -374,8 +364,8 @@ function onSpritePointerDown(event, decoration) {
       applySpriteGeometry(el, {
         x: dragState.originX + dx,
         y: dragState.originY + dy,
-        width: parseInt(el.style.width, 10) || decoration.width || CELL_SIZE,
-        height: parseInt(el.style.height, 10) || decoration.height || CELL_SIZE,
+        width: Number.parseInt(el.style.width, 10) || decoration.width || CELL_SIZE,
+        height: Number.parseInt(el.style.height, 10) || decoration.height || CELL_SIZE,
       });
     }
   };
@@ -391,8 +381,8 @@ function onSpritePointerDown(event, decoration) {
       return;
     }
     const el = getSpriteElement(state.id);
-    const newX = el ? parseInt(el.style.left, 10) || state.originX : state.originX;
-    const newY = el ? parseInt(el.style.top, 10) || state.originY : state.originY;
+    const newX = el ? Number.parseInt(el.style.left, 10) || state.originX : state.originX;
+    const newY = el ? Number.parseInt(el.style.top, 10) || state.originY : state.originY;
     syncDetailFormGeometry({ x: newX, y: newY });
     try {
       const data = await updateDecoration({
@@ -414,7 +404,10 @@ function decorationListLabel(decoration) {
   if (decoration.kind === "background") {
     return `Background — ${decoration.image}`;
   }
-  const filename = String(decoration.image ?? "").split("/").pop() ?? "";
+  const filename =
+    String(decoration.image ?? "")
+      .split("/")
+      .pop() ?? "";
   const stem = filename.replace(/\.[^.]+$/, "") || decoration.id;
   return `Sprite — ${stem}`;
 }
@@ -618,10 +611,16 @@ async function applyDetailForm() {
       document.getElementById("scene-decoration-bg-height")?.value,
     );
   } else {
-    const x = parseInt(document.getElementById("scene-decoration-x")?.value ?? "", 10);
-    const y = parseInt(document.getElementById("scene-decoration-y")?.value ?? "", 10);
-    const width = parseInt(document.getElementById("scene-decoration-width")?.value ?? "", 10);
-    const height = parseInt(document.getElementById("scene-decoration-height")?.value ?? "", 10);
+    const x = Number.parseInt(document.getElementById("scene-decoration-x")?.value ?? "", 10);
+    const y = Number.parseInt(document.getElementById("scene-decoration-y")?.value ?? "", 10);
+    const width = Number.parseInt(
+      document.getElementById("scene-decoration-width")?.value ?? "",
+      10,
+    );
+    const height = Number.parseInt(
+      document.getElementById("scene-decoration-height")?.value ?? "",
+      10,
+    );
     if (!Number.isNaN(x)) payload.x = x;
     if (!Number.isNaN(y)) payload.y = y;
     if (!Number.isNaN(width)) payload.width = width;

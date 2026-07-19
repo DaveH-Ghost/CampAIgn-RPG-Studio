@@ -9,7 +9,9 @@ const DEEPSEEK_V4_FLASH = {
 };
 
 function normalizeModelId(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function mapDeepSeekV4FlashModel(currentModel, nextProvider) {
@@ -47,9 +49,7 @@ export function initSettings({ showToastFn, onSettingsAppliedFn }) {
   function syncProviderHints(provider, defaults) {
     const isFeatherless = provider === "featherless";
     if (apiKeyLabel) {
-      apiKeyLabel.textContent = isFeatherless
-        ? "Featherless API key"
-        : "OpenRouter API key";
+      apiKeyLabel.textContent = isFeatherless ? "Featherless API key" : "OpenRouter API key";
     }
     if (apiKeyInput) {
       apiKeyInput.placeholder = isFeatherless ? "featherless key" : "sk-or-...";

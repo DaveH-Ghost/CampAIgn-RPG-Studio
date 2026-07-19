@@ -1,4 +1,4 @@
-"""In-memory LLM settings for campaign-rpg-studio (V0.4.6 / 1.5.2)."""
+"""In-memory LLM settings for campaign-rpg-studio (1.6.0)."""
 
 from __future__ import annotations
 
@@ -64,16 +64,8 @@ def put_llm_settings(
         os.environ["LLM_PROVIDER"] = cleaned
 
     active = get_llm_provider()
-    key_env = (
-        "FEATHERLESS_API_KEY"
-        if active == PROVIDER_FEATHERLESS
-        else "OPENROUTER_API_KEY"
-    )
-    model_env = (
-        "FEATHERLESS_MODEL"
-        if active == PROVIDER_FEATHERLESS
-        else "OPENROUTER_MODEL"
-    )
+    key_env = "FEATHERLESS_API_KEY" if active == PROVIDER_FEATHERLESS else "OPENROUTER_API_KEY"
+    model_env = "FEATHERLESS_MODEL" if active == PROVIDER_FEATHERLESS else "OPENROUTER_MODEL"
 
     if api_key is not None:
         cleaned = api_key.strip()

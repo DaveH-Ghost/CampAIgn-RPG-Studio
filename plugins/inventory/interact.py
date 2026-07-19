@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 from campaign_rpg_engine import Object, ObjectAction, run_interaction_handler
 from campaign_rpg_engine.action_outcome import ActionOutcome
 from campaign_rpg_engine.interact_templates import InteractTemplateContext, format_interact_template
-
-import sys
 
 state = sys.modules["studio_plugin_inventory.state"]
 serialization = sys.modules["studio_plugin_inventory.serialization"]
@@ -45,9 +44,7 @@ def item_as_object(item: dict[str, Any], agent) -> Object:
         width=int(item.get("width", 1)),
         height=int(item.get("height", 1)),
         blocks_movement=bool(item.get("blocks_movement", True)),
-        movement_exceptions=[
-            str(x) for x in list(item.get("movement_exceptions", []))
-        ],
+        movement_exceptions=[str(x) for x in list(item.get("movement_exceptions", []))],
         hidden=bool(item.get("hidden", False)),
         private_data=str(item.get("private_data", "")),
         actions=deserialize_actions(item.get("actions")),
@@ -89,9 +86,7 @@ def _handler_consumes_item(action: ObjectAction) -> bool:
     return action.handler_id == "delete_self"
 
 
-def use_inventory_item(
-    session, agent, area, item_id: str, action_name: str
-) -> ActionOutcome | str:
+def use_inventory_item(session, agent, area, item_id: str, action_name: str) -> ActionOutcome | str:
     if not state.plugin_enabled(session):
         return "Inventory plugin is not enabled."
 
@@ -218,9 +213,7 @@ def apply_perception_patch() -> None:
     def filtered_available(agent, area):
         interactions = original_available(agent, area)
         return [
-            entry
-            for entry in interactions
-            if not is_inventory_only_handler(entry[3].handler_id)
+            entry for entry in interactions if not is_inventory_only_handler(entry[3].handler_id)
         ]
 
     perception.get_object_interactions_reachable_after_move = filtered_get

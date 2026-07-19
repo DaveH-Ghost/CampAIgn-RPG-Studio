@@ -1,12 +1,8 @@
 /** HTTP helpers for campaign-rpg-studio API. */
 
-export async function getHealth() {
-  const res = await fetch("/api/health");
-  if (!res.ok) {
-    throw new Error(`GET /api/health failed: HTTP ${res.status}`);
-  }
-  return res.json();
-}
+// Health + LLM settings helpers live in api/settings.js; re-exported here so
+// existing `./api.js` imports keep working unchanged.
+export { getHealth, getLlmSettings, putLlmSettings } from "./api/settings.js";
 
 export async function getState() {
   const res = await fetch("/api/state");
@@ -591,28 +587,31 @@ export function buildDeleteArea(id) {
   return `delete-area ${id}`;
 }
 
-export function buildAddObjectAction(objectId, {
-  name,
-  range,
-  result,
-  passive,
-  effect,
-  handler,
-  handlerParams,
-  kind = "interact",
-  haltMovement,
-  deleteAfterTrigger,
-  triggerExceptions,
-  enabled,
-}) {
+export function buildAddObjectAction(
+  objectId,
+  {
+    name,
+    range,
+    result,
+    passive,
+    effect,
+    handler,
+    handlerParams,
+    kind = "interact",
+    haltMovement,
+    deleteAfterTrigger,
+    triggerExceptions,
+    enabled,
+  },
+) {
   const parts = [`edit-object ${objectId} add-action ${name} range ${range}`];
   if (kind && kind !== "interact") {
     parts.push(`kind ${kind}`);
   }
   if (enabled === false) {
-    parts.push(`enabled false`);
+    parts.push("enabled false");
   } else if (enabled === true) {
-    parts.push(`enabled true`);
+    parts.push("enabled true");
   }
   if (kind === "trigger") {
     if (haltMovement !== undefined) {
@@ -693,9 +692,7 @@ export async function exportSession() {
     throw new Error(`GET /api/session/export failed: HTTP ${res.status}`);
   }
   const blob = await res.blob();
-  const filename = parseContentDispositionFilename(
-    res.headers.get("Content-Disposition"),
-  );
+  const filename = parseContentDispositionFilename(res.headers.get("Content-Disposition"));
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -715,41 +712,6 @@ export async function importSession(snapshot) {
   if (!res.ok) {
     const detail = data.detail || data.message || `HTTP ${res.status}`;
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
-  }
-  return data;
-}
-
-export async function getLlmSettings() {
-  const res = await fetch("/api/settings/llm");
-  if (!res.ok) {
-    throw new Error(`GET /api/settings/llm failed: HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-export async function putLlmSettings({
-  provider,
-  api_key,
-  model,
-  max_input_tokens,
-  input_warning_percent,
-}) {
-  const body = {};
-  if (provider !== undefined) body.provider = provider;
-  if (api_key !== undefined) body.api_key = api_key;
-  if (model !== undefined) body.model = model;
-  if (max_input_tokens !== undefined) body.max_input_tokens = max_input_tokens;
-  if (input_warning_percent !== undefined) {
-    body.input_warning_percent = input_warning_percent;
-  }
-  const res = await fetch("/api/settings/llm", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
   }
   return data;
 }
@@ -816,12 +778,7 @@ export async function fetchEntityTemplates() {
   return data;
 }
 
-export async function postSaveEntityTemplate({
-  kind,
-  entityId,
-  filename,
-  includeMemory = false,
-}) {
+export async function postSaveEntityTemplate({ kind, entityId, filename, includeMemory = false }) {
   const res = await fetch("/api/entity-templates/save-from-entity", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -883,9 +840,7 @@ export async function downloadEntityTemplateFromEntity({
 }
 
 export async function downloadEntityTemplateFile(templateId) {
-  const res = await fetch(
-    `/api/entity-templates/${encodeURIComponent(templateId)}/download`,
-  );
+  const res = await fetch(`/api/entity-templates/${encodeURIComponent(templateId)}/download`);
   return downloadAttachmentResponse(res, `${templateId}.json`);
 }
 
@@ -907,17 +862,14 @@ export async function postSpawnEntityFromTemplate(template, { position, areaId =
 }
 
 export async function postSpawnEntityTemplate(templateId, { position, areaId = null }) {
-  const res = await fetch(
-    `/api/entity-templates/${encodeURIComponent(templateId)}/spawn`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        position,
-        area_id: areaId,
-      }),
-    },
-  );
+  const res = await fetch(`/api/entity-templates/${encodeURIComponent(templateId)}/spawn`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      position,
+      area_id: areaId,
+    }),
+  });
   const data = await res.json();
   if (!res.ok || !data.ok) {
     throw new Error(data.detail || data.message || `HTTP ${res.status}`);
@@ -926,10 +878,9 @@ export async function postSpawnEntityTemplate(templateId, { position, areaId = n
 }
 
 export async function deleteEntityTemplate(templateId) {
-  const res = await fetch(
-    `/api/entity-templates/${encodeURIComponent(templateId)}`,
-    { method: "DELETE" },
-  );
+  const res = await fetch(`/api/entity-templates/${encodeURIComponent(templateId)}`, {
+    method: "DELETE",
+  });
   const data = await res.json();
   if (!res.ok || !data.ok) {
     throw new Error(data.detail || data.message || `HTTP ${res.status}`);
@@ -1016,9 +967,7 @@ export async function downloadAreaTemplateFromArea({
 }
 
 export async function downloadAreaTemplateFile(templateId) {
-  const res = await fetch(
-    `/api/area-templates/${encodeURIComponent(templateId)}/download`,
-  );
+  const res = await fetch(`/api/area-templates/${encodeURIComponent(templateId)}/download`);
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.detail || data.message || `HTTP ${res.status}`);
@@ -1050,14 +999,11 @@ export async function postSpawnAreaFromTemplate(template, { areaId, mode = "new"
 }
 
 export async function postSpawnAreaTemplate(templateId, { areaId, mode = "new" }) {
-  const res = await fetch(
-    `/api/area-templates/${encodeURIComponent(templateId)}/spawn`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ area_id: areaId, mode }),
-    },
-  );
+  const res = await fetch(`/api/area-templates/${encodeURIComponent(templateId)}/spawn`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ area_id: areaId, mode }),
+  });
   const data = await res.json();
   if (!res.ok || !data.ok) {
     throw new Error(data.detail || data.message || `HTTP ${res.status}`);
@@ -1066,10 +1012,9 @@ export async function postSpawnAreaTemplate(templateId, { areaId, mode = "new" }
 }
 
 export async function deleteAreaTemplate(templateId) {
-  const res = await fetch(
-    `/api/area-templates/${encodeURIComponent(templateId)}`,
-    { method: "DELETE" },
-  );
+  const res = await fetch(`/api/area-templates/${encodeURIComponent(templateId)}`, {
+    method: "DELETE",
+  });
   const data = await res.json();
   if (!res.ok || !data.ok) {
     throw new Error(data.detail || data.message || `HTTP ${res.status}`);

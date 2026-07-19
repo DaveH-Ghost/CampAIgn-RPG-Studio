@@ -5,8 +5,8 @@ import {
   deleteLorebook,
   downloadLorebook,
   getLorebook,
-  getLorebooks,
   getLorebookScanConfig,
+  getLorebooks,
   loadDemoLorebook,
   putLorebook,
   putLorebookScanConfig,
@@ -46,11 +46,7 @@ let editingBookId = null;
 /** @type {object | null} */
 let editingBook = null;
 
-export function initLorebooks({
-  showToastFn,
-  onLorebooksChangedFn,
-  getActiveAgentIdFn,
-}) {
+export function initLorebooks({ showToastFn, onLorebooksChangedFn, getActiveAgentIdFn }) {
   showToast = showToastFn;
   onLorebooksChanged = onLorebooksChangedFn ?? onLorebooksChanged;
   getActiveAgentId = getActiveAgentIdFn ?? getActiveAgentId;

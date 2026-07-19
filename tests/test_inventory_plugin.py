@@ -3,16 +3,25 @@
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-
 from backend.app import create_app
 from backend.plugin_registry import clear_plugin_registry_for_tests
 from backend.plugin_upload import load_all_plugins
 from backend.session_store import reset_session_store
-from campaign_rpg_engine import ObjectAction, clear_event_listeners_for_tests, clear_turn_verbs_for_tests
+from campaign_rpg_engine import (
+    ObjectAction,
+    clear_event_listeners_for_tests,
+    clear_turn_verbs_for_tests,
+)
 from campaign_rpg_engine.prompt_slots.registry import clear_prompt_slots_for_tests
+from fastapi.testclient import TestClient
 from reference_handlers import register_reference_handlers
-from tests.world_helpers import add_object_action, create_agent, create_object, edit_agent, get_session
+from tests.world_helpers import (
+    add_object_action,
+    create_agent,
+    create_object,
+    edit_agent,
+    get_session,
+)
 
 _PLUGINS_DIR = Path(__file__).resolve().parent.parent / "plugins"
 
@@ -204,7 +213,6 @@ def test_inventory_prompt_slot_format(client):
     assert f"Travel Mug ({ball.id}) [drop] [give] [show]" in preview
     assert '"action": "verb"' in preview
     assert "verb = action name" in preview.lower() or "action name" in preview.lower()
-
 
     assert "give" in preview
     assert "show" in preview
@@ -558,7 +566,7 @@ def test_drink_via_turn_verb_after_pickup(client):
 
     slots = client.get("/api/prompt-slots").json()["slots"]
     inventory = next(item for item in slots if item["name"] == "inventory")
-    assert f"[drop] [drink]" in inventory["preview"] or "[drink]" in inventory["preview"]
+    assert "[drop] [drink]" in inventory["preview"] or "[drink]" in inventory["preview"]
 
     drink = client.post(
         "/api/turn/manual",
@@ -653,11 +661,7 @@ def test_spawn_from_template_places_object(client):
         ),
     )
     client.post("/api/active-agent", json={"name_or_id": agent.id})
-    before = {
-        obj.id
-        for area in get_session().areas.values()
-        for obj in area.get_objects()
-    }
+    before = {obj.id for area in get_session().areas.values() for obj in area.get_objects()}
     response = client.post(
         "/api/turn/manual",
         json={
@@ -671,11 +675,7 @@ def test_spawn_from_template_places_object(client):
     )
     assert response.status_code == 200
     assert response.json()["ok"] is True
-    after = {
-        obj.id: obj
-        for area in get_session().areas.values()
-        for obj in area.get_objects()
-    }
+    after = {obj.id: obj for area in get_session().areas.values() for obj in area.get_objects()}
     new_ids = set(after) - before
     assert new_ids
     spawned = after[next(iter(new_ids))]
@@ -708,11 +708,7 @@ def test_inventory_add_from_template_grants_item(client):
         ),
     )
     client.post("/api/active-agent", json={"name_or_id": agent.id})
-    before_ids = {
-        obj.id
-        for area in get_session().areas.values()
-        for obj in area.get_objects()
-    }
+    before_ids = {obj.id for area in get_session().areas.values() for obj in area.get_objects()}
     response = client.post(
         "/api/turn/manual",
         json={
@@ -726,11 +722,7 @@ def test_inventory_add_from_template_grants_item(client):
     )
     assert response.status_code == 200
     assert response.json()["ok"] is True
-    after_ids = {
-        obj.id
-        for area in get_session().areas.values()
-        for obj in area.get_objects()
-    }
+    after_ids = {obj.id for area in get_session().areas.values() for obj in area.get_objects()}
     assert after_ids == before_ids
     items = get_session().get_extension("inventory")["by_agent"][agent.id]
     assert len(items) == 1

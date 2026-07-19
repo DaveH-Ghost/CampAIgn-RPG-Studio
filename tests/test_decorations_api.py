@@ -1,10 +1,9 @@
 """Scene decoration API tests (V1.3.0)."""
 
 import pytest
-from fastapi.testclient import TestClient
-
 from backend.app import create_app
 from backend.session_store import reset_session_store
+from fastapi.testclient import TestClient
 from tests.world_helpers import get_session
 
 
@@ -48,7 +47,7 @@ def test_create_sprite_and_background(client):
     assert sprite.status_code == 200
     sprite_body = sprite.json()
     assert sprite_body["ok"] is True
-    decor_id = sprite_body["decoration"]["id"]
+    sprite_body["decoration"]["id"]
 
     state = client.get("/api/state").json()
     room = state["areas"][state["active_area_id"]]

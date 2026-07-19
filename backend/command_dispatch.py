@@ -103,9 +103,7 @@ def dispatch_command(session: Session, line: str) -> CommandResult:
             marker = " *" if area_id == session.active_area_id else ""
             agent_count = len(session.areas[area_id].agents)
             obj_count = len(session.areas[area_id].get_objects())
-            lines.append(
-                f"  {area_id}{marker} — {agent_count} agent(s), {obj_count} object(s)"
-            )
+            lines.append(f"  {area_id}{marker} — {agent_count} agent(s), {obj_count} object(s)")
         return CommandResult(ok=True, message="\n".join(lines))
     if cmd == "create_area":
         result = create_area_from_args(session, arg)

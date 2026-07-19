@@ -19,30 +19,34 @@ def normalize_state_snapshot(data: dict[str, Any]) -> dict[str, Any]:
 
     grid = data.get("grid")
     if not grid:
-        return _ensure_area_arrays({
-            **data,
-            "active_area_id": data.get("active_area_id") or DEFAULT_AREA_ID,
-            "areas": {},
-            "agents": data.get("agents") or [],
-        })
+        return _ensure_area_arrays(
+            {
+                **data,
+                "active_area_id": data.get("active_area_id") or DEFAULT_AREA_ID,
+                "areas": {},
+                "agents": data.get("agents") or [],
+            }
+        )
 
     area_id = data.get("active_area_id") or DEFAULT_AREA_ID
-    return _ensure_area_arrays({
-        **data,
-        "active_area_id": area_id,
-        "areas": {
-            area_id: {
-                "grid": grid,
-                "area_description": data.get("area_description", ""),
-                "objects": data.get("objects") or [],
-                "recent_events": data.get("recent_events") or [],
+    return _ensure_area_arrays(
+        {
+            **data,
+            "active_area_id": area_id,
+            "areas": {
+                area_id: {
+                    "grid": grid,
+                    "area_description": data.get("area_description", ""),
+                    "objects": data.get("objects") or [],
+                    "recent_events": data.get("recent_events") or [],
+                },
             },
-        },
-        "agents": [
-            {**agent, "area_id": agent.get("area_id") or area_id}
-            for agent in (data.get("agents") or [])
-        ],
-    })
+            "agents": [
+                {**agent, "area_id": agent.get("area_id") or area_id}
+                for agent in (data.get("agents") or [])
+            ],
+        }
+    )
 
 
 def _ensure_area_arrays(data: dict[str, Any]) -> dict[str, Any]:

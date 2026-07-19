@@ -16,6 +16,7 @@ from campaign_rpg_engine.prompt_slots.registry import (
     list_registered_prompt_slots,
     render_registered_prompt_slot,
 )
+
 from backend.plugin_registry import is_prompt_slot_visible_in_catalog
 
 

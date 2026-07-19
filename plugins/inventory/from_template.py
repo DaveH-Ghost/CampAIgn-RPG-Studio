@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 from campaign_rpg_engine import Object
 from campaign_rpg_engine.area_edit import generate_object_id
 from campaign_rpg_engine.session_persistence import deserialize_object_action
 from campaign_rpg_engine.world_edit_api import collect_object_ids_in_session
-
-import sys
 
 state = sys.modules["studio_plugin_inventory.state"]
 serialization = sys.modules["studio_plugin_inventory.serialization"]
@@ -62,9 +61,7 @@ def item_from_object_template(session, agent, template: dict[str, Any]) -> dict[
         width=int(template.get("width", 1)),
         height=int(template.get("height", 1)),
         blocks_movement=bool(template.get("blocks_movement", True)),
-        movement_exceptions=[
-            str(x) for x in list(template.get("movement_exceptions", []))
-        ],
+        movement_exceptions=[str(x) for x in list(template.get("movement_exceptions", []))],
         hidden=bool(template.get("hidden", False)),
         private_data=str(template.get("private_data", "")),
         actions=actions,

@@ -3,14 +3,13 @@
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-
 from backend.app import create_app
 from backend.plugin_registry import clear_plugin_registry_for_tests
 from backend.plugin_upload import load_all_plugins
 from backend.session_store import reset_session_store
 from campaign_rpg_engine import clear_event_listeners_for_tests, clear_turn_verbs_for_tests
 from campaign_rpg_engine.prompt_slots.registry import clear_prompt_slots_for_tests
+from fastapi.testclient import TestClient
 from reference_handlers import register_reference_handlers
 
 _PLUGINS = Path(__file__).resolve().parent.parent / "plugins"

@@ -279,7 +279,9 @@ async function openActionForm(existingName, existingAction) {
     {
       name: "result",
       label: "Result (agent sees)",
-      value: existingAction?.result ?? (actionKind === "trigger" ? "(trigger)" : "You interact with it."),
+      value:
+        existingAction?.result ??
+        (actionKind === "trigger" ? "(trigger)" : "You interact with it."),
       type: "textarea",
       required: true,
       templateHelp: true,
@@ -290,9 +292,7 @@ async function openActionForm(existingName, existingAction) {
       label: "Passive / area event text",
       value:
         existingAction?.passive_result ??
-        (actionKind === "trigger"
-          ? "{actor} triggers it."
-          : "{actor} interacts with it."),
+        (actionKind === "trigger" ? "{actor} triggers it." : "{actor} interacts with it."),
       type: "textarea",
       required: true,
       templateHelp: true,
@@ -424,9 +424,7 @@ async function openActionForm(existingName, existingAction) {
     const isTrigger = kindSelect.value === "trigger";
     triggerFields.classList.toggle("hidden", !isTrigger);
     for (const wrap of modalForm.querySelectorAll(".modal-field-conditional")) {
-      const allowed = (wrap.dataset.showWhenValues || "")
-        .split(",")
-        .map((v) => v.trim());
+      const allowed = (wrap.dataset.showWhenValues || "").split(",").map((v) => v.trim());
       const current = kindSelect.value;
       wrap.hidden = !allowed.includes(String(current));
     }

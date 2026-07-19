@@ -226,9 +226,7 @@ def spawn_area_from_template_data(
         "ok": True,
         "message": result.message,
         "area_id": result.area_id,
-        "snapshot": normalize_state_snapshot(
-            session.snapshot(include_private=True)
-        ),
+        "snapshot": normalize_state_snapshot(session.snapshot(include_private=True)),
     }
 
 

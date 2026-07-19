@@ -207,13 +207,9 @@ def spawn_entity_from_template_data(
 
     kind = template.get("kind")
     if kind == "object":
-        result = spawn_object_from_template(
-            session, template, pos, area_id=resolved_area
-        )
+        result = spawn_object_from_template(session, template, pos, area_id=resolved_area)
     elif kind == "agent":
-        result = spawn_agent_from_template(
-            session, template, pos, area_id=resolved_area
-        )
+        result = spawn_agent_from_template(session, template, pos, area_id=resolved_area)
     else:
         return {"ok": False, "message": "Template kind must be 'object' or 'agent'."}
 
@@ -224,11 +220,13 @@ def spawn_entity_from_template_data(
         "message": result.message,
         "kind": kind,
         "entity_id": (
-            result.object.id if result.object is not None else result.agent.id if result.agent else ""
+            result.object.id
+            if result.object is not None
+            else result.agent.id
+            if result.agent
+            else ""
         ),
-        "snapshot": normalize_state_snapshot(
-            session.snapshot(include_private=True)
-        ),
+        "snapshot": normalize_state_snapshot(session.snapshot(include_private=True)),
     }
 
 

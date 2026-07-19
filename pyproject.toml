@@ -1,12 +1,12 @@
 [project]
 name = "campaign-rpg-studio"
-version = "1.5.2"
-description = "Reference GM web app for CampAIgn-RPG-Engine — demonstrates the campaign-rpg-engine Python library"
+version = "1.6.0"
+description = "GM host for CampAIgn-RPG-Engine — world authoring and session authority"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
-    "campaign-rpg-engine>=1.5.2",
+    "campaign-rpg-engine>=1.6.0",
     "fastapi>=0.115.0",
     "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.32.0",
@@ -16,6 +16,7 @@ dependencies = [
 dev = [
     "pytest>=9.0.3",
     "httpx>=0.28.0",
+    "ruff>=0.15.22",
 ]
 
 [project.scripts]
@@ -40,3 +41,16 @@ package = true
 # Remove this block and re-lock from PyPI to verify Studio against a published wheel.
 [tool.uv.sources]
 campaign-rpg-engine = { path = "../CampAIgn-RPG-Engine", editable = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["backend", "tests", "plugins", "reference_handlers"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501", "SIM102", "SIM105", "SIM108", "SIM110", "SIM115", "SIM401", "B017", "B905", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]
+"backend/__init__.py" = ["F401"]

@@ -30,15 +30,11 @@ def deserialize_action(data: dict[str, Any]) -> ObjectAction:
         result=str(data.get("result", "")),
         passive_result=str(data.get("passive_result", "")),
         handler_id=data.get("handler_id"),
-        handler_params={
-            str(k): str(v) for k, v in dict(data.get("handler_params", {})).items()
-        },
+        handler_params={str(k): str(v) for k, v in dict(data.get("handler_params", {})).items()},
         kind=data.get("kind", "interact"),
         halt_movement=bool(data.get("halt_movement", False)),
         delete_after_trigger=bool(data.get("delete_after_trigger", True)),
-        trigger_exceptions=[
-            str(x) for x in list(data.get("trigger_exceptions", []))
-        ],
+        trigger_exceptions=[str(x) for x in list(data.get("trigger_exceptions", []))],
         enabled=bool(data.get("enabled", True)),
     )
 
@@ -66,7 +62,5 @@ def serialize_object(obj) -> dict[str, Any]:
         "movement_exceptions": list(obj.movement_exceptions),
         "hidden": obj.hidden,
         "private_data": obj.private_data,
-        "actions": {
-            name: serialize_action(action) for name, action in obj.actions.items()
-        },
+        "actions": {name: serialize_action(action) for name, action in obj.actions.items()},
     }

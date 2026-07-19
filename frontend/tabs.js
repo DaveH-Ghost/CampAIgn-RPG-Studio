@@ -2,7 +2,7 @@
 
 const TAB_IDS = ["main", "lorebooks", "templates", "plugins"];
 
-let onTabShow = {
+const onTabShow = {
   lorebooks: null,
   templates: null,
   plugins: null,
@@ -18,9 +18,7 @@ export function initAppTabs() {
   const panels = Object.fromEntries(
     TAB_IDS.map((id) => [id, document.getElementById(`${id}-tab-panel`)]),
   );
-  const tabs = Object.fromEntries(
-    TAB_IDS.map((id) => [id, document.getElementById(`tab-${id}`)]),
-  );
+  const tabs = Object.fromEntries(TAB_IDS.map((id) => [id, document.getElementById(`tab-${id}`)]));
   if (!tabs.main || !panels.main) return;
 
   function showTab(which) {

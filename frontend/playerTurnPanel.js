@@ -3,11 +3,7 @@
  * Verb/target filtering uses GET /api/player-turn-assist (1.4.2).
  */
 
-import {
-  buildCompoundTurnPayload,
-  fetchPlayerTurnAssist,
-  fetchTurnVerbs,
-} from "./api.js";
+import { buildCompoundTurnPayload, fetchPlayerTurnAssist, fetchTurnVerbs } from "./api.js";
 import { asArray, normalizeSnapshot } from "./snapshot.js";
 
 /** @type {{ id: string, description?: string }[]} */
@@ -36,9 +32,7 @@ export function playerTurnFieldDefs(coordinateMode = "full") {
     },
     {
       name: "move",
-      label: relative
-        ? "Move (obj_*, agent_*, or blank)"
-        : "Move (x,y, obj_*, agent_*, or blank)",
+      label: relative ? "Move (obj_*, agent_*, or blank)" : "Move (x,y, obj_*, agent_*, or blank)",
       value: "",
       placeholder: relative ? "obj_ball_01" : "4,4",
     },
@@ -122,8 +116,9 @@ function readPanelForm(panelEl) {
 
 function validatePlayerTurnData(data) {
   const action = data.action || "none";
-  if (action === "interact"
-    && (!String(data.target ?? "").trim() || !String(data.verb ?? "").trim())
+  if (
+    action === "interact" &&
+    (!String(data.target ?? "").trim() || !String(data.verb ?? "").trim())
   ) {
     return "Interact turns require target and verb.";
   }
@@ -153,9 +148,7 @@ function populateTurnVerbSelect(panelEl) {
   for (const verb of verbs) {
     const option = document.createElement("option");
     option.value = verb.id;
-    option.textContent = verb.description
-      ? `${verb.id} — ${verb.description}`
-      : verb.id;
+    option.textContent = verb.description ? `${verb.id} — ${verb.description}` : verb.id;
     select.appendChild(option);
   }
   if (previous && [...select.options].some((opt) => opt.value === previous)) {
@@ -215,9 +208,7 @@ function syncActionFieldVisibility(panelEl) {
     verbLabel.textContent = isVerbAction ? "Turn verb" : "Verb";
   }
   if (targetLabel) {
-    targetLabel.textContent = isVerbAction
-      ? "Target (item id, optional)"
-      : "Target";
+    targetLabel.textContent = isVerbAction ? "Target (item id, optional)" : "Target";
   }
 
   if (isVerbAction) {

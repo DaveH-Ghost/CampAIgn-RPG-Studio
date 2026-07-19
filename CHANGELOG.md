@@ -4,6 +4,23 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.6.0
+
+**Requires:** `campaign-rpg-engine>=1.6.0`
+
+### Positioning
+
+- Studio is the **GM host** (world/session authority), not a “reference app.” Player clients attaching later are planned, not implemented in 1.6.0.
+
+### Hardening
+
+- **Ruff** + GitHub Actions CI; **Biome** for `frontend/*.js`.
+- FastAPI routes split into domain routers under `backend/api/`; thin `app.py`.
+- Frontend: health/LLM settings carved to `frontend/api/settings.js`.
+- `session_store` documented as single-session process singleton.
+
+---
+
 ## 1.5.2
 
 **Requires:** `campaign-rpg-engine>=1.5.2`

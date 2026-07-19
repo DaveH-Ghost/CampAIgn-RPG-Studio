@@ -8,8 +8,8 @@ from typing import Any
 
 from campaign_rpg_engine import (
     Lorebook,
-    LoreEntry,
     LorebookScanConfig,
+    LoreEntry,
     Session,
     build_passive_vision,
     create_empty_lorebook,
@@ -30,9 +30,7 @@ def _resolve_agent(session: Session, agent_id: str | None):
     return session.get_active_agent()
 
 
-def get_lorebook_scan_config(
-    session: Session, *, agent_id: str | None = None
-) -> dict[str, Any]:
+def get_lorebook_scan_config(session: Session, *, agent_id: str | None = None) -> dict[str, Any]:
     try:
         agent = _resolve_agent(session, agent_id)
     except ValueError as exc:

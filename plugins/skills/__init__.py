@@ -132,7 +132,7 @@ def _build_panel(session):
             "type": "text",
             "content": (
                 "private_data example (skills are name → level integers):\n"
-                '{\n'
+                "{\n"
                 '  "skills_plugin": {\n'
                 '    "stats": { "CON": 10, "STR": 10, "DEX": 14, '
                 '"WIS": 10, "INT": 10, "CHM": 10 },\n'

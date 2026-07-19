@@ -12,9 +12,7 @@ def decoration_mutation_response(
 ) -> dict[str, object]:
     payload: dict[str, object] = {"ok": result.ok, "message": result.message}
     if result.ok:
-        payload["snapshot"] = normalize_state_snapshot(
-            session.snapshot(include_private=True)
-        )
+        payload["snapshot"] = normalize_state_snapshot(session.snapshot(include_private=True))
         if result.decoration is not None:
             from campaign_rpg_engine.snapshot import serialize_decoration
 

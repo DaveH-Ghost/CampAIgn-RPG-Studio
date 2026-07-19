@@ -90,10 +90,7 @@ export function renderParamFields(host, fields, ctx) {
     } else if (type === "area_id") {
       input = document.createElement("select");
       const allowEmpty = field.optional || !field.required;
-      const current =
-        params[paramName] ??
-        field.default ??
-        (allowEmpty ? "" : areas[0] ?? "");
+      const current = params[paramName] ?? field.default ?? (allowEmpty ? "" : (areas[0] ?? ""));
       if (allowEmpty) {
         const empty = document.createElement("option");
         empty.value = "";
@@ -113,9 +110,7 @@ export function renderParamFields(host, fields, ctx) {
     } else if (type === "template_id") {
       input = document.createElement("select");
       const kindFilter = field.kind || "";
-      const choices = (templates || []).filter(
-        (t) => !kindFilter || t.kind === kindFilter,
-      );
+      const choices = (templates || []).filter((t) => !kindFilter || t.kind === kindFilter);
       const current = params[paramName] ?? field.default ?? choices[0]?.id ?? "";
       if (!choices.length) {
         const empty = document.createElement("option");
@@ -128,9 +123,7 @@ export function renderParamFields(host, fields, ctx) {
         o.value = tmpl.id;
         // Show display name first; id is the library stem (json filename without .json).
         const filename = tmpl.filename || `${tmpl.id}.json`;
-        o.textContent = tmpl.name
-          ? `${tmpl.name} (${filename})`
-          : filename;
+        o.textContent = tmpl.name ? `${tmpl.name} (${filename})` : filename;
         if (tmpl.id === current) o.selected = true;
         input.appendChild(o);
       }

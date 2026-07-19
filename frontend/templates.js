@@ -10,8 +10,8 @@ import {
   importAreaTemplate,
   importEntityTemplate,
 } from "./api.js";
-import { openLoadAreaTemplateModal, openSaveAreaTemplateModal } from "./ui.js";
 import { registerTabShowHandler } from "./tabs.js";
+import { openLoadAreaTemplateModal, openSaveAreaTemplateModal } from "./ui.js";
 
 let showToast = () => {};
 
@@ -90,11 +90,13 @@ async function refreshEntityList() {
     listEl.classList.remove("hidden");
 
     for (const item of templates) {
-      listEl.appendChild(renderTemplateRow(item, {
-        onDownload: () => handleEntityDownload(item.id, item.filename),
-        onRemove: () => handleEntityRemove(item.id, item.name),
-        metaText: `${escapeHtml(item.filename)}${item.include_memory ? " · includes memory" : ""}`,
-      }));
+      listEl.appendChild(
+        renderTemplateRow(item, {
+          onDownload: () => handleEntityDownload(item.id, item.filename),
+          onRemove: () => handleEntityRemove(item.id, item.name),
+          metaText: `${escapeHtml(item.filename)}${item.include_memory ? " · includes memory" : ""}`,
+        }),
+      );
     }
   } catch (err) {
     listEl.innerHTML = "";
@@ -125,9 +127,7 @@ async function refreshAreaList() {
 
     for (const item of templates) {
       const size =
-        item.grid_width && item.grid_height
-          ? `${item.grid_width}×${item.grid_height}`
-          : "area";
+        item.grid_width && item.grid_height ? `${item.grid_width}×${item.grid_height}` : "area";
       const counts = `${item.object_count ?? 0} obj · ${item.decoration_count ?? 0} decor`;
       areaListEl.appendChild(
         renderTemplateRow(item, {

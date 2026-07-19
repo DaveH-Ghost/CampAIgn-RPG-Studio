@@ -3,11 +3,11 @@
  */
 
 import {
+  getLorebooks,
   getPrompt,
   getPromptBlockCatalog,
   getPromptBlocks,
   getPromptSlots,
-  getLorebooks,
   previewPromptBlocks,
   putPromptBlocks,
   resetPromptBlocks,
@@ -192,9 +192,7 @@ function syncAddBlockForm() {
   for (const item of options) {
     const option = document.createElement("option");
     option.value = item.name;
-    option.textContent = item.description
-      ? `${item.name} — ${item.description}`
-      : item.name;
+    option.textContent = item.description ? `${item.name} — ${item.description}` : item.name;
     addVariantSelect.appendChild(option);
   }
   if (isLorebookSlot) {
@@ -346,9 +344,7 @@ function updateStatus() {
     statusEl.textContent = "Unsaved changes — click Save layout.";
     return;
   }
-  statusEl.textContent = usesDefault
-    ? "Using profile default layout."
-    : "Custom layout saved.";
+  statusEl.textContent = usesDefault ? "Using profile default layout." : "Custom layout saved.";
 }
 
 function renderBlockList() {

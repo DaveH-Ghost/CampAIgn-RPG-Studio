@@ -1,5 +1,12 @@
 """
 In-memory Session holder for the campaign-rpg-studio demo (single-player, one process).
+
+Single-session GM host: this module owns exactly one engine ``Session`` for the
+lifetime of the server process, exposed as a lazy process singleton via
+``get_session_store()``. There is no per-request or per-user isolation today --
+every request operates on the same shared session. Multi-session support (keyed
+stores, per-session lifecycles) is a deliberate future step and intentionally not
+implemented here.
 """
 
 from __future__ import annotations
@@ -119,9 +126,7 @@ class SessionStore:
         return {
             "ok": True,
             "message": f"Undid last turn (restored to session turn {turn}).",
-            "snapshot": normalize_state_snapshot(
-                self._session.snapshot(include_private=True)
-            ),
+            "snapshot": normalize_state_snapshot(self._session.snapshot(include_private=True)),
             "can_undo": self.can_undo,
             "undo_remaining": self.undo_remaining,
         }

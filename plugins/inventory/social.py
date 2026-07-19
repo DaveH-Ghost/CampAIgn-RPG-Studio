@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 from campaign_rpg_engine.action_outcome import ActionOutcome
 from campaign_rpg_engine.grid import chebyshev_distance
-
-import sys
 
 state = sys.modules["studio_plugin_inventory.state"]
 
@@ -22,10 +21,7 @@ def parse_agent_item_target(raw: str) -> tuple[str, str] | str:
     """
     cleaned = (raw or "").strip()
     if not cleaned:
-        return (
-            "ERR:INVALID_TARGET: give/show require target "
-            "'<agent_id> <item_id>'"
-        )
+        return "ERR:INVALID_TARGET: give/show require target '<agent_id> <item_id>'"
     parts = cleaned.split()
     if len(parts) != 2:
         return (
@@ -34,15 +30,9 @@ def parse_agent_item_target(raw: str) -> tuple[str, str] | str:
         )
     agent_id, item_id = parts[0], parts[1]
     if not agent_id.startswith("agent_"):
-        return (
-            f"ERR:INVALID_TARGET: first token must be an agent id (agent_*), "
-            f"got {agent_id!r}"
-        )
+        return f"ERR:INVALID_TARGET: first token must be an agent id (agent_*), got {agent_id!r}"
     if not item_id.startswith("obj_"):
-        return (
-            f"ERR:INVALID_TARGET: second token must be an item id (obj_*), "
-            f"got {item_id!r}"
-        )
+        return f"ERR:INVALID_TARGET: second token must be an item id (obj_*), got {item_id!r}"
     return agent_id, item_id
 
 
@@ -66,7 +56,9 @@ def _agents_share_area(session, agent_a, agent_b) -> bool:
     return area_a is not None and area_a is area_b
 
 
-def _resolve_agent_item_target(session, actor, raw_target: str) -> tuple[Any, dict[str, Any], int] | str:
+def _resolve_agent_item_target(
+    session, actor, raw_target: str
+) -> tuple[Any, dict[str, Any], int] | str:
     parsed = parse_agent_item_target(raw_target)
     if isinstance(parsed, str):
         return parsed
@@ -82,10 +74,7 @@ def _resolve_agent_item_target(session, actor, raw_target: str) -> tuple[Any, di
 
     distance = chebyshev_distance(actor.position, recipient.position)
     if distance > SOCIAL_RANGE:
-        return (
-            f"{recipient.name} is too far away "
-            f"(range {SOCIAL_RANGE}, distance {distance})."
-        )
+        return f"{recipient.name} is too far away (range {SOCIAL_RANGE}, distance {distance})."
 
     items, index = state.find_item(session, actor.id, item_id)
     if index is None:

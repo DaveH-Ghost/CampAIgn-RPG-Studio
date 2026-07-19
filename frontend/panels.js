@@ -12,12 +12,9 @@ let lastResponseTokens = null;
 function formatTokenMeta(tokens) {
   if (!tokens) return "";
   const lines = [];
-  const input =
-    tokens.prompt != null ? Number(tokens.prompt).toLocaleString() : "—";
-  const output =
-    tokens.completion != null ? Number(tokens.completion).toLocaleString() : "—";
-  const total =
-    tokens.total != null ? Number(tokens.total).toLocaleString() : "—";
+  const input = tokens.prompt != null ? Number(tokens.prompt).toLocaleString() : "—";
+  const output = tokens.completion != null ? Number(tokens.completion).toLocaleString() : "—";
+  const total = tokens.total != null ? Number(tokens.total).toLocaleString() : "—";
   lines.push(`Input (API): ${input}`);
   lines.push(`Output (API): ${output}`);
   lines.push(`Total (API): ${total}`);

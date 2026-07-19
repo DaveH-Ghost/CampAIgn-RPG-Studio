@@ -1,10 +1,10 @@
 /** Plugins tab — catalog, enable/disable, generic panel renderer. */
 
 import {
-  fetchPlugins,
-  enablePlugin,
   disablePlugin,
+  enablePlugin,
   fetchPluginPanel,
+  fetchPlugins,
   postPluginAction,
   uploadPlugin,
 } from "./api.js";
