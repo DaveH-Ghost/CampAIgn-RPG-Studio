@@ -17,6 +17,12 @@ import { hasAppearance, resolveAppearanceUrl } from "./appearance.js";
 import { initCoordinateMode, syncCoordinateModeFromSnapshot } from "./coordinateMode.js";
 import { initDecorations, renderSceneDecorations } from "./decorations.js";
 import { CELL_SIZE, initGridViewport, maybeCenterGrid } from "./gridViewport.js";
+import {
+  initInitiativeBar,
+  initiativeBlocksRunTurn,
+  renderInitiativeBar,
+  syncInitiativeSnapshot,
+} from "./initiativeBar.js";
 import { initLorebooks, refreshLorebookList, refreshLorebookScanPanel } from "./lorebooks.js";
 import { clearHandlerChoicesCache } from "./objectActions.js";
 import {
@@ -159,10 +165,25 @@ function findAgentById(agentId) {
 
 function setTurnBusy(busy) {
   turnInFlight = busy;
-  if (runTurnBtn) runTurnBtn.disabled = busy;
   if (undoTurnBtn && busy) undoTurnBtn.disabled = true;
   if (undoTurnBtn && !busy) syncUndoTurnButton();
   setPlayerTurnPanelBusy(busy);
+  if (busy) {
+    if (runTurnBtn) runTurnBtn.disabled = true;
+    return;
+  }
+  syncRunTurnInitiativeGate();
+}
+
+function syncRunTurnInitiativeGate() {
+  if (!runTurnBtn || turnInFlight) return;
+  const gate = initiativeBlocksRunTurn(lastSnapshot);
+  if (lastSnapshot?.initiative?.enabled) {
+    runTurnBtn.disabled = gate.blocked;
+    if (gate.blocked && gate.reason) {
+      setRunTurnTokenHint(gate.reason);
+    }
+  }
 }
 
 function syncUndoTurnButton(status = null) {
@@ -188,6 +209,24 @@ function applyRunTurnBudgetStyle({ over_warning, over_limit } = {}) {
 
 async function refreshRunTurnTokenHint() {
   if (turnInFlight || !runTurnBtn) return;
+  const initGate = initiativeBlocksRunTurn(lastSnapshot);
+  if (lastSnapshot?.initiative?.enabled) {
+    syncRunTurnInitiativeGate();
+    if (initGate.blocked && initGate.reason) return;
+    const current = initGate.currentAgent;
+    if (current) {
+      setRunTurnTokenHint(`Initiative: ${current.name} — press Run turn ▶ for LLM (manual only).`);
+    }
+    const seq = ++promptTokenHintSeq;
+    try {
+      const data = await getPrompt(current?.id);
+      if (seq !== promptTokenHintSeq) return;
+      applyRunTurnBudgetStyle(data);
+    } catch {
+      applyRunTurnBudgetStyle({ over_warning: false, over_limit: false });
+    }
+    return;
+  }
   const active = activeAgentFromSnapshot();
   if (active?.is_player) {
     setRunTurnTokenHint("Player agent — use the turn form below (no LLM)");
@@ -431,6 +470,9 @@ function renderState(data) {
   if (activeAgentSelect) renderActiveAgentSelect(activeAgentSelect, lastSnapshot);
   snapshotEl.textContent = JSON.stringify(lastSnapshot, null, 2);
   syncPlayerTurnPanel(lastSnapshot);
+  syncInitiativeSnapshot(lastSnapshot);
+  renderInitiativeBar(lastSnapshot);
+  syncRunTurnInitiativeGate();
   void refreshRunTurnTokenHint();
 }
 
@@ -494,8 +536,15 @@ function startSessionStream() {
 
 function updateStatusLine(data) {
   const snap = normalizeSnapshot(data);
-  const active = asArray(snap.agents).find((a) => a.id === snap.active_agent_id);
+  const init = snap.initiative;
   const area = snap.active_area_id ?? "area";
+  if (init?.enabled) {
+    const current = asArray(init.entries).find((e) => e.is_current);
+    const name = current?.agent_name || init.current_agent_id || "—";
+    statusEl.textContent = `Round ${init.round ?? 1} · Now: ${name} · ${area}`;
+    return;
+  }
+  const active = asArray(snap.agents).find((a) => a.id === snap.active_agent_id);
   const agentName = active ? active.name : (snap.active_agent_id ?? "—");
   statusEl.textContent = `Turn ${snap.session_turn ?? "?"} — ${area} — ${agentName}`;
 }
@@ -645,6 +694,21 @@ async function runAgentTurn(agentId, compoundTurn = null) {
 
 async function runTurn() {
   if (turnInFlight) return;
+  const init = lastSnapshot?.initiative;
+  if (init?.enabled) {
+    const gate = initiativeBlocksRunTurn(lastSnapshot);
+    if (gate.blocked) {
+      showToast(gate.reason || "Not this agent's turn.", true);
+      return;
+    }
+    const current = gate.currentAgent;
+    if (!current) {
+      showToast("No current initiative actor.", true);
+      return;
+    }
+    await runLlmTurnForAgent(current.id, { agentName: current.name });
+    return;
+  }
   const active = activeAgentFromSnapshot();
   if (!active) {
     showToast("No active agent.", true);
@@ -847,7 +911,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.7.0";
+    const studioVersion = health.version || "1.7.1";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`
@@ -858,6 +922,12 @@ async function refreshBanner() {
 }
 
 renderTurnLog(turnLogEl, turnLogEmptyEl);
+initInitiativeBar({
+  onSnapshotUpdate: (snapshot) => {
+    renderState(snapshot);
+    updateStatusLine(snapshot);
+  },
+});
 void refreshBanner();
 fetchState();
 startSessionStream();

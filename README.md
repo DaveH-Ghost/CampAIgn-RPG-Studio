@@ -2,7 +2,7 @@
 
 
 
-**CampAIgn RPG Studio 1.7.0** — GM host for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.6.1`). Owns the world/session for authoring and play; players join via `/play/generic/` with a short-lived seat link.
+**CampAIgn RPG Studio 1.7.1** — GM host for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.7.1`). Owns the world/session for authoring and play; players join via `/play/generic/` with a short-lived seat link.
 
 
 
@@ -39,7 +39,13 @@ Open [http://127.0.0.1:8765](http://127.0.0.1:8765). Right-click the grid to edi
 1. Mark an agent as a **player** (create/edit agent).
 2. Right-click that agent → **Copy player join link**.
 3. Open the link (or [http://127.0.0.1:8765/play/generic/](http://127.0.0.1:8765/play/generic/) after pasting a `?seat=` token).
-4. Right-click the grid / entities / inventory to **queue** a compound turn; edit Say/Emote under the map, then **Send**.
+4. Right-click the grid / entities / inventory to **queue** a compound turn; edit Say/Emote under the map, then **Send** (when initiative is on, Send is only active on your slot).
+
+
+
+### Initiative (1.7.1)
+
+On the GM **Main** tab, use **Configure…** on the initiative bar to enable turn order, add any session agents, and reorder. **Run turn ▶** runs the LLM only for the current NPC; players act from `/play/generic` when it is their turn.
 
 
 
@@ -89,7 +95,7 @@ github/
   CampAIgn-RPG-Studio/
 ```
 
-`pyproject.toml` pins **`campaign-rpg-engine>=1.6.1`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
+`pyproject.toml` pins **`campaign-rpg-engine>=1.7.1`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
 
 ```powershell
 cd CampAIgn-RPG-Studio

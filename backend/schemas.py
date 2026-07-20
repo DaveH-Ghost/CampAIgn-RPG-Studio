@@ -176,3 +176,13 @@ class CreateSeatRequest(BaseModel):
 
 class PlayerTurnRequest(BaseModel):
     compound_turn: dict[str, object]
+
+
+class InitiativePutRequest(BaseModel):
+    enabled: bool | None = None
+    order: list[str] | None = None
+    index: int | None = Field(default=None, ge=0)
+
+
+class InitiativeOrderRequest(BaseModel):
+    order: list[str]

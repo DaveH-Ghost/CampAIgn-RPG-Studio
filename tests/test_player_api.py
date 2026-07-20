@@ -6,7 +6,7 @@ import pytest
 from backend.app import create_app
 from backend.session_store import reset_session_store
 from fastapi.testclient import TestClient
-from tests.world_helpers import create_agent, create_object, edit_object
+from tests.world_helpers import add_object_action, create_agent, create_object, edit_object
 
 
 @pytest.fixture(autouse=True)
@@ -169,6 +169,62 @@ def test_player_history_groups_compound_turn(client):
     assert "looked" in text.lower() or "ball" in text.lower()
 
 
+def test_player_history_groups_witnessed_compound_turn(client):
+    """NPC say+interact should appear as one witness card, not two."""
+    from campaign_rpg_engine import AgentCompoundTurn, ObjectAction
+    from tests.world_helpers import get_session
+
+    player_id = _player(client)
+    npc = create_agent(
+        name="Scout",
+        position=(2, 2),
+        personality="curious",
+        is_player=False,
+    )
+    ball = create_object(
+        name="Ball",
+        position=(2, 2),
+        passive_description="a ceramic ball",
+    )
+    add_object_action(
+        ball.id,
+        ObjectAction(
+            name="kick",
+            range=1,
+            result="You kick the {object}.",
+            passive_result="{actor} kicks the {object}.",
+        ),
+    )
+    token = client.post("/api/seats", json={"agent_id": player_id}).json()["token"]
+    result = get_session().run_compound_turn(
+        AgentCompoundTurn(
+            reasoning="curious",
+            action="interact",
+            target=ball.id,
+            verb="kick",
+            say="A ceramic ball... curious.",
+        ),
+        agent_id=npc.id,
+    )
+    assert result.ok, result.message
+    view = client.get(
+        "/api/player/view",
+        headers={"Authorization": f"Bearer {token}"},
+    ).json()
+    witnessed = [
+        e
+        for e in view.get("history") or []
+        if e.get("source") == "witness" and e.get("actor_id") == npc.id
+    ]
+    assert len(witnessed) == 1, witnessed
+    entry = witnessed[0]
+    assert entry.get("kind") == "compound"
+    text = entry["text"].lower()
+    assert "\n" in entry["text"]
+    assert "curious" in text or "says" in text or "said" in text
+    assert "kick" in text
+
+
 def test_session_events_notify_subscribers():
     from backend.session_events import (
         publish_session_changed,
@@ -195,3 +251,32 @@ def test_session_stream_route_registered(client):
     paths = set(client.app.openapi()["paths"])
     assert "/api/session/stream" in paths
     assert "/api/player/stream" in paths
+
+
+def test_player_view_can_act_when_initiative_current(client):
+    hero = _player(client)
+    npc = create_agent(
+        name="Guard",
+        position=(2, 2),
+        personality="stern",
+        is_player=False,
+    )
+    client.put(
+        "/api/initiative",
+        json={"enabled": True, "order": [npc.id, hero]},
+    )
+    token = client.post("/api/seats", json={"agent_id": hero}).json()["token"]
+    view = client.get(
+        "/api/player/view",
+        headers={"Authorization": f"Bearer {token}"},
+    ).json()
+    assert view.get("can_act") is False
+    assert view.get("wait_reason")
+    assert view.get("initiative_current", {}).get("agent_id") == npc.id
+
+    client.post("/api/initiative/next")
+    view2 = client.get(
+        "/api/player/view",
+        headers={"Authorization": f"Bearer {token}"},
+    ).json()
+    assert view2.get("can_act") is True

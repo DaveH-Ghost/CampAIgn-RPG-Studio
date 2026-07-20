@@ -4,6 +4,22 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.7.1
+
+**Requires:** `campaign-rpg-engine>=1.7.1`
+
+### Initiative (turn order)
+
+- Optional **initiative** mode: GM configures a session-wide turn order (manual add/reorder; no dice roll yet).
+- Compact **initiative bar** under the map column when enabled: current actor, round, **Edit order…**, **Next ▶** (skip/advance without a turn).
+- **Run turn ▶** stays manual — enabled only for the current **NPC** slot (never auto-LLM).
+- Players may still **queue** compound-turn parts; **Send** is disabled until their slot (`can_act` + server 403 on `/api/player/turn`), with a clearer disabled Send state.
+- Witnessed NPC compound turns group into one history card (same actor + session turn).
+- Initiative state persists in session export/import (`extensions.initiative`).
+- Header area actions compressed into a compact toolbar (`+` / Edit / Save… / Load… / Del).
+
+---
+
 ## 1.7.0
 
 **Requires:** `campaign-rpg-engine>=1.6.1`

@@ -23,7 +23,7 @@ def studio_version() -> str:
     try:
         return version("campaign-rpg-studio")
     except PackageNotFoundError:
-        return "1.7.0"
+        return "1.7.1"
 
 
 def engine_version() -> str:

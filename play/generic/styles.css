@@ -322,6 +322,28 @@ body.play-client {
   background: #354868;
 }
 
+.play-composer-send:disabled,
+.play-composer-send.is-waiting-turn:disabled,
+.play-composer-send:disabled:hover,
+.play-composer-send:disabled:focus,
+.play-composer-send:disabled:focus-visible,
+.play-composer-send:disabled:active {
+  cursor: not-allowed;
+  background: #1a1a22;
+  border-color: #2e2e38;
+  color: #5a5a68;
+  opacity: 0.72;
+  box-shadow: none;
+  transform: none;
+}
+
+.play-composer-send.is-waiting-turn:disabled {
+  opacity: 0.55;
+  background: #16161c;
+  border-color: #282830;
+  color: #505058;
+}
+
 .play-composer-note {
   margin: 0;
   padding: 0 0.15rem;

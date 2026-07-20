@@ -9,6 +9,7 @@ from campaign_rpg_engine.area_event import AREA_EVENT_ACTOR_ID
 from campaign_rpg_engine.grid import chebyshev_distance
 from campaign_rpg_engine.turn_record import TurnRecord
 
+from backend.initiative import player_initiative_fields
 from backend.plugin_registry import merged_player_turn_assist
 from backend.snapshot_compat import normalize_state_snapshot
 
@@ -39,6 +40,8 @@ def build_player_history(agent) -> list[dict[str, Any]]:
     Chronological feed of this agent's own turns and witnessed passives.
 
     Own compound turns are one entry (all step results joined) for readability.
+    Witnessed compound turns are also grouped: consecutive events with the same
+    actor and session_turn (one broadcast per step) become a single card.
     Built from the agent's memory module buffers (recent/salient/rolling).
     """
     module = agent.memory.module
@@ -49,8 +52,7 @@ def build_player_history(agent) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     for index, turn in enumerate(turns):
         before = witnessed_before[index] if index < len(witnessed_before) else []
-        for event in before:
-            entries.append(_witness_entry(event))
+        entries.extend(_grouped_witness_entries(before))
         lines: list[str] = []
         kinds: list[str] = []
         for step in turn.steps:
@@ -70,27 +72,54 @@ def build_player_history(agent) -> list[dict[str, Any]]:
                 }
             )
 
-    for event in pending:
-        entries.append(_witness_entry(event))
+    entries.extend(_grouped_witness_entries(pending))
     return entries
 
 
-def _witness_entry(event) -> dict[str, Any]:
-    text = (getattr(event, "text", None) or "").strip()
+def _witness_group_key(event) -> tuple[Any, ...]:
+    """Group key for consecutive witnessed steps from one actor turn."""
     actor_id = getattr(event, "actor_id", "") or ""
+    session_turn = getattr(event, "session_turn", None)
+    return (actor_id, session_turn)
+
+
+def _grouped_witness_entries(events: list[Any]) -> list[dict[str, Any]]:
+    """Collapse consecutive same-actor/session_turn witness events into one entry."""
+    if not events:
+        return []
+    grouped: list[dict[str, Any]] = []
+    batch: list[Any] = []
+    for event in events:
+        if batch and _witness_group_key(event) != _witness_group_key(batch[0]):
+            grouped.append(_witness_entry_from_batch(batch))
+            batch = []
+        batch.append(event)
+    if batch:
+        grouped.append(_witness_entry_from_batch(batch))
+    return grouped
+
+
+def _witness_entry_from_batch(events: list[Any]) -> dict[str, Any]:
+    lines = [
+        text
+        for text in ((getattr(e, "text", None) or "").strip() for e in events)
+        if text
+    ]
+    first = events[0]
+    actor_id = getattr(first, "actor_id", "") or ""
     if actor_id == AREA_EVENT_ACTOR_ID:
         source = "event"
         actor_name = ""
     else:
         source = "witness"
-        actor_name = getattr(event, "actor_name", "") or ""
+        actor_name = getattr(first, "actor_name", "") or ""
     return {
         "source": source,
-        "kind": "observe",
-        "turn": getattr(event, "session_turn", None),
+        "kind": "compound" if len(lines) > 1 else "observe",
+        "turn": getattr(first, "session_turn", None),
         "actor_id": actor_id,
         "actor_name": actor_name,
-        "text": text,
+        "text": "\n".join(lines),
     }
 
 
@@ -160,6 +189,7 @@ def build_player_view(session: Session, agent_id: str) -> dict[str, Any]:
         "history": build_player_history(agent),
         "assist": assist,
         "social_candidates": social_candidates,
+        **player_initiative_fields(session, agent.id),
     }
 
 

@@ -1,5 +1,5 @@
 /**
- * /play/generic — player-scoped grid client (Studio 1.7.0).
+ * /play/generic — player-scoped grid client (Studio 1.7.1).
  */
 
 import { hasAppearance, resolveAppearanceUrl } from "/static/appearance.js?v=1.7.0f";
@@ -11,8 +11,8 @@ import {
   fetchPlayerView,
   loadSeatToken,
   postPlayerTurn,
-} from "/play/generic/assets/api.js?v=1.7.0m";
-import { renderSceneDecorations } from "/play/generic/assets/decorations.js?v=1.7.0m";
+} from "/play/generic/assets/api.js?v=1.7.1";
+import { renderSceneDecorations } from "/play/generic/assets/decorations.js?v=1.7.1";
 
 const statusEl = document.getElementById("play-status");
 const subtitleEl = document.getElementById("play-subtitle");
@@ -75,8 +75,38 @@ function setComposerEnabled(enabled) {
   if (composerMode) composerMode.disabled = !enabled;
   if (composerSay) composerSay.disabled = !enabled;
   if (composerEmote) composerEmote.disabled = !enabled;
-  if (composerSend) composerSend.disabled = !enabled;
+  if (composerSend) {
+    composerSend.disabled = !enabled;
+    composerSend.classList.remove("is-waiting-turn");
+    composerSend.title = enabled ? "" : composerSend.title;
+  }
   if (pendingClearBtn) pendingClearBtn.disabled = !enabled;
+}
+
+function syncActingState(view) {
+  const canAct = view?.can_act !== false;
+  const active = Boolean(seatToken) && !turnBusy;
+  const waiting =
+    view?.initiative_enabled && !canAct && view?.initiative_current?.agent_name;
+  composerForm?.classList.toggle("is-disabled", !active);
+  turnDockEl?.classList.remove("is-disabled");
+  if (composerMode) composerMode.disabled = !active;
+  if (composerSay) composerSay.disabled = !active;
+  if (composerEmote) composerEmote.disabled = !active;
+  if (composerSend) {
+    const waitingTurn = active && !canAct;
+    composerSend.disabled = !active || !canAct;
+    composerSend.classList.toggle("is-waiting-turn", waitingTurn);
+    composerSend.title = waitingTurn ? "It is not your turn." : "";
+  }
+  if (pendingClearBtn) pendingClearBtn.disabled = !active;
+  if (statusEl) {
+    if (waiting) {
+      statusEl.textContent = `Waiting for ${view.initiative_current.agent_name}…`;
+    } else if (view) {
+      statusEl.textContent = `Turn ${view.session_turn ?? "?"} · ${view.area_id ?? ""}`;
+    }
+  }
 }
 
 function truncateChip(text, max = 36) {
@@ -534,7 +564,7 @@ function renderView(view, opts = {}) {
     lastView = view;
     renderGrid(view);
     renderSidebar(view, opts);
-    statusEl.textContent = `Turn ${view.session_turn ?? "?"} · ${view.area_id}`;
+    syncActingState(view);
   } catch (err) {
     console.error(err);
     statusEl.textContent = `Render failed: ${err?.message || err}`;
@@ -558,7 +588,7 @@ async function submitTurn(compoundTurn) {
       .map((step) => String(step?.result || "").trim())
       .filter(Boolean);
     showToast(lines.length ? lines.join(" · ") : result.message || "Turn applied.");
-    statusEl.textContent = `Turn ${result.view?.session_turn ?? lastView?.session_turn ?? "?"} · ${result.view?.area_id ?? lastView?.area_id ?? ""}`;
+    if (result.view) syncActingState(result.view);
   } catch (err) {
     if (err.code === 401) {
       clearSeatToken();
@@ -571,7 +601,8 @@ async function submitTurn(compoundTurn) {
     throw err;
   } finally {
     turnBusy = false;
-    if (seatToken) setComposerEnabled(true);
+    if (seatToken && lastView) syncActingState(lastView);
+    else if (!seatToken) setComposerEnabled(false);
   }
 }
 
@@ -632,6 +663,10 @@ function buildQueuedCompoundTurn() {
 
 async function submitComposer() {
   if (!seatToken || turnBusy) return;
+  if (lastView?.can_act === false) {
+    showToast(lastView.wait_reason || "It is not your turn.", true);
+    return;
+  }
   const { opts, hasContent } = buildQueuedCompoundTurn();
   if (!hasContent) {
     showToast("Queue a move/look/action or enter say/emote text.", true);
@@ -891,7 +926,6 @@ try {
   initGridViewport(gridViewportEl, gridWorldEl);
   syncComposerMode();
   renderPending();
-  setComposerEnabled(Boolean(seatToken));
   document.addEventListener("click", () => hideMenu());
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
@@ -921,6 +955,7 @@ try {
   if (!seatToken) {
     noSeatEl.classList.remove("hidden");
     statusEl.textContent = "No seat";
+    setComposerEnabled(false);
   } else {
     void refreshView().then(() => startViewStream());
   }

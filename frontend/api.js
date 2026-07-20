@@ -1262,3 +1262,45 @@ export async function uploadDecorationAsset(file) {
   }
   return data;
 }
+
+export async function putInitiative({ enabled = null, order = null, index = null } = {}) {
+  const body = {};
+  if (enabled != null) body.enabled = enabled;
+  if (order != null) body.order = order;
+  if (index != null) body.index = index;
+  const res = await fetch("/api/initiative", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function postInitiativeOrder(order) {
+  const res = await fetch("/api/initiative/order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ order }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function postInitiativeNext() {
+  const res = await fetch("/api/initiative/next", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}

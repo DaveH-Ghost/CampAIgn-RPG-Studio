@@ -20,7 +20,7 @@
 
     <h1>CampAIgn RPG Studio</h1>
 
-    <p class="subtitle" id="app-subtitle">V1.7.0 — CampAIgn RPG Studio</p>
+    <p class="subtitle" id="app-subtitle">V1.7.1 — CampAIgn RPG Studio</p>
 
     <label class="active-area-label">
 
@@ -30,15 +30,13 @@
 
     </label>
 
-    <button type="button" id="create-area" class="area-manage-btn" title="Create a new area">+ Area</button>
-
-    <button type="button" id="edit-area" class="area-manage-btn" title="Edit the active area">Edit area</button>
-
-    <button type="button" id="save-area-template" class="area-manage-btn" title="Save the active area as a reusable template">Save area…</button>
-
-    <button type="button" id="load-area-template" class="area-manage-btn" title="Load an area template into a new or existing area">Load area…</button>
-
-    <button type="button" id="delete-area" class="area-manage-btn" title="Delete the active area (must be empty)">Delete area</button>
+    <span class="area-toolbar" aria-label="Area actions">
+      <button type="button" id="create-area" class="area-manage-btn" title="Create a new area">+</button>
+      <button type="button" id="edit-area" class="area-manage-btn" title="Edit the active area">Edit</button>
+      <button type="button" id="save-area-template" class="area-manage-btn" title="Save the active area as a reusable template">Save…</button>
+      <button type="button" id="load-area-template" class="area-manage-btn" title="Load an area template into a new or existing area">Load…</button>
+      <button type="button" id="delete-area" class="area-manage-btn area-manage-btn--danger" title="Delete the active area (must be empty)">Del</button>
+    </span>
 
     <label class="active-agent-label">
 
@@ -213,6 +211,15 @@
 
         </div>
 
+      </div>
+
+      <div id="initiative-bar" class="initiative-bar" aria-label="Initiative order">
+        <span id="initiative-summary" class="initiative-summary">Initiative off</span>
+        <div id="initiative-track" class="initiative-track hidden"></div>
+        <div class="initiative-bar-actions">
+          <button type="button" id="initiative-config" class="initiative-btn">Configure…</button>
+          <button type="button" id="initiative-next" class="initiative-btn initiative-btn--primary hidden">Next ▶</button>
+        </div>
       </div>
 
       </div>
@@ -589,6 +596,23 @@
   <div id="context-menu" class="context-menu hidden" role="menu"></div>
 
 
+
+  <div id="initiative-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal initiative-modal" role="dialog" aria-modal="true" aria-labelledby="initiative-modal-title">
+      <h2 id="initiative-modal-title" class="modal-heading">Initiative</h2>
+      <label class="initiative-modal-enable">
+        <input type="checkbox" id="initiative-modal-enable" />
+        Enable initiative (turn order)
+      </label>
+      <p class="initiative-modal-hint">Drag order with ↑↓. Any session agent can be added. Players act via /play when it is their slot.</p>
+      <div id="initiative-order-list" class="initiative-order-list"></div>
+      <p id="initiative-modal-error" class="modal-error" aria-live="polite"></p>
+      <div class="initiative-modal-actions">
+        <button type="button" id="initiative-modal-cancel" class="modal-cancel">Cancel</button>
+        <button type="button" id="initiative-modal-save" class="initiative-btn initiative-btn--primary">Save</button>
+      </div>
+    </div>
+  </div>
 
   <div id="modal-backdrop" class="modal-backdrop hidden">
 

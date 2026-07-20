@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from backend.initiative import attach_initiative_to_snapshot
+
 DEFAULT_AREA_ID = "room"
 
 
@@ -77,7 +79,7 @@ def _ensure_area_arrays(data: dict[str, Any]) -> dict[str, Any]:
     }
     for key in ("grid", "area_description", "objects", "recent_events"):
         result.pop(key, None)
-    return result
+    return attach_initiative_to_snapshot(result)
 
 
 def flatten_snapshot_for_ui(data: dict[str, Any]) -> dict[str, Any]:

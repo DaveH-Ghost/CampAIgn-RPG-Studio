@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
+from backend.initiative import can_agent_act
 from backend.player_seats import create_seat, resolve_seat, revoke_seat
 from backend.player_view import build_player_view
 from backend.schemas import CreateSeatRequest, PlayerTurnRequest
@@ -137,6 +138,9 @@ def post_player_turn(
 ) -> dict[str, object]:
     _token, agent_id, _expires = seat
     session = get_session_store().session
+    gate = can_agent_act(session, agent_id)
+    if not gate.ok:
+        raise HTTPException(status_code=403, detail=gate.message)
     result = run_manual_turn(
         session,
         dict(body.compound_turn),

@@ -10,6 +10,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from backend.api import (
+    initiative,
     lorebooks,
     misc,
     player,
@@ -25,6 +26,7 @@ from backend.api import (
 ROUTERS = (
     session.router,
     turn.router,
+    initiative.router,
     prompt.router,
     world.router,
     templates.router,

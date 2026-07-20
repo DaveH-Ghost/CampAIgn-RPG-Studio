@@ -18,6 +18,12 @@ from campaign_rpg_engine import (
 )
 from pydantic import ValidationError
 
+from backend.initiative import (
+    can_agent_act,
+    initiative_enabled,
+    maybe_advance_after_turn,
+    sync_active_agent,
+)
 from backend.session_store import get_session_store
 from backend.snapshot_compat import normalize_state_snapshot
 
@@ -80,7 +86,7 @@ def run_manual_turn(
             "message": "Manual turns are only available for player agents.",
         }
 
-    gate = session.gate_agent_turn(agent_id)
+    gate = can_agent_act(session, agent.id)
     if not gate.ok:
         return {"ok": False, "message": gate.message}
 
@@ -92,10 +98,17 @@ def run_manual_turn(
     store = get_session_store()
     checkpoint = store.capture_checkpoint()
     prev_active = _active_agent_before_explicit_turn(session, agent_id)
+    acting_id = agent.id
     result = session.run_compound_turn(compound_turn, agent_id=agent_id)
-    _restore_active_agent(session, prev_active)
     if not result.ok or result.record is None:
+        _restore_active_agent(session, prev_active)
         return {"ok": False, "message": result.message}
+
+    if initiative_enabled(session):
+        maybe_advance_after_turn(session, acting_id)
+        sync_active_agent(session)
+    else:
+        _restore_active_agent(session, prev_active)
 
     store.push_undo(checkpoint)
     return {
@@ -136,7 +149,7 @@ def run_llm_turn(
                 ),
             }
 
-        gate = session.gate_agent_turn(agent_id)
+        gate = can_agent_act(session, agent.id)
         if not gate.ok:
             return {"ok": False, "message": gate.message}
 
@@ -178,10 +191,17 @@ def run_llm_turn(
         store = get_session_store()
         checkpoint = store.capture_checkpoint()
         prev_active = _active_agent_before_explicit_turn(session, agent_id)
+        acting_id = agent.id
         result = session.run_compound_turn(compound_turn, agent_id=agent_id)
-        _restore_active_agent(session, prev_active)
         if not result.ok or result.record is None:
+            _restore_active_agent(session, prev_active)
             return {"ok": False, "message": result.message}
+
+        if initiative_enabled(session):
+            maybe_advance_after_turn(session, acting_id)
+            sync_active_agent(session)
+        else:
+            _restore_active_agent(session, prev_active)
 
         store.push_undo(checkpoint)
         return {
