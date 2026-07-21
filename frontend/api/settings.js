@@ -22,6 +22,7 @@ export async function putLlmSettings({
   model,
   max_input_tokens,
   input_warning_percent,
+  concurrent_llm_calls,
 }) {
   const body = {};
   if (provider !== undefined) body.provider = provider;
@@ -30,6 +31,9 @@ export async function putLlmSettings({
   if (max_input_tokens !== undefined) body.max_input_tokens = max_input_tokens;
   if (input_warning_percent !== undefined) {
     body.input_warning_percent = input_warning_percent;
+  }
+  if (concurrent_llm_calls !== undefined) {
+    body.concurrent_llm_calls = concurrent_llm_calls;
   }
   const res = await fetch("/api/settings/llm", {
     method: "PUT",

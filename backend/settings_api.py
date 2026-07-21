@@ -1,4 +1,4 @@
-"""In-memory LLM settings for campaign-rpg-studio (1.6.1)."""
+"""In-memory LLM settings for campaign-rpg-studio (1.7.2)."""
 
 from __future__ import annotations
 
@@ -8,9 +8,11 @@ from typing import Any
 from campaign_rpg_engine import (
     DEFAULT_INPUT_WARNING_PERCENT,
     DEFAULT_MAX_INPUT_TOKENS,
+    concurrent_llm_calls_enabled,
     get_input_warning_percent,
     get_llm_provider,
     get_max_input_tokens,
+    set_concurrent_llm_calls,
 )
 from campaign_rpg_engine.llm.client import (
     DEFAULT_FEATHERLESS_MODEL,
@@ -37,11 +39,13 @@ def get_llm_settings() -> dict[str, Any]:
         "key_configured": bool(key),
         "max_input_tokens": get_max_input_tokens(),
         "input_warning_percent": get_input_warning_percent(),
+        "concurrent_llm_calls": concurrent_llm_calls_enabled(),
         "defaults": {
             "openrouter_model": DEFAULT_OPENROUTER_MODEL,
             "featherless_model": DEFAULT_FEATHERLESS_MODEL,
             "max_input_tokens": DEFAULT_MAX_INPUT_TOKENS,
             "input_warning_percent": DEFAULT_INPUT_WARNING_PERCENT,
+            "concurrent_llm_calls": True,
         },
     }
 
@@ -53,6 +57,7 @@ def put_llm_settings(
     model: str | None = None,
     max_input_tokens: int | None = None,
     input_warning_percent: int | None = None,
+    concurrent_llm_calls: bool | None = None,
 ) -> dict[str, Any]:
     if provider is not None:
         cleaned = provider.strip().lower()
@@ -94,5 +99,8 @@ def put_llm_settings(
                 "message": "input_warning_percent must be between 1 and 100.",
             }
         os.environ["LLM_INPUT_WARNING_PERCENT"] = str(pct)
+
+    if concurrent_llm_calls is not None:
+        set_concurrent_llm_calls(bool(concurrent_llm_calls))
 
     return get_llm_settings()

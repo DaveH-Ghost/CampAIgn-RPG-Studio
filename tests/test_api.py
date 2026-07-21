@@ -706,6 +706,42 @@ def test_post_turn_gate_blocked(client, monkeypatch):
     assert response.json()["ok"] is False
 
 
+def test_post_turn_concurrency_limit_from_llm(client, monkeypatch):
+    from campaign_rpg_engine import ConcurrencyLimitError
+
+    def fail_llm(_prompt):
+        raise ConcurrencyLimitError(
+            status_code=429,
+            provider_code="concurrency_limit_exceeded",
+            raw_message="Concurrency limit exceeded",
+        )
+
+    monkeypatch.setattr("backend.turn_runner.get_compound_turn", fail_llm)
+    response = client.post("/api/turn", json={})
+    data = response.json()
+    assert data["ok"] is False
+    assert data["concurrency_limit_exceeded"] is True
+    assert data["error_code"] == "concurrency_limit_exceeded"
+
+
+def test_post_turn_concurrency_limit_from_gate(client, monkeypatch):
+    def blocked(_agent_id=None):
+        return SessionResult(
+            ok=False,
+            message="Cannot run turn: concurrency limit during consolidation.",
+            error_code="concurrency_limit_exceeded",
+        )
+
+    session = get_session_store().session
+    monkeypatch.setattr(session, "gate_agent_turn", blocked)
+
+    response = client.post("/api/turn", json={})
+    data = response.json()
+    assert data["ok"] is False
+    assert data["concurrency_limit_exceeded"] is True
+    assert data["error_code"] == "concurrency_limit_exceeded"
+
+
 def test_post_turn_missing_api_key(client, monkeypatch):
     def fail_llm(_prompt):
         raise RuntimeError("OPENROUTER_API_KEY not found.")
@@ -1000,6 +1036,7 @@ def test_get_llm_settings_never_returns_api_key(client):
     assert data["provider"] in ("openrouter", "featherless")
     assert data["max_input_tokens"] >= 1
     assert 1 <= data["input_warning_percent"] <= 100
+    assert "concurrent_llm_calls" in data
 
 
 def test_put_llm_settings_in_memory(client, monkeypatch):
@@ -1009,6 +1046,7 @@ def test_put_llm_settings_in_memory(client, monkeypatch):
     monkeypatch.delenv("FEATHERLESS_API_KEY", raising=False)
     monkeypatch.delenv("LLM_MAX_INPUT_TOKENS", raising=False)
     monkeypatch.delenv("LLM_INPUT_WARNING_PERCENT", raising=False)
+    monkeypatch.delenv("LLM_CONCURRENT_CALLS", raising=False)
     response = client.put(
         "/api/settings/llm",
         json={
@@ -1017,6 +1055,7 @@ def test_put_llm_settings_in_memory(client, monkeypatch):
             "model": "test/model",
             "max_input_tokens": 16000,
             "input_warning_percent": 85,
+            "concurrent_llm_calls": False,
         },
     )
     assert response.status_code == 200
@@ -1027,11 +1066,15 @@ def test_put_llm_settings_in_memory(client, monkeypatch):
     assert data["model"] == "test/model"
     assert data["max_input_tokens"] == 16000
     assert data["input_warning_percent"] == 85
+    assert data["concurrent_llm_calls"] is False
     get_resp = client.get("/api/settings/llm")
     get_data = get_resp.json()
     assert get_data["key_configured"] is True
     assert get_data["provider"] == "featherless"
+    assert get_data["concurrent_llm_calls"] is False
     assert "api_key" not in get_data
+    # Restore default for other tests in this process.
+    client.put("/api/settings/llm", json={"concurrent_llm_calls": True})
 
 
 def test_prompt_includes_token_budget_fields(client, monkeypatch):

@@ -57,6 +57,8 @@ let getSnapshot = () => null;
 let onStateChanged = async () => {};
 let onRunAgentTurn = async () => {};
 let getCoordinateMode = () => "full";
+/** Optional async handler when the shared modal is dismissed (Escape / backdrop / Cancel). */
+let onModalDismiss = null;
 
 export function initUi({ getSnapshotFn, onStateChangedFn, onRunAgentTurnFn, getCoordinateModeFn }) {
   getSnapshot = getSnapshotFn;
@@ -82,15 +84,17 @@ export function initUi({ getSnapshotFn, onStateChangedFn, onRunAgentTurnFn, getC
     closeModal,
   });
 
-  document.getElementById("modal-cancel").addEventListener("click", closeModal);
+  document.getElementById("modal-cancel").addEventListener("click", () => {
+    void dismissModal();
+  });
   document.getElementById("modal-backdrop").addEventListener("click", (e) => {
-    if (e.target === modalBackdrop) closeModal();
+    if (e.target === modalBackdrop) void dismissModal();
   });
   document.addEventListener("click", () => hideMenu());
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       hideMenu();
-      closeModal();
+      void dismissModal();
     }
   });
 }
@@ -424,10 +428,27 @@ function showToast(message, isError) {
 }
 
 function closeModal() {
+  onModalDismiss = null;
   modalBackdrop.classList.add("hidden");
   modalBackdrop.querySelector(".modal")?.classList.remove("modal--wide");
   modalForm.innerHTML = "";
   modalError.textContent = "";
+  const cancelBtn = document.getElementById("modal-cancel");
+  if (cancelBtn) {
+    cancelBtn.classList.remove("hidden");
+    cancelBtn.textContent = "Cancel";
+  }
+}
+
+async function dismissModal() {
+  if (modalBackdrop.classList.contains("hidden")) return;
+  const handler = onModalDismiss;
+  onModalDismiss = null;
+  try {
+    if (handler) await handler();
+  } finally {
+    closeModal();
+  }
 }
 
 function syncConditionalModalFields(form) {
@@ -611,6 +632,7 @@ function openModal(title, fields, onSubmit, { submitLabel = "Save", actions = nu
       const btn = document.createElement("button");
       btn.type = "button";
       btn.textContent = action.label;
+      if (action.className) btn.className = action.className;
       btn.addEventListener("click", () => runSubmit(action.onSubmit));
       actionsEl.appendChild(btn);
     }
@@ -631,6 +653,50 @@ function openModal(title, fields, onSubmit, { submitLabel = "Save", actions = nu
 
   modalForm.appendChild(actionsEl);
   modalBackdrop.classList.remove("hidden");
+}
+
+/**
+ * Confirm-style modal with context paragraphs and custom OK/Cancel actions.
+ * Backdrop / Escape / shared Cancel run *onDismiss* (defaults to *onCancel*).
+ */
+export function openConfirmModal({
+  title,
+  paragraphs = [],
+  okLabel = "OK",
+  cancelLabel = "Cancel",
+  onOk,
+  onCancel,
+  onDismiss = null,
+  hideSharedCancel = true,
+} = {}) {
+  const cancelBtn = document.getElementById("modal-cancel");
+  if (hideSharedCancel && cancelBtn) {
+    cancelBtn.classList.add("hidden");
+  }
+
+  onModalDismiss = onDismiss || onCancel || null;
+
+  const fields = paragraphs.map((text) => ({ type: "context", text }));
+
+  openModal(title, fields, null, {
+    actions: [
+      {
+        label: okLabel,
+        onSubmit: async () => {
+          onModalDismiss = null;
+          if (onOk) await onOk();
+        },
+      },
+      {
+        label: cancelLabel,
+        className: "modal-cancel-action",
+        onSubmit: async () => {
+          onModalDismiss = null;
+          if (onCancel) await onCancel();
+        },
+      },
+    ],
+  });
 }
 
 function objectHiddenField(hidden = false) {

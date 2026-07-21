@@ -4,6 +4,23 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.7.2
+
+**Requires:** `campaign-rpg-engine>=1.7.2`
+
+### Featherless / concurrency UX
+
+- Settings: **Concurrent LLM calls** checkbox — uncheck for one-at-a-time providers (sync memory consolidation; sequential affinity Call A/B).
+- When the LLM provider returns a **concurrency limit** error, the GM gets a recovery modal: undo the last successful turn, optionally disable Concurrent LLM calls (recommended for Featherless).
+- The modal also appears **as soon as background memory consolidation / affinity fails** with a concurrency limit (SSE `concurrency_limit`), not only on the next turn attempt.
+- Play client shows a short toast pointing players at the GM when a seat turn hits the same limit.
+
+### Fixes
+
+- **Run turn ▶** re-enables correctly after a turn when initiative is off (was stuck greyed out).
+
+---
+
 ## 1.7.1
 
 **Requires:** `campaign-rpg-engine>=1.7.1`

@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator
 
 from fastapi.responses import StreamingResponse
 
-from backend.session_events import subscribe, unsubscribe, wait_revision
+from backend.session_events import subscribe, unsubscribe, wait_push
 from backend.session_store import get_session_store
 
 _KEEPALIVE_SECONDS = 15.0
@@ -20,21 +20,26 @@ _SSE_HEADERS = {
 
 
 async def session_change_event_stream() -> AsyncIterator[str]:
-    """Yield SSE payloads whenever the Studio session is mutated."""
+    """Yield SSE payloads whenever the Studio session is mutated or alerts fire."""
     sub = subscribe()
-    last_sent = -1
+    last_change_rev = -1
     try:
         while True:
-            rev = await asyncio.to_thread(wait_revision, sub, _KEEPALIVE_SECONDS)
-            if rev is None:
+            push = await asyncio.to_thread(wait_push, sub, _KEEPALIVE_SECONDS)
+            if push is None:
                 yield ": keepalive\n\n"
                 continue
-            if rev == last_sent:
+
+            if push.event == "concurrency_limit":
+                yield f"event: concurrency_limit\ndata: {json.dumps(push.data)}\n\n"
                 continue
-            last_sent = rev
+
+            if push.revision == last_change_rev:
+                continue
+            last_change_rev = push.revision
             session = get_session_store().session
             payload = {
-                "revision": rev,
+                "revision": push.revision,
                 "session_turn": session.session_turn,
                 "active_agent_id": session.active_agent_id,
                 "active_area_id": session.active_area_id,

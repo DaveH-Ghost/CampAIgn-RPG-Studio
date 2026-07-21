@@ -140,17 +140,25 @@ def post_player_turn(
     session = get_session_store().session
     gate = can_agent_act(session, agent_id)
     if not gate.ok:
-        raise HTTPException(status_code=403, detail=gate.message)
+        detail: dict[str, object] = {"message": gate.message}
+        if gate.error_code == "concurrency_limit_exceeded":
+            detail["error_code"] = gate.error_code
+            detail["concurrency_limit_exceeded"] = True
+        raise HTTPException(status_code=403, detail=detail)
     result = run_manual_turn(
         session,
         dict(body.compound_turn),
         agent_id=agent_id,
     )
     if not result.get("ok"):
-        return {
+        payload: dict[str, object] = {
             "ok": False,
             "message": result.get("message") or "Turn failed.",
         }
+        if result.get("concurrency_limit_exceeded"):
+            payload["concurrency_limit_exceeded"] = True
+            payload["error_code"] = result.get("error_code")
+        return payload
     try:
         view = build_player_view(session, agent_id)
     except (KeyError, ValueError) as exc:

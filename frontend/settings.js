@@ -35,6 +35,7 @@ export function initSettings({ showToastFn, onSettingsAppliedFn }) {
   const modelInput = document.getElementById("settings-model");
   const maxTokensInput = document.getElementById("settings-max-input-tokens");
   const warningPercentInput = document.getElementById("settings-input-warning-percent");
+  const concurrentLlmInput = document.getElementById("settings-concurrent-llm");
   const llmSaveBtn = document.getElementById("settings-llm-save");
   const errorEl = document.getElementById("settings-error");
 
@@ -75,6 +76,10 @@ export function initSettings({ showToastFn, onSettingsAppliedFn }) {
       warningPercentInput.value = String(
         data.input_warning_percent ?? data.defaults?.input_warning_percent ?? 90,
       );
+    }
+    if (concurrentLlmInput) {
+      concurrentLlmInput.checked =
+        data.concurrent_llm_calls ?? data.defaults?.concurrent_llm_calls ?? true;
     }
     if (keyStatus) {
       keyStatus.textContent = data.key_configured
@@ -128,6 +133,7 @@ export function initSettings({ showToastFn, onSettingsAppliedFn }) {
         model: modelInput?.value?.trim() || "",
         max_input_tokens: Number(maxTokensInput?.value || 32768),
         input_warning_percent: Number(warningPercentInput?.value || 90),
+        concurrent_llm_calls: concurrentLlmInput ? concurrentLlmInput.checked : true,
       };
       const key = apiKeyInput?.value?.trim();
       if (key) payload.api_key = key;

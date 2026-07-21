@@ -12,6 +12,7 @@ import {
   postManualTurn,
   postTurn,
   postTurnUndo,
+  putLlmSettings,
 } from "./api.js";
 import { hasAppearance, resolveAppearanceUrl } from "./appearance.js";
 import { initCoordinateMode, syncCoordinateModeFromSnapshot } from "./coordinateMode.js";
@@ -66,6 +67,7 @@ import {
   bindEmitEventButton,
   bindGridContextMenu,
   initUi,
+  openConfirmModal,
   openPlayerTurnModal,
   renderActiveAgentSelect,
   renderActiveAreaSelect,
@@ -137,6 +139,7 @@ let lastSnapshot = null;
 let turnInFlight = false;
 let lastUndoRemaining = 0;
 let promptTokenHintSeq = 0;
+let concurrencyRecoveryPromise = null;
 
 function resolveActiveAgentIdForPrompt() {
   return lastSnapshot?.active_agent_id ?? activeAgentSelect?.value ?? undefined;
@@ -178,11 +181,11 @@ function setTurnBusy(busy) {
 function syncRunTurnInitiativeGate() {
   if (!runTurnBtn || turnInFlight) return;
   const gate = initiativeBlocksRunTurn(lastSnapshot);
-  if (lastSnapshot?.initiative?.enabled) {
-    runTurnBtn.disabled = gate.blocked;
-    if (gate.blocked && gate.reason) {
-      setRunTurnTokenHint(gate.reason);
-    }
+  // Always re-apply: setTurnBusy(true) disables the button, and with initiative
+  // off we still need to clear that when the turn finishes.
+  runTurnBtn.disabled = Boolean(gate.blocked);
+  if (gate.blocked && gate.reason) {
+    setRunTurnTokenHint(gate.reason);
   }
 }
 
@@ -532,6 +535,20 @@ function startSessionStream() {
   source.addEventListener("change", () => {
     void refreshRemoteState();
   });
+  source.addEventListener("concurrency_limit", (event) => {
+    let payload = {
+      concurrency_limit_exceeded: true,
+      message:
+        "LLM concurrency limit exceeded during memory consolidation (or affinity).",
+    };
+    try {
+      if (event?.data) payload = { ...payload, ...JSON.parse(event.data) };
+    } catch {
+      /* keep defaults */
+    }
+    statusEl.textContent = "Concurrency limit";
+    void offerConcurrencyLimitRecovery(payload);
+  });
 }
 
 function updateStatusLine(data) {
@@ -587,6 +604,11 @@ function recordTurnResult(result, { agentId, agentName } = {}) {
 async function executeTurnResult(result, turnMeta = {}) {
   if (!result.ok) {
     updateDebugPanelsFromResult(result);
+    if (result.concurrency_limit_exceeded) {
+      statusEl.textContent = "Concurrency limit";
+      await offerConcurrencyLimitRecovery(result);
+      return;
+    }
     showToast(result.message, true);
     statusEl.textContent = "Turn failed";
     return;
@@ -602,6 +624,85 @@ async function executeTurnResult(result, turnMeta = {}) {
   const stepCount = Array.isArray(result.steps) ? result.steps.length : 0;
   const suffix = stepCount ? ` (${stepCount} step${stepCount === 1 ? "" : "s"})` : "";
   showToast(`${result.message}${suffix}`, false);
+}
+
+async function applyUndoAfterConcurrencyRecovery(toastMessage) {
+  const result = await postTurnUndo();
+  if (!result.ok) {
+    showToast(result.message || "Nothing to undo.", true);
+    syncUndoTurnButton(result);
+    statusEl.textContent = "Undo failed";
+    return;
+  }
+  if (result.snapshot) {
+    renderState(result.snapshot);
+    updateStatusLine(result.snapshot);
+  } else {
+    await fetchState();
+  }
+  syncUndoTurnButton(result);
+  showToast(toastMessage || result.message || "Undid last turn.", false);
+  statusEl.textContent = "Ready";
+  void refreshRunTurnTokenHint();
+}
+
+function syncConcurrentLlmCheckbox(enabled) {
+  const input = document.getElementById("settings-concurrent-llm");
+  if (input) input.checked = !!enabled;
+}
+
+function offerConcurrencyLimitRecovery(result) {
+  if (concurrencyRecoveryPromise) {
+    return concurrencyRecoveryPromise;
+  }
+  concurrencyRecoveryPromise = new Promise((resolve) => {
+    let settled = false;
+    const finish = async (fn) => {
+      if (settled) return;
+      settled = true;
+      try {
+        await fn();
+      } finally {
+        concurrencyRecoveryPromise = null;
+        resolve();
+      }
+    };
+
+    const agentBit = result.agent_name ? ` (${result.agent_name})` : "";
+    openConfirmModal({
+      title: "LLM concurrency limit",
+      paragraphs: [
+        result.message ||
+          "Your LLM provider rejected a request because too many calls were in flight at once.",
+        `This often happens when Concurrent LLM calls is on and either: (1) an agent’s memory is consolidating in the background${agentBit} while another LLM call starts, or (2) an agent uses the affinity memory module (two LLM calls that can overlap).`,
+        "Providers with a one-at-a-time limit (common on Featherless Premium + DeepSeek) need Concurrent LLM calls turned off so consolidations and affinity Call A/B run sequentially.",
+        'Both choices undo the last successful turn so you can retry cleanly. "Undo turn & use sequential LLM calls" also turns Concurrent LLM calls off for this session.',
+      ],
+      okLabel: "Undo turn & use sequential LLM calls",
+      cancelLabel: "Undo turn only",
+      onOk: () =>
+        finish(async () => {
+          await putLlmSettings({ concurrent_llm_calls: false });
+          syncConcurrentLlmCheckbox(false);
+          await applyUndoAfterConcurrencyRecovery(
+            "Undid last turn and disabled Concurrent LLM calls.",
+          );
+        }),
+      onCancel: () =>
+        finish(async () => {
+          await applyUndoAfterConcurrencyRecovery(
+            "Undid last turn. Concurrent LLM calls left unchanged.",
+          );
+        }),
+      onDismiss: () =>
+        finish(async () => {
+          await applyUndoAfterConcurrencyRecovery(
+            "Undid last turn. Concurrent LLM calls left unchanged.",
+          );
+        }),
+    });
+  });
+  return concurrencyRecoveryPromise;
 }
 
 async function undoTurn() {
@@ -911,7 +1012,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.7.1";
+    const studioVersion = health.version || "1.7.2";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

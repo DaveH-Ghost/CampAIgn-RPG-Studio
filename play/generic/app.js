@@ -1,5 +1,5 @@
 /**
- * /play/generic — player-scoped grid client (Studio 1.7.1).
+ * /play/generic — player-scoped grid client (Studio 1.7.2).
  */
 
 import { hasAppearance, resolveAppearanceUrl } from "/static/appearance.js?v=1.7.0f";
@@ -11,8 +11,8 @@ import {
   fetchPlayerView,
   loadSeatToken,
   postPlayerTurn,
-} from "/play/generic/assets/api.js?v=1.7.1";
-import { renderSceneDecorations } from "/play/generic/assets/decorations.js?v=1.7.1";
+} from "/play/generic/assets/api.js?v=1.7.2";
+import { renderSceneDecorations } from "/play/generic/assets/decorations.js?v=1.7.2";
 
 const statusEl = document.getElementById("play-status");
 const subtitleEl = document.getElementById("play-subtitle");
@@ -580,6 +580,14 @@ async function submitTurn(compoundTurn) {
   try {
     const result = await postPlayerTurn(seatToken, compoundTurn);
     if (!result.ok) {
+      if (result.concurrency_limit_exceeded) {
+        showToast(
+          "LLM concurrency limit — ask the GM to undo and turn off Concurrent LLM calls in Settings.",
+          true,
+        );
+        statusEl.textContent = "Concurrency limit";
+        return;
+      }
       throw new Error(result.message || "Turn failed.");
     }
     clearPending({ keepText: false });
@@ -596,6 +604,14 @@ async function submitTurn(compoundTurn) {
       noSeatEl.classList.remove("hidden");
       statusEl.textContent = "Seat expired";
       setComposerEnabled(false);
+    }
+    if (err.concurrency_limit_exceeded) {
+      showToast(
+        "LLM concurrency limit — ask the GM to undo and turn off Concurrent LLM calls in Settings.",
+        true,
+      );
+      statusEl.textContent = "Concurrency limit";
+      return;
     }
     showToast(String(err.message || err), true);
     throw err;

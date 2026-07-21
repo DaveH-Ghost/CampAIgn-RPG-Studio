@@ -19,6 +19,7 @@ WAIT_REASON = "It is not your turn."
 class InitiativeGate:
     ok: bool
     message: str = ""
+    error_code: str | None = None
 
 
 def _default_state() -> dict[str, Any]:
@@ -91,7 +92,11 @@ def _agent_name(session: Session, agent_id: str) -> str:
 def can_agent_act(session: Session, agent_id: str) -> InitiativeGate:
     gate = session.gate_agent_turn(agent_id)
     if not gate.ok:
-        return InitiativeGate(False, gate.message)
+        return InitiativeGate(
+            False,
+            gate.message,
+            error_code=getattr(gate, "error_code", None),
+        )
     if not initiative_enabled(session):
         return InitiativeGate(True)
     current = current_actor_id(session)

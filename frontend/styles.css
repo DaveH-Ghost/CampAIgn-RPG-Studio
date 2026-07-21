@@ -99,6 +99,18 @@ h2 {
   color: #e8e8ec;
 }
 
+.settings-checkbox-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-checkbox-field input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
 .settings-key-status {
   margin: 0 0 0.65rem;
   font-size: 0.8rem;
@@ -1621,6 +1633,16 @@ textarea.player-turn-control {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.75rem;
+}
+
+.modal-actions .modal-cancel-action {
+  background: #2a2a32;
+  border: 1px solid #4a4a58;
+  color: #d0d0d8;
+}
+
+.modal-actions .modal-cancel-action:hover {
+  background: #32323c;
 }
 
 #modal-backdrop .modal-error {

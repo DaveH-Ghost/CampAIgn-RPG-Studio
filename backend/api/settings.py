@@ -23,4 +23,5 @@ def put_llm_settings_route(body: LlmSettingsRequest) -> dict[str, object]:
         model=body.model,
         max_input_tokens=body.max_input_tokens,
         input_warning_percent=body.input_warning_percent,
+        concurrent_llm_calls=body.concurrent_llm_calls,
     )

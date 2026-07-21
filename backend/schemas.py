@@ -79,6 +79,7 @@ class LlmSettingsRequest(BaseModel):
     model: str | None = None
     max_input_tokens: int | None = None
     input_warning_percent: int | None = None
+    concurrent_llm_calls: bool | None = None
 
 
 class EntityPrivateDataRequest(BaseModel):

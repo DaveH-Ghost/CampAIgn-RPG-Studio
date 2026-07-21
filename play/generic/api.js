@@ -76,12 +76,29 @@ async function playerFetch(token, path, options = {}) {
   });
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) {
-    const err = new Error(data.detail || "Seat expired or invalid.");
+    const err = new Error(
+      typeof data.detail === "string"
+        ? data.detail
+        : data.detail?.message || "Seat expired or invalid.",
+    );
     err.code = 401;
     throw err;
   }
   if (!res.ok) {
-    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+    const detail = data.detail;
+    const message =
+      typeof detail === "string"
+        ? detail
+        : detail?.message || data.message || `HTTP ${res.status}`;
+    const err = new Error(message);
+    err.status = res.status;
+    if (detail && typeof detail === "object" && detail.concurrency_limit_exceeded) {
+      err.concurrency_limit_exceeded = true;
+    }
+    if (data.concurrency_limit_exceeded) {
+      err.concurrency_limit_exceeded = true;
+    }
+    throw err;
   }
   return data;
 }

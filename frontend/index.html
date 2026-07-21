@@ -20,7 +20,7 @@
 
     <h1>CampAIgn RPG Studio</h1>
 
-    <p class="subtitle" id="app-subtitle">V1.7.1 — CampAIgn RPG Studio</p>
+    <p class="subtitle" id="app-subtitle">V1.7.2 — CampAIgn RPG Studio</p>
 
     <label class="active-area-label">
 
@@ -686,6 +686,14 @@
           <span>Warning at % of max</span>
           <input type="number" id="settings-input-warning-percent" min="1" max="100" step="1" value="90" />
         </label>
+        <label class="settings-field settings-checkbox-field">
+          <input type="checkbox" id="settings-concurrent-llm" checked />
+          <span>Concurrent LLM calls</span>
+        </label>
+        <p class="settings-hint">
+          Uncheck for providers with one-at-a-time limits (e.g. Featherless Premium + DeepSeek).
+          Memory consolidations finish before the turn returns; affinity Call A then Call B run in sequence.
+        </p>
         <button type="button" id="settings-llm-save" class="settings-action-btn">Apply LLM settings</button>
       </section>
 

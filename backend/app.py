@@ -34,14 +34,20 @@ def _ensure_reference_handlers() -> None:
 
 @asynccontextmanager
 async def _app_lifespan(_app: FastAPI):
+    from backend.concurrency_bridge import register_concurrency_limit_bridge
+
     _ensure_reference_handlers()
     load_all_plugins()
+    register_concurrency_limit_bridge()
     yield
 
 
 def create_app() -> FastAPI:
+    from backend.concurrency_bridge import register_concurrency_limit_bridge
+
     _ensure_reference_handlers()
     load_all_plugins()
+    register_concurrency_limit_bridge()
     app = FastAPI(title="campaign-rpg-studio", version=studio_version(), lifespan=_app_lifespan)
 
     app.add_middleware(
