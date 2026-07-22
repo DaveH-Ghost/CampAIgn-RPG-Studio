@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 from campaign_rpg_engine import Session, build_passive_vision
@@ -159,6 +160,14 @@ def build_player_view(session: Session, agent_id: str) -> dict[str, Any]:
 
     social_candidates = []
     ax, ay = agent.position
+    raw_speed = getattr(agent, "move_speed", None)
+    try:
+        move_speed = None if raw_speed is None else max(0, int(raw_speed))
+    except (TypeError, ValueError):
+        move_speed = None
+    # None move_speed → engine paths the full route in one turn (same as interact).
+    # Otherwise only agents reachable into social range this turn.
+    reach = None if move_speed is None else move_speed + _SOCIAL_RANGE
     for other in agents:
         if other["id"] == agent.id:
             continue
@@ -167,8 +176,15 @@ def build_player_view(session: Session, agent_id: str) -> dict[str, Any]:
             ox, oy = int(pos[0]), int(pos[1])
         except (TypeError, ValueError, IndexError):
             continue
-        if chebyshev_distance((ax, ay), (ox, oy)) <= _SOCIAL_RANGE:
-            social_candidates.append({"id": other["id"], "name": other["name"]})
+        dist = chebyshev_distance((ax, ay), (ox, oy))
+        if reach is None or dist <= reach:
+            social_candidates.append(
+                {
+                    "id": other["id"],
+                    "name": other["name"],
+                    "distance": dist,
+                }
+            )
 
     return {
         "ok": True,
@@ -189,8 +205,56 @@ def build_player_view(session: Session, agent_id: str) -> dict[str, Any]:
         "history": build_player_history(agent),
         "assist": assist,
         "social_candidates": social_candidates,
+        **_combat_status_for_view(session, agent),
+        **_skills_status_for_view(session, agent),
         **player_initiative_fields(session, agent.id),
     }
+
+
+def _combat_status_for_view(session: Session, agent) -> dict[str, Any]:
+    """Public combat fields for the player YOU panel (empty when combat off / no HP)."""
+    combat_state = sys.modules.get("studio_plugin_combat.state")
+    combat_sheet = sys.modules.get("studio_plugin_combat.sheet")
+    if combat_state is None or combat_sheet is None:
+        return {}
+    if not combat_state.plugin_enabled(session):
+        return {}
+    block = combat_sheet.get_hp_block(agent)
+    hp = block.get("hp")
+    if hp is None:
+        return {}
+    max_hp = block.get("max_hp")
+    out: dict[str, Any] = {"hp": int(hp)}
+    if max_hp is not None:
+        out["max_hp"] = int(max_hp)
+    return out
+
+
+def _skills_status_for_view(session: Session, agent) -> dict[str, Any]:
+    """Stats/skills for the player YOU panel when the Skills plugin is enabled."""
+    skills_state = sys.modules.get("studio_plugin_skills.state")
+    skills_sheet = sys.modules.get("studio_plugin_skills.sheet")
+    skills_dice = sys.modules.get("studio_plugin_skills.dice")
+    if skills_state is None or skills_sheet is None or skills_dice is None:
+        return {}
+    if not skills_state.plugin_enabled(session):
+        return {}
+    data = skills_sheet.get_sheet(agent)
+    stats_out: list[dict[str, Any]] = []
+    for name in skills_dice.STAT_NAMES:
+        score = int(data["stats"][name])
+        stats_out.append(
+            {
+                "name": name,
+                "score": score,
+                "mod": int(skills_dice.stat_modifier(score)),
+            }
+        )
+    skills_out = [
+        {"name": name, "level": int(level)}
+        for name, level in sorted((data.get("skills") or {}).items())
+    ]
+    return {"stats": stats_out, "skills": skills_out}
 
 
 def _assist_for_agent(session: Session, agent_id: str) -> list[dict[str, Any]]:
@@ -205,7 +269,8 @@ def _assist_for_agent(session: Session, agent_id: str) -> list[dict[str, Any]]:
     enriched: list[dict[str, Any]] = []
     for row in rows:
         verbs = list(row.get("verbs") or [])
-        if row.get("plugin_id") == "inventory":
+        # Carried items (obj_*): always offer give/show; engine paths into range.
+        if str(row.get("id") or "").startswith("obj_"):
             for extra in ("give", "show"):
                 if extra not in verbs:
                     verbs.append(extra)

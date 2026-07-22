@@ -78,19 +78,38 @@ def _format_inventory_prompt(session, agent_id: str) -> str:
     if not items:
         return "Items in your Inventory:\n(none)"
 
+    combat_state = sys.modules.get("studio_plugin_combat.state")
+    combat_sheet = sys.modules.get("studio_plugin_combat.sheet")
+
     lines = ["Items in your Inventory:"]
     for item in items:
         name = item.get("name") or item.get("item_id")
         item_id = item.get("item_id", "")
-        verb_tags = " ".join(
-            f"[{verb}]"
-            for verb in interact.inventory_verbs_for_item(
-                item,
-                drop_verb=_DROP_VERB,
-                social_verbs=(_GIVE_VERB, _SHOW_VERB),
-            )
+        equipped = ""
+        if (
+            combat_state is not None
+            and combat_state.plugin_enabled(session)
+            and combat_state.is_item_equipped(session, agent_id, str(item_id))
+        ):
+            equipped = " [equipped]"
+        verbs = interact.inventory_verbs_for_item(
+            item,
+            drop_verb=_DROP_VERB,
+            social_verbs=(_GIVE_VERB, _SHOW_VERB),
         )
-        lines.append(f"- {name} ({item_id}) {verb_tags}")
+        # Keep combat attack action names out of the inventory verb list.
+        if combat_sheet is not None:
+            combat = combat_sheet.parse_item_combat(item)
+            if combat and combat.get("slot") == "weapon":
+                handlers = sys.modules.get("studio_plugin_combat.handlers")
+                skip = set()
+                if handlers is not None:
+                    skip.update(handlers.weapon_attack_verbs(item, combat))
+                elif combat.get("action"):
+                    skip.add(str(combat["action"]))
+                verbs = [v for v in verbs if v not in skip]
+        verb_tags = " ".join(f"[{verb}]" for verb in verbs)
+        lines.append(f"- {name}{equipped} ({item_id}) {verb_tags}".rstrip())
 
     lines.extend(
         [
@@ -192,13 +211,27 @@ def _inventory_prompt_slot(session, agent, area, ctx_prompt, options):
 
 def _build_panel(session):
     agent = session.get_active_agent()
-    items = state.agent_items(session, agent.id)
+    items = state.agent_items(session, agent.id) if agent is not None else []
     sections: list[dict[str, Any]] = [
         {
             "type": "text",
             "content": (
                 f"Carried by {agent.name}: {len(items)} item{'' if len(items) == 1 else 's'}."
+                if agent is not None
+                else "No active agent."
             ),
+        },
+        {
+            "type": "template_id",
+            "id": "grant_template_id",
+            "label": "Add object template to inventory",
+            "kind": "object",
+        },
+        {
+            "type": "button",
+            "id": "grant_from_template",
+            "label": "Add to inventory",
+            "params_from_inputs": {"template_id": "grant_template_id"},
         },
     ]
     if not items:
@@ -206,15 +239,23 @@ def _build_panel(session):
             {
                 "type": "text",
                 "content": (
-                    "No items yet. On an object, add action pick_up with handler "
-                    f"{_HANDLER_ID!r}, then interact in range."
+                    "No items yet. Use Add to inventory above, or on a map object add action "
+                    f"pick_up with handler {_HANDLER_ID!r}."
                 ),
             }
         )
     else:
+        combat_state = sys.modules.get("studio_plugin_combat.state")
         for item in items:
             label = item.get("name") or item.get("item_id")
             item_id = item.get("item_id", "")
+            if (
+                agent is not None
+                and combat_state is not None
+                and combat_state.plugin_enabled(session)
+                and combat_state.is_item_equipped(session, agent.id, str(item_id))
+            ):
+                label = f"{label} [equipped]"
             sections.append(
                 {
                     "type": "key_value_list",
@@ -429,3 +470,36 @@ def register(ctx):
     ctx.set_panel_builder(_build_panel)
     ctx.register_panel_action("drop_item", _drop_item_action)
     ctx.register_panel_action("use_item", _use_item_action)
+
+    def _grant_from_template_panel(session, params: dict[str, Any]) -> dict[str, Any]:
+        if not state.plugin_enabled(session):
+            return {"ok": False, "message": "Inventory plugin is not enabled."}
+        agent = session.get_active_agent()
+        if agent is None:
+            return {"ok": False, "message": "No active agent."}
+        template_id = str(params.get("template_id") or "").strip()
+        if not template_id:
+            return {"ok": False, "message": "Select an object template first."}
+        from backend.entity_templates_api import get_entity_template
+
+        loaded = get_entity_template(template_id)
+        if not loaded.get("ok"):
+            return {
+                "ok": False,
+                "message": str(loaded.get("message") or f"Template {template_id!r} not found."),
+            }
+        template = loaded["template"]
+        if not isinstance(template, dict):
+            return {"ok": False, "message": f"Template {template_id!r} is invalid."}
+        try:
+            item = from_template.item_from_object_template(session, agent, template)
+        except ValueError as exc:
+            return {"ok": False, "message": str(exc)}
+        items = state.agent_items(session, agent.id)
+        items.append(item)
+        state.set_agent_items(session, agent.id, items)
+        interact.register_item_action_verbs(ctx, item)
+        name = item.get("name") or item.get("item_id")
+        return {"ok": True, "message": f"Added {name} to {agent.name}'s inventory."}
+
+    ctx.register_panel_action("grant_from_template", _grant_from_template_panel)

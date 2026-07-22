@@ -31,6 +31,10 @@ class PluginManifest:
     panel_actions: dict[str, Callable[..., dict[str, Any]]] = field(default_factory=dict)
     interact_template_vars: list[dict[str, str]] = field(default_factory=list)
     player_turn_assist: Callable[[Any], list[dict[str, Any]]] | None = None
+    # (kind, section_id, private_key, builder, apply_values)
+    entity_form_sections: list[tuple[str, str, str, Callable, Callable]] = field(
+        default_factory=list
+    )
 
     def to_catalog_dict(self, *, enabled: bool) -> dict[str, Any]:
         return {
@@ -96,6 +100,7 @@ class PluginContext:
         validate_turn: Callable | None = None,
         path_range: int | None = None,
         path_target_from_turn: Callable | None = None,
+        path_range_from_turn: Callable | None = None,
     ) -> None:
         cleaned = verb_id.strip()
         register_turn_verb(
@@ -105,6 +110,7 @@ class PluginContext:
             validate_turn=validate_turn,
             path_range=path_range,
             path_target_from_turn=path_target_from_turn,
+            path_range_from_turn=path_range_from_turn,
         )
         if cleaned and cleaned not in self._manifest.turn_verb_ids:
             self._manifest.turn_verb_ids.append(cleaned)
@@ -169,3 +175,32 @@ class PluginContext:
         the active agent (or empty). Host merges results from enabled plugins.
         """
         self._manifest.player_turn_assist = builder
+
+    def register_entity_form_section(
+        self,
+        kind: str,
+        section_id: str,
+        builder: Callable[..., dict[str, Any]],
+        *,
+        private_key: str,
+        apply_values: Callable[[dict[str, Any] | None, dict[str, Any]], dict[str, Any] | None],
+    ) -> None:
+        """
+        Add a Plugins-group section on create/edit entity modals.
+
+        *kind* is ``\"object\"`` or ``\"agent\"``.
+        *builder(session, entity_or_none)* returns ``{title, fields}`` where fields
+        use the same shapes as handler ``param_fields`` (plus optional ``value``).
+        *apply_values(existing_block, field_values)* returns the new private_data
+        sub-object, or ``None`` to remove *private_key*.
+        """
+        cleaned_kind = kind.strip().lower()
+        if cleaned_kind not in ("object", "agent"):
+            raise ValueError("entity form section kind must be 'object' or 'agent'")
+        cleaned_id = section_id.strip()
+        cleaned_key = private_key.strip()
+        if not cleaned_id or not cleaned_key:
+            raise ValueError("section_id and private_key must be non-empty")
+        self._manifest.entity_form_sections.append(
+            (cleaned_kind, cleaned_id, cleaned_key, builder, apply_values)
+        )

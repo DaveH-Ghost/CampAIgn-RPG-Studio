@@ -103,8 +103,13 @@ def merged_interact_template_vars(session) -> list[dict[str, str]]:
 
 
 def merged_player_turn_assist(session) -> list[dict[str, Any]]:
-    """Merge ``{id, label, verbs}`` rows from enabled plugins' turn-assist builders."""
-    targets: list[dict[str, Any]] = []
+    """Merge ``{id, label, verbs}`` rows from enabled plugins' turn-assist builders.
+
+    Rows with the same ``id`` (e.g. combat equip + inventory drop for one sword)
+    are combined so the player UI shows a single entry with all verbs.
+    """
+    by_id: dict[str, dict[str, Any]] = {}
+    order: list[str] = []
     for manifest in list_installed_plugins():
         if not is_plugin_enabled(session, manifest.plugin_id):
             continue
@@ -120,15 +125,30 @@ def merged_player_turn_assist(session) -> list[dict[str, Any]]:
                 continue
             verbs_raw = row.get("verbs") or []
             verbs = [str(v).strip() for v in verbs_raw if str(v).strip()]
-            targets.append(
-                {
+            label = str(row.get("label") or target_id)
+            if target_id not in by_id:
+                order.append(target_id)
+                by_id[target_id] = {
                     "id": target_id,
-                    "label": str(row.get("label") or target_id),
-                    "verbs": verbs,
+                    "label": label,
+                    "verbs": list(verbs),
                     "plugin_id": manifest.plugin_id,
                 }
-            )
-    return targets
+                continue
+            existing = by_id[target_id]
+            seen = set(existing["verbs"])
+            for verb in verbs:
+                if verb not in seen:
+                    existing["verbs"].append(verb)
+                    seen.add(verb)
+            # Prefer equipped marker / richer label from combat assist.
+            if "[equipped]" in label and "[equipped]" not in existing["label"]:
+                existing["label"] = label
+            elif len(label) > len(existing["label"]) and "[equipped]" not in existing["label"]:
+                existing["label"] = label
+            if manifest.plugin_id == "inventory":
+                existing["plugin_id"] = "inventory"
+    return [by_id[tid] for tid in order]
 
 
 def list_installed_plugins() -> list[PluginManifest]:

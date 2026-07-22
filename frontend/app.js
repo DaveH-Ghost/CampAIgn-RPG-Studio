@@ -215,18 +215,35 @@ async function refreshRunTurnTokenHint() {
   const initGate = initiativeBlocksRunTurn(lastSnapshot);
   if (lastSnapshot?.initiative?.enabled) {
     syncRunTurnInitiativeGate();
-    if (initGate.blocked && initGate.reason) return;
-    const current = initGate.currentAgent;
-    if (current) {
-      setRunTurnTokenHint(`Initiative: ${current.name} — press Run turn ▶ for LLM (manual only).`);
+    if (initGate.blocked && initGate.reason) {
+      setRunTurnTokenHint(initGate.reason);
+      applyRunTurnBudgetStyle({ over_warning: false, over_limit: false });
+      return;
     }
+    const current = initGate.currentAgent;
     const seq = ++promptTokenHintSeq;
     try {
       const data = await getPrompt(current?.id);
       if (seq !== promptTokenHintSeq) return;
       applyRunTurnBudgetStyle(data);
+      const who = current?.name ? `Initiative: ${current.name}` : "Initiative";
+      if (data.prompt_tokens != null) {
+        const estimate = Number(data.prompt_tokens).toLocaleString();
+        let hint = `${who} — ~${estimate} input tokens (estimate)`;
+        if (data.over_limit) {
+          hint += ` — over max ${Number(data.max_input_tokens).toLocaleString()}`;
+        } else if (data.over_warning) {
+          hint += ` — ≥${data.input_warning_percent ?? 90}% of max`;
+        }
+        setRunTurnTokenHint(hint);
+      } else {
+        setRunTurnTokenHint(`${who} — press Run turn ▶ for LLM`);
+      }
     } catch {
       applyRunTurnBudgetStyle({ over_warning: false, over_limit: false });
+      if (current?.name) {
+        setRunTurnTokenHint(`Initiative: ${current.name} — press Run turn ▶ for LLM`);
+      }
     }
     return;
   }
@@ -1012,7 +1029,7 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.7.2";
+    const studioVersion = health.version || "1.7.3";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
       ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`

@@ -12,10 +12,11 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.api import register_routers
+from backend.frontend_assets import render_index_html
 from backend.plugin_upload import load_all_plugins
 from backend.version import studio_version
 
@@ -80,19 +81,36 @@ def create_app() -> FastAPI:
 
     register_routers(app)
 
+    _NO_STORE = {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache",
+    }
+
+    @app.middleware("http")
+    async def frontend_cache_headers(request, call_next):
+        """Never let browsers keep stale Studio/play shells or modules."""
+        response = await call_next(request)
+        path = request.url.path
+        if path == "/" or path.endswith(".html"):
+            response.headers.update(_NO_STORE)
+        elif path.endswith((".js", ".mjs", ".css")) and (
+            path.startswith("/static/") or path.startswith("/play/generic/assets/")
+        ):
+            # no-store: Firefox module cache ignores weaker no-cache in private windows.
+            response.headers["Cache-Control"] = "no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+        return response
+
     @app.get("/")
-    def index() -> FileResponse:
-        return FileResponse(_FRONTEND_DIR / "index.html")
+    def index() -> HTMLResponse:
+        return HTMLResponse(render_index_html(), headers=dict(_NO_STORE))
 
     @app.get("/play/generic")
     @app.get("/play/generic/")
     def play_generic_index() -> FileResponse:
         return FileResponse(
             _PLAY_GENERIC_DIR / "index.html",
-            headers={
-                "Cache-Control": "no-store, no-cache, must-revalidate",
-                "Pragma": "no-cache",
-            },
+            headers=dict(_NO_STORE),
         )
 
     if _FRONTEND_DIR.is_dir():

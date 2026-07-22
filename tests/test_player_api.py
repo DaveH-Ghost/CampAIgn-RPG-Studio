@@ -280,3 +280,115 @@ def test_player_view_can_act_when_initiative_current(client):
         headers={"Authorization": f"Bearer {token}"},
     ).json()
     assert view2.get("can_act") is True
+
+
+def test_player_view_includes_hp_when_set(client):
+    import json
+
+    for pid in ("inventory", "skills", "combat"):
+        assert client.post(f"/api/plugins/{pid}/enable").json()["ok"] is True
+    agent_id = _player(client)
+    from backend.session_store import get_session_store
+
+    agent = get_session_store().session.get_agent(agent_id)
+    agent.private_data = json.dumps({"combat_plugin": {"hp": 12, "max_hp": 18}})
+    token = client.post("/api/seats", json={"agent_id": agent_id}).json()["token"]
+    view = client.get("/api/player/view", headers={"Authorization": f"Bearer {token}"}).json()
+    assert view["hp"] == 12
+    assert view["max_hp"] == 18
+    assert len(view["stats"]) == 6
+    assert view["stats"][0]["name"] == "CON"
+    assert "skills" in view
+
+
+def test_player_assist_merges_equip_and_hides_combat_attack(client):
+    import json
+
+    for pid in ("inventory", "skills", "combat"):
+        assert client.post(f"/api/plugins/{pid}/enable").json()["ok"] is True
+
+    agent_id = _player(client)
+    client.post("/api/active-agent", json={"name_or_id": agent_id})
+
+    sword = {
+        "item_id": "obj_sword_1",
+        "name": "Sword",
+        "private_data": json.dumps(
+            {
+                "combat_plugin": {
+                    "slot": "weapon",
+                    "range": 1,
+                    "attack_stat": "STR",
+                    "accuracy_bonus": 0,
+                    "damage": "1d8",
+                    "req": {},
+                }
+            }
+        ),
+        "actions": {
+            "swing": {
+                "kind": "interact",
+                "range": 1,
+                "handler_id": "combat_attack",
+                "handler_params": {},
+                "result": "hit",
+                "passive_result": "hits",
+                "enabled": True,
+            },
+            "polish": {
+                "kind": "interact",
+                "range": 0,
+                "handler_id": "inventory_consume",
+                "handler_params": {},
+                "result": "You polish the blade.",
+                "passive_result": "polishes a blade.",
+                "enabled": True,
+            },
+        },
+    }
+    from backend.session_store import get_session_store
+
+    session = get_session_store().session
+    inv = session.get_extension("inventory") or {"by_agent": {}}
+    inv.setdefault("by_agent", {})[agent_id] = [sword]
+    session.set_extension("inventory", inv)
+
+    token = client.post("/api/seats", json={"agent_id": agent_id}).json()["token"]
+    view = client.get("/api/player/view", headers={"Authorization": f"Bearer {token}"}).json()
+    item_rows = [r for r in view["assist"] if r["id"] == "obj_sword_1"]
+    assert len(item_rows) == 1
+    verbs = item_rows[0]["verbs"]
+    assert "equip" in verbs
+    assert "unequip" in verbs
+    assert "drop" in verbs
+    assert "give" in verbs
+    assert "show" in verbs
+    assert "polish" in verbs
+    assert "swing" not in verbs
+
+
+def test_social_candidates_include_pathable_agents(client):
+    agent_id = _player(client)
+    # Hero at (1,1); Dummy at (1,4) is distance 3 — outside social range 1.
+    dummy = create_agent(name="Dummy", position=(1, 4), personality="x")
+    from backend.session_store import get_session_store
+
+    session = get_session_store().session
+    hero = session.get_agent(agent_id)
+    hero.move_speed = 2
+
+    token = client.post("/api/seats", json={"agent_id": agent_id}).json()["token"]
+    view = client.get("/api/player/view", headers={"Authorization": f"Bearer {token}"}).json()
+    ids = {c["id"] for c in view["social_candidates"]}
+    # move_speed 2 + social 1 = reach 3 → Dummy at dist 3 is included
+    assert dummy.id in ids
+
+    hero.move_speed = 1
+    view2 = client.get("/api/player/view", headers={"Authorization": f"Bearer {token}"}).json()
+    ids2 = {c["id"] for c in view2["social_candidates"]}
+    assert dummy.id not in ids2
+
+    hero.move_speed = None
+    view3 = client.get("/api/player/view", headers={"Authorization": f"Bearer {token}"}).json()
+    ids3 = {c["id"] for c in view3["social_candidates"]}
+    assert dummy.id in ids3

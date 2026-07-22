@@ -11,6 +11,10 @@ from backend.plugin_registry import (
     run_panel_action,
     sync_enabled_plugins_for_session,
 )
+from backend.entity_form_sections import (
+    merge_entity_form_private_data,
+    merged_entity_form_sections,
+)
 from backend.snapshot_compat import normalize_state_snapshot
 
 
@@ -58,3 +62,19 @@ def post_plugin_action(session, plugin_id: str, body: dict) -> dict[str, object]
     if result.get("ok"):
         result["snapshot"] = _snapshot(session)
     return result
+
+
+def get_entity_form_sections_route(
+    session,
+    kind: str,
+    *,
+    entity_id: str | None = None,
+) -> dict[str, object]:
+    return merged_entity_form_sections(session, kind, entity_id=entity_id)
+
+
+def post_merge_entity_form_private_data(session, body: dict) -> dict[str, object]:
+    kind = str(body.get("kind", "")).strip()
+    private_data = str(body.get("private_data", "") or "")
+    values = body.get("values") if isinstance(body.get("values"), dict) else {}
+    return merge_entity_form_private_data(session, kind, private_data, values)

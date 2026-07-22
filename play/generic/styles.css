@@ -388,6 +388,52 @@ body.play-client {
   font-size: 0.9rem;
 }
 
+.play-you-sheet {
+  margin-top: 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #c8c8d4;
+}
+
+.play-you-sheet.hidden {
+  display: none;
+}
+
+.play-you-sheet-heading {
+  margin: 0.45rem 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #9a9aa8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.play-you-sheet-heading:first-child {
+  margin-top: 0;
+}
+
+.play-you-stats,
+.play-you-skills {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.play-you-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.2rem 0.45rem;
+}
+
+.play-you-stats li,
+.play-you-skills li {
+  margin: 0;
+}
+
+.play-you-skills li {
+  padding: 0.05rem 0;
+}
+
 .play-vision {
   margin: 0;
   max-height: 12rem;

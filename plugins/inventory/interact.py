@@ -27,10 +27,23 @@ def is_grid_only_handler(handler_id: str | None) -> bool:
     return handler_id in _GRID_ONLY_HANDLERS
 
 
+def is_combat_attack_handler(handler_id: str | None) -> bool:
+    return handler_id == "combat_attack"
+
+
 def is_inventory_only_handler(handler_id: str | None) -> bool:
+    """Handlers usable from inventory but hidden on the world map."""
     if not handler_id or is_grid_only_handler(handler_id):
         return False
+    # combat_attack is neither inventory-use nor map-interact; see hides_from_world_interactions.
+    if is_combat_attack_handler(handler_id):
+        return False
     return handler_id.startswith("inventory_")
+
+
+def hides_from_world_interactions(handler_id: str | None) -> bool:
+    """True when the action must not appear on map object interaction lists."""
+    return is_inventory_only_handler(handler_id) or is_combat_attack_handler(handler_id)
 
 
 def item_as_object(item: dict[str, Any], agent) -> Object:
@@ -197,25 +210,44 @@ def apply_perception_patch() -> None:
     if _PERCEPTION_PATCHED:
         return
 
+    import re
+
     import campaign_rpg_engine.perception as perception
 
     original_get = perception.get_object_interactions_reachable_after_move
     original_available = perception.get_available_interactions
+    original_format = perception._format_object_interaction_lines
+    action_line_re = re.compile(r"^\s*-\s*(?:\[far\]\s*)?(\S+)\s*\(")
 
     def filtered_get(agent, area, obj):
         interactions = original_get(agent, area, obj)
         return [
             (name, action)
             for name, action in interactions
-            if not is_inventory_only_handler(action.handler_id)
+            if not hides_from_world_interactions(action.handler_id)
         ]
 
     def filtered_available(agent, area):
         interactions = original_available(agent, area)
         return [
-            entry for entry in interactions if not is_inventory_only_handler(entry[3].handler_id)
+            entry
+            for entry in interactions
+            if not hides_from_world_interactions(entry[3].handler_id)
         ]
+
+    def filtered_format(agent, area, obj, **kwargs):
+        lines = original_format(agent, area, obj, **kwargs)
+        out: list[str] = []
+        for line in lines:
+            match = action_line_re.match(line)
+            if match:
+                action = obj.actions.get(match.group(1))
+                if action is not None and hides_from_world_interactions(action.handler_id):
+                    continue
+            out.append(line)
+        return out
 
     perception.get_object_interactions_reachable_after_move = filtered_get
     perception.get_available_interactions = filtered_available
+    perception._format_object_interaction_lines = filtered_format
     _PERCEPTION_PATCHED = True

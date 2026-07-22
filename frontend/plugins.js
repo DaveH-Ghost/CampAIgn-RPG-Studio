@@ -3,6 +3,7 @@
 import {
   disablePlugin,
   enablePlugin,
+  fetchEntityTemplates,
   fetchPluginPanel,
   fetchPlugins,
   postPluginAction,
@@ -80,21 +81,24 @@ export async function refreshPluginsList() {
     title.textContent = plugin.label || plugin.id;
     const meta = document.createElement("div");
     meta.className = "plugins-list-meta";
-    meta.textContent = plugin.description || plugin.id;
+    meta.textContent = plugin.enabled ? "Enabled" : "Disabled";
     const actions = document.createElement("div");
     actions.className = "plugins-list-actions";
     const toggle = document.createElement("button");
     toggle.type = "button";
-    toggle.className = plugin.enabled ? "modal-cancel" : "settings-action-btn";
+    toggle.className = "settings-action-btn";
     toggle.textContent = plugin.enabled ? "Disable" : "Enable";
-    toggle.addEventListener("click", async (ev) => {
-      ev.stopPropagation();
+    toggle.addEventListener("click", async (event) => {
+      event.stopPropagation();
       try {
-        const result = plugin.enabled
-          ? await disablePlugin(plugin.id)
-          : await enablePlugin(plugin.id);
-        showToastFn(result.message || "Updated.");
-        await onPluginsChangedFn(result.snapshot);
+        if (plugin.enabled) {
+          await disablePlugin(plugin.id);
+          showToastFn(`Disabled ${plugin.label || plugin.id}.`);
+        } else {
+          await enablePlugin(plugin.id);
+          showToastFn(`Enabled ${plugin.label || plugin.id}.`);
+        }
+        await onPluginsChangedFn();
         await refreshPluginsList();
         if (selectedPluginId === plugin.id) {
           await renderPluginPanel(plugin.id);
@@ -148,11 +152,37 @@ async function renderPluginPanel(pluginId) {
     host.appendChild(desc);
   }
   for (const section of panel.sections || []) {
-    host.appendChild(renderPanelSection(pluginId, section));
+    host.appendChild(await renderPanelSection(pluginId, section));
   }
 }
 
-function renderPanelSection(pluginId, section) {
+function collectParamsFromInputs(host, mapping) {
+  const params = {};
+  for (const [paramName, inputId] of Object.entries(mapping || {})) {
+    const el = host.querySelector(`[data-panel-input="${inputId}"]`);
+    if (!el) continue;
+    params[paramName] = el.value;
+  }
+  return params;
+}
+
+function renderInlinePanelInput(field) {
+  const label = document.createElement("label");
+  label.className = "plugins-panel-field";
+  const span = document.createElement("span");
+  span.textContent = field.label || field.id || "Value";
+  label.appendChild(span);
+  const input = document.createElement("input");
+  input.type = field.type === "text" ? "text" : "number";
+  input.value = field.value ?? "";
+  if (field.min != null) input.min = String(field.min);
+  if (field.max != null) input.max = String(field.max);
+  input.dataset.panelInput = field.id || "input";
+  label.appendChild(input);
+  return label;
+}
+
+async function renderPanelSection(pluginId, section) {
   const wrap = document.createElement("div");
   wrap.className = "plugins-panel-section";
   if (section.type === "text") {
@@ -173,14 +203,62 @@ function renderPanelSection(pluginId, section) {
     wrap.appendChild(ul);
     return wrap;
   }
+  if (section.type === "number_input") {
+    wrap.appendChild(
+      renderInlinePanelInput({
+        id: section.id || "number_input",
+        type: "number",
+        label: section.label || section.id || "Value",
+        value: section.value ?? "",
+        min: section.min,
+        max: section.max,
+      }),
+    );
+    return wrap;
+  }
+  if (section.type === "template_id") {
+    const label = document.createElement("label");
+    label.className = "plugins-panel-field";
+    const span = document.createElement("span");
+    span.textContent = section.label || "Template";
+    label.appendChild(span);
+    const select = document.createElement("select");
+    select.dataset.panelInput = section.id || "template_id";
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = "(select template)";
+    select.appendChild(blank);
+    try {
+      const data = await fetchEntityTemplates();
+      const kindFilter = section.kind || null;
+      for (const tpl of data.templates || []) {
+        if (kindFilter && tpl.kind && tpl.kind !== kindFilter) continue;
+        const opt = document.createElement("option");
+        opt.value = tpl.id;
+        opt.textContent = tpl.name ? `${tpl.name} (${tpl.id})` : tpl.id;
+        select.appendChild(opt);
+      }
+    } catch {
+      // leave empty beyond blank option
+    }
+    label.appendChild(select);
+    wrap.appendChild(label);
+    return wrap;
+  }
   if (section.type === "button") {
+    for (const field of section.inputs || []) {
+      wrap.appendChild(renderInlinePanelInput(field));
+    }
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "settings-action-btn";
     btn.textContent = section.label || section.id || "Run";
     btn.addEventListener("click", async () => {
       try {
-        const result = await postPluginAction(pluginId, section.id, section.params || {});
+        const host = document.getElementById("plugin-panel-host");
+        const fromInputs = collectParamsFromInputs(host, section.params_from_inputs || {});
+        const params = { ...(section.params || {}), ...fromInputs };
+        const result = await postPluginAction(pluginId, section.id, params);
         showToastFn(result.message || "Done.");
         if (result.snapshot) {
           await onPluginsChangedFn(result.snapshot);

@@ -4,6 +4,34 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.7.3
+
+**Requires:** `campaign-rpg-engine>=1.7.3`
+
+### Combat plugin
+
+- New **Combat** plugin (`plugins/combat/`): HP/AC, equip/unequip weapons and armor, attack verbs while combat is active, unarmed (range 1, STR, 1d4).
+- Start combat requires initiative on with a non-empty order; missing HP seeds to **10**. Downed (HP ≤ 0) removes the agent from initiative.
+- GM panel **Start / End combat**; emit tags `[Combat Start]` / `[Combat End]` via the engine `area_event` hook.
+- Prompt slot `combat` (place below inventory). Inventory shows `[equipped]` on equipped items; attack actions stay in the combat prompt.
+- Object **Edit → Plugins**: set weapon/armor **stats** only (when Combat is enabled). Attack verbs + hit/miss text live under **Manage actions** (`combat_attack`); multiple verbs can share one weapon’s stats.
+- Manage actions handler **`combat_attack`**: custom hit/miss templates with amber roll placeholders (`{attack_roll}`, `{damage_total}`, …).
+- Combat panel: **Set max HP** for the active agent (fills current HP to max).
+
+### Inventory GM setup
+
+- Inventory panel: **Add object template to inventory** for the active agent (no dummy map object required).
+
+### Plugin host
+
+- `register_entity_form_section` + `GET /api/entity-form-sections` / `POST /api/entity-form-sections/merge` for plugin-driven create/edit form fields.
+
+### Engine dependency
+
+- Verb pathing honors explicit moves already in range; dynamic `path_range_from_turn` for weapon ranges.
+
+---
+
 ## 1.7.2
 
 **Requires:** `campaign-rpg-engine>=1.7.2`

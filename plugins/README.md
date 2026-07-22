@@ -40,6 +40,8 @@ def register(ctx):
 
 `register_player_turn_assist(builder)` — `builder(session)` returns `[{id, label, verbs: [str]}, ...]`. Host merges enabled plugins on `GET /api/player-turn-assist` for the player-turn verb/target UI.
 
+`register_entity_form_section(kind, section_id, builder, private_key=..., apply_values=...)` — adds fields under create/edit **Plugins** (object or agent). Host merges via `GET /api/entity-form-sections` and `POST /api/entity-form-sections/merge`.
+
 ## Capabilities
 
 | Method | Engine primitive |
@@ -49,6 +51,7 @@ def register(ctx):
 | `register_prompt_slot` | Prompt layout slot (active when enabled) |
 | `register_interact_template_vars` | Extra `{name}` entries in action-editor `?` help (when enabled); handlers must substitute them |
 | `register_player_turn_assist` | Verb/target rows for Studio player-turn panel (when enabled) |
+| `register_entity_form_section` | Create/edit modal Plugins fields → `private_data` merge |
 | `on` | Session event listener (active when enabled) |
 | `set_panel` / `register_panel_action` | Plugins tab UI |
 
@@ -64,6 +67,7 @@ Studio tracks enabled plugins in `session.extensions["_studio_plugins"]`.
 |--------|------|----------------|
 | **Inventory** | `plugins/inventory/` | Pick up, drop, give/show, consume, prompt slot, dynamic panel |
 | **Skills** | `plugins/skills/` | Stats/skills in `private_data`, `skill_check` handler, prompt slot, panel |
+| **Combat** | `plugins/combat/` | HP/AC, equip, attacks (needs initiative); soft-requires Inventory + Skills |
 | Hello (tests only) | `tests/fixtures/plugins/hello_plugin/` | Minimal enable/disable, static panel, events |
 
 ### Inventory setup
@@ -111,6 +115,18 @@ Skills format — string name to integer level:
 4. On a **pass**, the action's usual `result` / `passive_result` fire. On a **fail**, fail templates are used instead. Both support skills placeholders `{raw_roll}`, `{roll_bonus}`, `{modified_roll}`, `{dc_target}` (amber in the `?` help while Skills is enabled). Follow-up handlers run for side effects; skills keeps the narrative line.
 
 Add a Prompt layout block `plugin_slot` named `skills` so agents see their sheet.
+
+### Combat setup
+
+1. Enable **Inventory**, **Skills**, and **Combat** on the Plugins tab.
+2. Put fighters in the **initiative** order, then **Start combat** (or emit `[Combat Start] …`). Start refuses if initiative is off/empty.
+3. Create/edit an object → **Plugins → Combat**: set Weapon or Armor **stats** only (range, attack stat, damage, AC, …). Attack verb names are not set here.
+4. **Manage actions**: add one or more actions (e.g. `swing`, `slash`, `shoot`) with handler **`combat_attack`**. Same weapon stats apply to all of them; hit text = action result/passive; miss text = `miss_result` / `miss_passive`. Amber placeholders: `{attack_roll}`, `{attack_bonus}`, `{attack_total}`, `{target_ac}`, `{attack_detail}`, `{damage_detail}`, `{damage_total}`, `{target_hp}`, `{target}`, `{action}`, `{weapon}`.
+5. Grant gear: Inventory panel → pick an object template → **Add to inventory**. Equip with verb `equip` / `unequip`.
+6. Combat panel → set active agent **max HP** (fills current HP). In combat, use a Manage-action attack name on the equipped weapon (or `unarmed`) with `target` = foe agent id.
+7. Add a Prompt layout block `plugin_slot` named `combat` **below** inventory.
+
+HP defaults to **10** when combat starts if missing. HP ≤ 0 downs the agent (removed from initiative). No spectator turns in v1 — only agents on the initiative list act during combat.
 
 ## Docs
 

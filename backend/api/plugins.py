@@ -6,10 +6,12 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from backend.plugin_upload import upload_plugin
 from backend.plugins_api import (
+    get_entity_form_sections_route,
     get_plugin_panel_route,
     get_plugins_catalog,
     post_disable_plugin,
     post_enable_plugin,
+    post_merge_entity_form_private_data,
     post_plugin_action,
 )
 from backend.session_store import get_session_store
@@ -20,6 +22,26 @@ router = APIRouter()
 @router.get("/api/plugins")
 def get_plugins_route() -> dict[str, object]:
     return get_plugins_catalog(get_session_store().session)
+
+
+@router.get("/api/entity-form-sections")
+def get_entity_form_sections_api(kind: str, entity_id: str | None = None) -> dict[str, object]:
+    result = get_entity_form_sections_route(
+        get_session_store().session,
+        kind,
+        entity_id=entity_id,
+    )
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("message", "Bad request"))
+    return result
+
+
+@router.post("/api/entity-form-sections/merge")
+def post_entity_form_sections_merge(body: dict) -> dict[str, object]:
+    result = post_merge_entity_form_private_data(get_session_store().session, body)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("message", "Merge failed"))
+    return result
 
 
 @router.post("/api/plugins/{plugin_id}/enable")

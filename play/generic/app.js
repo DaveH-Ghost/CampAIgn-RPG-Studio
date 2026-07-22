@@ -1,5 +1,5 @@
 /**
- * /play/generic — player-scoped grid client (Studio 1.7.2).
+ * /play/generic — player-scoped grid client (Studio 1.7.3).
  */
 
 import { hasAppearance, resolveAppearanceUrl } from "/static/appearance.js?v=1.7.0f";
@@ -11,13 +11,14 @@ import {
   fetchPlayerView,
   loadSeatToken,
   postPlayerTurn,
-} from "/play/generic/assets/api.js?v=1.7.2";
-import { renderSceneDecorations } from "/play/generic/assets/decorations.js?v=1.7.2";
+} from "/play/generic/assets/api.js?v=1.7.3f";
+import { renderSceneDecorations } from "/play/generic/assets/decorations.js?v=1.7.3f";
 
 const statusEl = document.getElementById("play-status");
 const subtitleEl = document.getElementById("play-subtitle");
 const noSeatEl = document.getElementById("play-no-seat");
 const youEl = document.getElementById("play-you");
+const youSheetEl = document.getElementById("play-you-sheet");
 const historyEl = document.getElementById("play-history");
 const historyEmptyEl = document.getElementById("play-history-empty");
 const visionEl = document.getElementById("play-vision");
@@ -528,8 +529,62 @@ function renderHistory(view, { forceScroll = false } = {}) {
   }
 }
 
+function renderYouSheet(view) {
+  if (!youSheetEl) return;
+  const stats = asArray(view.stats);
+  const skills = asArray(view.skills);
+  youSheetEl.innerHTML = "";
+  if (!stats.length && !skills.length) {
+    youSheetEl.classList.add("hidden");
+    return;
+  }
+  youSheetEl.classList.remove("hidden");
+
+  if (stats.length) {
+    const heading = document.createElement("p");
+    heading.className = "play-you-sheet-heading";
+    heading.textContent = "Stats";
+    youSheetEl.appendChild(heading);
+    const ul = document.createElement("ul");
+    ul.className = "play-you-stats";
+    for (const row of stats) {
+      const li = document.createElement("li");
+      const mod = Number(row.mod) || 0;
+      const modText = mod >= 0 ? `+${mod}` : `${mod}`;
+      li.textContent = `${row.name} ${row.score} (${modText})`;
+      ul.appendChild(li);
+    }
+    youSheetEl.appendChild(ul);
+  }
+
+  const skillsHeading = document.createElement("p");
+  skillsHeading.className = "play-you-sheet-heading";
+  skillsHeading.textContent = "Skills";
+  youSheetEl.appendChild(skillsHeading);
+  if (!skills.length) {
+    const empty = document.createElement("p");
+    empty.className = "play-meta";
+    empty.textContent = "(none)";
+    youSheetEl.appendChild(empty);
+    return;
+  }
+  const skillsList = document.createElement("ul");
+  skillsList.className = "play-you-skills";
+  for (const row of skills) {
+    const li = document.createElement("li");
+    li.textContent = `${row.name} ${row.level}`;
+    skillsList.appendChild(li);
+  }
+  youSheetEl.appendChild(skillsList);
+}
+
 function renderSidebar(view, opts = {}) {
   youEl.textContent = `${view.agent_name} (${view.agent_id}) — ${view.area_id} — turn ${view.session_turn ?? "?"}`;
+  if (view.hp != null) {
+    const maxPart = view.max_hp != null ? `/${view.max_hp}` : "";
+    youEl.textContent += ` — HP ${view.hp}${maxPart}`;
+  }
+  renderYouSheet(view);
   visionEl.textContent = view.passive_vision || "(no vision text)";
   subtitleEl.textContent = `Playing as ${view.agent_name}`;
   renderHistory(view, opts);
@@ -790,7 +845,7 @@ function showInventoryMenu(x, y, item) {
 function openSocialModal(verb, item) {
   const candidates = asArray(lastView?.social_candidates);
   if (!candidates.length) {
-    showToast("No agents in range to give/show.", true);
+    showToast("No agents in give/show reach this turn (move closer).", true);
     return;
   }
   openModal({

@@ -160,6 +160,33 @@ def set_order(session: Session, order: list[str]) -> dict[str, Any]:
     return get_initiative_state(session)
 
 
+def remove_agent(session: Session, agent_id: str) -> dict[str, Any]:
+    """Remove *agent_id* from the initiative order and repair the current index."""
+    state = get_initiative_state(session)
+    order = list(state.get("order") or [])
+    aid = str(agent_id).strip()
+    if aid not in order:
+        return get_initiative_state(session)
+    old_index = int(state.get("index") or 0)
+    removed_at = order.index(aid)
+    order.pop(removed_at)
+    state["order"] = order
+    if not order:
+        state["index"] = 0
+        state["enabled"] = False
+    elif removed_at < old_index:
+        state["index"] = old_index - 1
+    elif removed_at == old_index:
+        # Current actor removed: keep index pointing at the next agent (same slot).
+        state["index"] = old_index % len(order)
+    else:
+        state["index"] = old_index
+    session.set_extension(INITIATIVE_KEY, state)
+    if state.get("enabled"):
+        sync_active_agent(session)
+    return get_initiative_state(session)
+
+
 def put_initiative(
     session: Session,
     *,

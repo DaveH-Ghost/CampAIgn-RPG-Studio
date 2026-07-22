@@ -28,7 +28,9 @@ import {
   postEditArea,
   postEntityPrivateData,
   postEvent,
+  postMergeEntityFormPrivateData,
   postSaveAreaTemplate,
+  fetchEntityFormSections,
   postSaveEntityTemplate,
   postSpawnAreaFromTemplate,
   postSpawnAreaTemplate,
@@ -471,6 +473,7 @@ const MODAL_GROUPS = {
   placement: { title: "Placement", open: false },
   simulation: { title: "Simulation", open: false },
   memory: { title: "Memory options", open: false },
+  plugins: { title: "Plugins", open: false },
   advanced: { title: "Advanced", open: false },
 };
 
@@ -721,6 +724,49 @@ function privateDataField(value = "") {
   };
 }
 
+/**
+ * Load enabled plugin form sections and flatten to modal fields.
+ * @returns {Promise<{fields: object[], sections: object[]}>}
+ */
+async function loadPluginEntityFormFields(kind, entityId = null) {
+  try {
+    const data = await fetchEntityFormSections(kind, entityId);
+    const sections = data.sections || [];
+    const fields = [];
+    for (const section of sections) {
+      fields.push({
+        type: "context",
+        text: section.title || section.plugin_label || section.plugin_id,
+        group: "plugins",
+      });
+      for (const field of section.fields || []) {
+        fields.push(field);
+      }
+    }
+    return { fields, sections };
+  } catch {
+    return { fields: [], sections: [] };
+  }
+}
+
+async function resolvePrivateDataWithPlugins(kind, privateDataText, formData) {
+  const values = {};
+  for (const [key, value] of Object.entries(formData || {})) {
+    if (String(key).startsWith("efs_")) {
+      values[key] = value;
+    }
+  }
+  if (!Object.keys(values).length) {
+    return String(privateDataText ?? "");
+  }
+  const merged = await postMergeEntityFormPrivateData({
+    kind,
+    private_data: privateDataText ?? "",
+    values,
+  });
+  return merged.private_data ?? "";
+}
+
 async function persistPrivateDataIfChanged(entityId, value, previous) {
   const next = String(value ?? "");
   const prev = String(previous ?? "");
@@ -771,90 +817,99 @@ function objectMovementFields({ blocksMovement, movementExceptions }) {
 }
 
 function openCreateObjectModal(x, y) {
-  openModal(
-    "Create object",
-    [
-      { name: "name", label: "Name", value: "New Object", required: true, group: "basic" },
-      {
-        name: "pdesc",
-        label: "Passive description",
-        value: "An object.",
-        type: "textarea",
-        group: "descriptions",
+  void (async () => {
+    const pluginForm = await loadPluginEntityFormFields("object");
+    openModal(
+      "Create object",
+      [
+        { name: "name", label: "Name", value: "New Object", required: true, group: "basic" },
+        {
+          name: "pdesc",
+          label: "Passive description",
+          value: "An object.",
+          type: "textarea",
+          group: "descriptions",
+        },
+        {
+          name: "desc",
+          label: "Detailed description",
+          value: "A new object.",
+          type: "textarea",
+          group: "descriptions",
+        },
+        {
+          name: "x",
+          label: "X",
+          value: String(x),
+          type: "number",
+          required: true,
+          group: "placement",
+        },
+        {
+          name: "y",
+          label: "Y",
+          value: String(y),
+          type: "number",
+          required: true,
+          group: "placement",
+        },
+        {
+          name: "width",
+          label: "Width (tiles)",
+          value: "1",
+          type: "number",
+          required: true,
+          group: "placement",
+        },
+        {
+          name: "height",
+          label: "Height (tiles)",
+          value: "1",
+          type: "number",
+          required: true,
+          group: "placement",
+        },
+        ...objectMovementFields({ blocksMovement: true, movementExceptions: "" }),
+        objectHiddenField(false),
+        {
+          name: "appearance",
+          label: "Token image path",
+          value: "",
+          placeholder: "tokens/my-object.svg",
+          group: "advanced",
+        },
+        ...pluginForm.fields,
+        privateDataField(),
+      ],
+      async (data) => {
+        const line = buildCreateObject({
+          name: data.name,
+          pdesc: data.pdesc,
+          desc: data.desc,
+          appearance: data.appearance,
+          x: data.x,
+          y: data.y,
+          width: data.width,
+          height: data.height,
+          blocksMovement: data.blocksMovement,
+          movementExceptions: data.movementExceptions,
+          hidden: data.hidden,
+        });
+        const result = await postCommand(line);
+        if (!result.ok) throw new Error(result.message);
+        const objectId = parseCreatedObjectId(result.message);
+        if (!objectId) throw new Error("Created object id not found in response.");
+        const privateData = await resolvePrivateDataWithPlugins(
+          "object",
+          data.privateData,
+          data,
+        );
+        const privateResult = await persistPrivateDataIfChanged(objectId, privateData, "");
+        showToast(privateResult?.message ?? result.message, false);
+        await onStateChanged(privateResult?.snapshot ?? result.snapshot);
       },
-      {
-        name: "desc",
-        label: "Detailed description",
-        value: "A new object.",
-        type: "textarea",
-        group: "descriptions",
-      },
-      {
-        name: "x",
-        label: "X",
-        value: String(x),
-        type: "number",
-        required: true,
-        group: "placement",
-      },
-      {
-        name: "y",
-        label: "Y",
-        value: String(y),
-        type: "number",
-        required: true,
-        group: "placement",
-      },
-      {
-        name: "width",
-        label: "Width (tiles)",
-        value: "1",
-        type: "number",
-        required: true,
-        group: "placement",
-      },
-      {
-        name: "height",
-        label: "Height (tiles)",
-        value: "1",
-        type: "number",
-        required: true,
-        group: "placement",
-      },
-      ...objectMovementFields({ blocksMovement: true, movementExceptions: "" }),
-      objectHiddenField(false),
-      {
-        name: "appearance",
-        label: "Token image path",
-        value: "",
-        placeholder: "tokens/my-object.svg",
-        group: "advanced",
-      },
-      privateDataField(),
-    ],
-    async (data) => {
-      const line = buildCreateObject({
-        name: data.name,
-        pdesc: data.pdesc,
-        desc: data.desc,
-        appearance: data.appearance,
-        x: data.x,
-        y: data.y,
-        width: data.width,
-        height: data.height,
-        blocksMovement: data.blocksMovement,
-        movementExceptions: data.movementExceptions,
-        hidden: data.hidden,
-      });
-      const result = await postCommand(line);
-      if (!result.ok) throw new Error(result.message);
-      const objectId = parseCreatedObjectId(result.message);
-      if (!objectId) throw new Error("Created object id not found in response.");
-      const privateResult = await persistPrivateDataIfChanged(objectId, data.privateData, "");
-      showToast(privateResult?.message ?? result.message, false);
-      await onStateChanged(privateResult?.snapshot ?? result.snapshot);
-    },
-  );
+    );
+  })();
 }
 
 function openCreateHiddenTriggerModal(x, y) {
@@ -1087,106 +1142,115 @@ function openEditObjectModal(entity, areaId) {
   const resolvedAreaId = areaId ?? activeAreaView(getSnapshot())?.active_area_id ?? DEFAULT_AREA_ID;
   const areaOptions = listAreaOptions();
 
-  openModal(
-    `Edit object — ${entity.name}`,
-    [
-      { name: "name", label: "Name", value: entity.name, required: true, group: "basic" },
-      {
-        name: "pdesc",
-        label: "Passive description",
-        value: entity.passive_description ?? "",
-        type: "textarea",
-        group: "descriptions",
+  void (async () => {
+    const pluginForm = await loadPluginEntityFormFields("object", entity.id);
+    openModal(
+      `Edit object — ${entity.name}`,
+      [
+        { name: "name", label: "Name", value: entity.name, required: true, group: "basic" },
+        {
+          name: "pdesc",
+          label: "Passive description",
+          value: entity.passive_description ?? "",
+          type: "textarea",
+          group: "descriptions",
+        },
+        {
+          name: "desc",
+          label: "Detailed description",
+          value: entity.description ?? "",
+          type: "textarea",
+          group: "descriptions",
+        },
+        {
+          name: "areaId",
+          label: "Area",
+          type: "select",
+          value: resolvedAreaId,
+          options: areaOptions,
+          group: "placement",
+        },
+        {
+          name: "x",
+          label: "X",
+          value: String(entity.position[0]),
+          type: "number",
+          required: true,
+          group: "placement",
+        },
+        {
+          name: "y",
+          label: "Y",
+          value: String(entity.position[1]),
+          type: "number",
+          required: true,
+          group: "placement",
+        },
+        {
+          name: "width",
+          label: "Width (tiles)",
+          value: String(entity.width ?? 1),
+          type: "number",
+          required: true,
+          group: "placement",
+        },
+        {
+          name: "height",
+          label: "Height (tiles)",
+          value: String(entity.height ?? 1),
+          type: "number",
+          required: true,
+          group: "placement",
+        },
+        ...objectMovementFields({
+          blocksMovement: entity.blocks_movement !== false,
+          movementExceptions: (entity.movement_exceptions || []).join(", "),
+        }),
+        objectHiddenField(!!entity.hidden),
+        {
+          name: "appearance",
+          label: "Token image path",
+          value: entity.appearance ?? "",
+          placeholder: "tokens/my-object.svg",
+          group: "advanced",
+        },
+        ...pluginForm.fields,
+        privateDataField(entity.private_data),
+      ],
+      async (data) => {
+        const line = buildEditObject({
+          id: entity.id,
+          name: data.name,
+          pdesc: data.pdesc || undefined,
+          desc: data.desc || undefined,
+          appearance: data.appearance,
+          areaId: data.areaId,
+          sourceAreaId: resolvedAreaId,
+          x: data.x,
+          y: data.y,
+          width: data.width,
+          height: data.height,
+          blocksMovement: data.blocksMovement,
+          movementExceptions: data.blocksMovement ? data.movementExceptions : "",
+          hidden: data.hidden,
+        });
+        const result = await postCommand(line);
+        const privateData = await resolvePrivateDataWithPlugins(
+          "object",
+          data.privateData,
+          data,
+        );
+        const committed = await commitEditAndPrivateData(
+          result,
+          entity.id,
+          privateData,
+          entity.private_data,
+        );
+        showToast(committed.message, false);
+        await onStateChanged(committed.snapshot);
       },
-      {
-        name: "desc",
-        label: "Detailed description",
-        value: entity.description ?? "",
-        type: "textarea",
-        group: "descriptions",
-      },
-      {
-        name: "areaId",
-        label: "Area",
-        type: "select",
-        value: resolvedAreaId,
-        options: areaOptions,
-        group: "placement",
-      },
-      {
-        name: "x",
-        label: "X",
-        value: String(entity.position[0]),
-        type: "number",
-        required: true,
-        group: "placement",
-      },
-      {
-        name: "y",
-        label: "Y",
-        value: String(entity.position[1]),
-        type: "number",
-        required: true,
-        group: "placement",
-      },
-      {
-        name: "width",
-        label: "Width (tiles)",
-        value: String(entity.width ?? 1),
-        type: "number",
-        required: true,
-        group: "placement",
-      },
-      {
-        name: "height",
-        label: "Height (tiles)",
-        value: String(entity.height ?? 1),
-        type: "number",
-        required: true,
-        group: "placement",
-      },
-      ...objectMovementFields({
-        blocksMovement: entity.blocks_movement !== false,
-        movementExceptions: (entity.movement_exceptions || []).join(", "),
-      }),
-      objectHiddenField(!!entity.hidden),
-      {
-        name: "appearance",
-        label: "Token image path",
-        value: entity.appearance ?? "",
-        placeholder: "tokens/my-object.svg",
-        group: "advanced",
-      },
-      privateDataField(entity.private_data),
-    ],
-    async (data) => {
-      const line = buildEditObject({
-        id: entity.id,
-        name: data.name,
-        pdesc: data.pdesc || undefined,
-        desc: data.desc || undefined,
-        appearance: data.appearance,
-        areaId: data.areaId,
-        sourceAreaId: resolvedAreaId,
-        x: data.x,
-        y: data.y,
-        width: data.width,
-        height: data.height,
-        blocksMovement: data.blocksMovement,
-        movementExceptions: data.blocksMovement ? data.movementExceptions : "",
-        hidden: data.hidden,
-      });
-      const result = await postCommand(line);
-      const committed = await commitEditAndPrivateData(
-        result,
-        entity.id,
-        data.privateData,
-        entity.private_data,
-      );
-      showToast(committed.message, false);
-      await onStateChanged(committed.snapshot);
-    },
-  );
+    );
+  })();
 }
 
 function openEditAgentModal(entity, areaId) {

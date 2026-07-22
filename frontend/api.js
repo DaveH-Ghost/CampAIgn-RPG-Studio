@@ -784,6 +784,30 @@ export async function postPluginAction(pluginId, actionId, params = {}) {
   return data;
 }
 
+export async function fetchEntityFormSections(kind, entityId = null) {
+  const params = new URLSearchParams({ kind });
+  if (entityId) params.set("entity_id", entityId);
+  const res = await fetch(`/api/entity-form-sections?${params}`);
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function postMergeEntityFormPrivateData({ kind, private_data, values }) {
+  const res = await fetch("/api/entity-form-sections/merge", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kind, private_data, values }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 export async function fetchEntityTemplates() {
   const res = await fetch("/api/entity-templates");
   const data = await res.json();

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 PLUGIN_ID = "inventory"
@@ -36,6 +37,10 @@ def agent_items(session, agent_id: str) -> list[dict[str, Any]]:
 def set_agent_items(session, agent_id: str, items: list[dict[str, Any]]) -> None:
     ext = ensure_inventory_state(session)
     ext["by_agent"][agent_id] = items
+    # Drop / give / consume may remove an equipped item — clear combat slots eagerly.
+    combat_equip = sys.modules.get("studio_plugin_combat.equip")
+    if combat_equip is not None:
+        combat_equip.clear_stale_equipment(session, agent_id)
 
 
 def find_item(session, agent_id: str, item_id: str) -> tuple[list[dict[str, Any]], int | None]:

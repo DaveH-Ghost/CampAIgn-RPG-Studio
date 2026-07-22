@@ -71,6 +71,15 @@ def _undo_fields() -> dict[str, Any]:
     }
 
 
+def _after_successful_turn(session: Session) -> None:
+    """Plugin follow-ups that must run after session_turn has advanced."""
+    import sys
+
+    combat_attack = sys.modules.get("studio_plugin_combat.attack")
+    if combat_attack is not None and hasattr(combat_attack, "flush_deferred_downed_events"):
+        combat_attack.flush_deferred_downed_events(session)
+
+
 def _concurrency_fields(error_code: str | None = None, *, flag: bool = False) -> dict[str, Any]:
     exceeded = flag or error_code == ERROR_CODE_CONCURRENCY_LIMIT
     if not exceeded:
@@ -127,6 +136,7 @@ def run_manual_turn(
     else:
         _restore_active_agent(session, prev_active)
 
+    _after_successful_turn(session)
     store.push_undo(checkpoint)
     return {
         "ok": True,
@@ -229,6 +239,7 @@ def run_llm_turn(
         else:
             _restore_active_agent(session, prev_active)
 
+        _after_successful_turn(session)
         store.push_undo(checkpoint)
         return {
             "ok": True,

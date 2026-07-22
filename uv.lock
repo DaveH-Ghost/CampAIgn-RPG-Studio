@@ -35,7 +35,7 @@ wheels = [
 
 [[package]]
 name = "campaign-rpg-engine"
-version = "1.7.2"
+version = "1.7.3"
 source = { editable = "../CampAIgn-RPG-Engine" }
 dependencies = [
     { name = "openai" },
@@ -60,7 +60,7 @@ dev = [
 
 [[package]]
 name = "campaign-rpg-studio"
-version = "1.7.2"
+version = "1.7.3"
 source = { editable = "." }
 dependencies = [
     { name = "campaign-rpg-engine" },
