@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-store" />
   <title>CampAIgn — Play</title>
-  <link rel="stylesheet" href="/static/styles.css?v=1.7.3f" />
-  <link rel="stylesheet" href="/play/generic/assets/styles.css?v=1.7.3f" />
+  <link rel="stylesheet" href="/static/styles.css?v=1.7.4f" />
+  <link rel="stylesheet" href="/play/generic/assets/styles.css?v=1.7.4f" />
 </head>
 <body class="play-client">
   <header class="play-header">
     <h1>CampAIgn Play</h1>
-    <p class="subtitle" id="play-subtitle">Generic player client</p>
+    <p class="subtitle" id="play-subtitle">Player client</p>
     <p class="play-status" id="play-status" aria-live="polite">Starting…</p>
   </header>
 
@@ -121,7 +121,7 @@
   <div id="toast" class="toast hidden" role="status"></div>
 
   <script type="module">
-    const bust = "1.7.3f";
+    const bust = "1.7.4f";
     import(`/play/generic/assets/app.js?v=${bust}`).catch((err) => {
       const status = document.getElementById("play-status");
       if (status) status.textContent = `JS failed: ${err?.message || err}`;

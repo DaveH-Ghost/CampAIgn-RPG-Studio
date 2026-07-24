@@ -23,7 +23,7 @@
 
     <h1>CampAIgn RPG Studio</h1>
 
-    <p class="subtitle" id="app-subtitle">V1.7.3 — CampAIgn RPG Studio</p>
+    <p class="subtitle" id="app-subtitle">V1.7.4 — CampAIgn RPG Studio</p>
 
     <label class="active-area-label">
 
@@ -122,7 +122,7 @@
 
             <span class="player-turn-label">Reasoning</span>
 
-            <textarea id="player-turn-reasoning" name="reasoning" class="session-meta-input player-turn-control" rows="2" required>Manual test turn.</textarea>
+            <textarea id="player-turn-reasoning" name="reasoning" class="session-meta-input player-turn-control" rows="2" required>Looking around.</textarea>
 
           </label>
 
@@ -607,7 +607,7 @@
         <input type="checkbox" id="initiative-modal-enable" />
         Enable initiative (turn order)
       </label>
-      <p class="initiative-modal-hint">Drag order with ↑↓. Any session agent can be added. Players act via /play when it is their slot.</p>
+      <p class="initiative-modal-hint">Drag order with ↑↓. Any session agent can be added. Players act via /play/generic/ when it is their slot.</p>
       <div id="initiative-order-list" class="initiative-order-list"></div>
       <p id="initiative-modal-error" class="modal-error" aria-live="polite"></p>
       <div class="initiative-modal-actions">
@@ -698,6 +698,28 @@
           Memory consolidations finish before the turn returns; affinity Call A then Call B run in sequence.
         </p>
         <button type="button" id="settings-llm-save" class="settings-action-btn">Apply LLM settings</button>
+      </section>
+
+      <section class="settings-section">
+        <h3 class="settings-subheading">Hosting / player links</h3>
+        <p class="settings-hint">
+          Local testing stays on <code>127.0.0.1</code>. For a VPS/droplet, start with
+          <code>--host 0.0.0.0</code> and set a public base URL so Copied join links use your
+          reachable address (especially behind HTTPS / nginx).
+        </p>
+        <p id="settings-listen-status" class="settings-key-status"></p>
+        <label class="settings-field">
+          <span>Public base URL (optional)</span>
+          <input
+            type="url"
+            id="settings-public-base-url"
+            placeholder="https://campaign.example.com"
+            autocomplete="off"
+          />
+        </label>
+        <p id="settings-join-hint" class="settings-hint"></p>
+        <p id="settings-remote-hint" class="settings-hint"></p>
+        <button type="button" id="settings-hosting-save" class="settings-action-btn">Apply hosting settings</button>
       </section>
 
       <p id="settings-error" class="modal-error" aria-live="polite"></p>

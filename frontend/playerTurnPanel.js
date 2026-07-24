@@ -25,7 +25,7 @@ export function playerTurnFieldDefs(coordinateMode = "full") {
     {
       name: "reasoning",
       label: "Reasoning",
-      value: "Manual test turn.",
+      value: "Looking around.",
       type: "textarea",
       rows: 2,
       required: true,

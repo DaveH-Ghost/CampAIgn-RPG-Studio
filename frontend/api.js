@@ -2,7 +2,7 @@
 
 // Health + LLM settings helpers live in api/settings.js; re-exported here so
 // existing `./api.js` imports keep working unchanged.
-export { getHealth, getLlmSettings, putLlmSettings } from "./api/settings.js";
+export { getHealth, getLlmSettings, putLlmSettings, getHostingSettings, putHostingSettings } from "./api/settings.js";
 
 export async function getState() {
   const res = await fetch("/api/state");

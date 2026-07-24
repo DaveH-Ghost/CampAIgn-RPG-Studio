@@ -82,6 +82,10 @@ class LlmSettingsRequest(BaseModel):
     concurrent_llm_calls: bool | None = None
 
 
+class HostingSettingsRequest(BaseModel):
+    public_base_url: str | None = None
+
+
 class EntityPrivateDataRequest(BaseModel):
     entity_id: str = Field(min_length=1)
     private_data: str = ""

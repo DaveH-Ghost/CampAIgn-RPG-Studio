@@ -66,7 +66,11 @@ def post_create_seat(body: CreateSeatRequest, request: Request) -> dict[str, obj
             detail=f"Agent {body.agent_id!r} is not a player agent.",
         )
     token, expires_at = create_seat(agent.id, ttl_seconds=body.ttl_seconds)
-    base = str(request.base_url).rstrip("/")
+    from backend.hosting import resolve_join_base
+
+    base, err = resolve_join_base(str(request.base_url))
+    if err:
+        raise HTTPException(status_code=400, detail=err)
     join_url = f"{base}/play/generic/?seat={token}"
     return {
         "ok": True,

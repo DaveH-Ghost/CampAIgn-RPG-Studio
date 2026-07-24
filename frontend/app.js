@@ -1029,11 +1029,11 @@ async function refreshBanner() {
   if (!subtitleEl) return;
   try {
     const health = await getHealth();
-    const studioVersion = health.version || "1.7.3";
+    const studioVersion = health.version || "1.7.4";
     const engineVersion = health.campaign_rpg_engine_version;
     subtitleEl.textContent = engineVersion
-      ? `V${studioVersion} — CampAIgn RPG Engine ${engineVersion}`
-      : `V${studioVersion} — CampAIgn RPG Engine`;
+      ? `V${studioVersion} — CampAIgn RPG Studio · engine ${engineVersion}`
+      : `V${studioVersion} — CampAIgn RPG Studio`;
   } catch {
     // Keep static fallback from index.html.
   }

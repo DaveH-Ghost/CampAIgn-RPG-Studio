@@ -19,10 +19,16 @@ router = APIRouter()
 
 @router.get("/api/health")
 def health() -> dict[str, object]:
+    from backend.hosting import get_hosting_settings
+
+    hosting = get_hosting_settings()
     return {
         "ok": True,
         "version": studio_version(),
         "campaign_rpg_engine_version": engine_version(),
+        "listen_host": hosting["listen_host"],
+        "listen_port": hosting["listen_port"],
+        "public_base_url": hosting["public_base_url"],
     }
 
 

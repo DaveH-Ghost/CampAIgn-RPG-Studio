@@ -389,7 +389,8 @@ async function copyPlayerJoinLink(agentId) {
     const url = data.join_url;
     if (!url) throw new Error("No join URL returned.");
     await navigator.clipboard.writeText(url);
-    showToast(`Player join link copied for ${data.agent_name || agentId}.`, false);
+    const who = data.agent_name || agentId;
+    showToast(`Copied join link for ${who}: ${url}`, false);
   } catch (err) {
     showToast(String(err.message || err), true);
   }

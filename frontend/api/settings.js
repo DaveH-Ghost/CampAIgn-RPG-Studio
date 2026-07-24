@@ -1,4 +1,4 @@
-/** HTTP helpers for health and LLM settings endpoints. */
+/** HTTP helpers for health, LLM, and hosting settings endpoints. */
 
 export async function getHealth() {
   const res = await fetch("/api/health");
@@ -39,6 +39,27 @@ export async function putLlmSettings({
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+export async function getHostingSettings() {
+  const res = await fetch("/api/settings/hosting");
+  if (!res.ok) {
+    throw new Error(`GET /api/settings/hosting failed: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function putHostingSettings({ public_base_url }) {
+  const res = await fetch("/api/settings/hosting", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ public_base_url }),
   });
   const data = await res.json();
   if (!res.ok) {

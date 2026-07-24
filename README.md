@@ -2,7 +2,7 @@
 
 
 
-**CampAIgn RPG Studio 1.7.3** — GM host for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.7.3`). Owns the world/session for authoring and play; players join via `/play/generic/` with a short-lived seat link.
+**CampAIgn RPG Studio 1.7.4** — GM host for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.7.4`). Owns the world/session for authoring and play; players join via `/play/generic/` with a short-lived seat link.
 
 
 
@@ -41,7 +41,34 @@ Open [http://127.0.0.1:8765](http://127.0.0.1:8765). Right-click the grid to edi
 3. Open the link (or [http://127.0.0.1:8765/play/generic/](http://127.0.0.1:8765/play/generic/) after pasting a `?seat=` token).
 4. Right-click the grid / entities / inventory to **queue** a compound turn; edit Say/Emote under the map, then **Send** (when initiative is on, Send is only active on your slot).
 
+### Remote host (droplet / VPS)
 
+By default Studio listens on **`127.0.0.1:8765`** (local testing only). To let friends join from the internet:
+
+1. On the server, start Studio bound to all interfaces (and skip opening a local browser):
+
+```bash
+uv run campaign-rpg-studio --host 0.0.0.0 --no-browser
+```
+
+Or set env (see `.env.example`):
+
+```bash
+export CAMPAIGN_STUDIO_HOST=0.0.0.0
+export CAMPAIGN_STUDIO_PORT=8765
+uv run campaign-rpg-studio --no-browser
+```
+
+2. Open the **firewall** for that port (or put **nginx/Caddy** in front with HTTPS).
+3. As GM, open Studio in your browser using the **public** address (`http://YOUR_DROPLET_IP:8765` or `https://your.domain`).
+4. Optional but recommended behind a reverse proxy: **Settings → Hosting / player links → Public base URL** (e.g. `https://your.domain`), or set `CAMPAIGN_STUDIO_PUBLIC_URL`. Join links then use that host instead of whatever is in the request.
+5. Right-click a player agent → **Copy player join link** → send that URL. Seats expire after about an hour (in-memory; restarting Studio invalidates them).
+
+Notes:
+
+- One Studio process is still **one session** (GM host). This is remote co-op, not a multi-room lobby.
+- Keep API keys on the server; players only need the join link.
+- Prefer HTTPS in production so seat tokens are not sent over plain HTTP.
 
 ### Initiative (1.7.1)
 
@@ -65,7 +92,7 @@ uv run python -m backend.main
 
 
 
-Use `--no-browser` to skip opening the browser.
+Use `--no-browser` to skip opening the browser. Use `--host 0.0.0.0` (or `CAMPAIGN_STUDIO_HOST`) for remote players — see **Remote host** above.
 
 
 
@@ -95,7 +122,7 @@ github/
   CampAIgn-RPG-Studio/
 ```
 
-`pyproject.toml` pins **`campaign-rpg-engine>=1.7.3`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
+`pyproject.toml` pins **`campaign-rpg-engine>=1.7.4`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
 
 ```powershell
 cd CampAIgn-RPG-Studio
@@ -172,21 +199,18 @@ HTTP integration tests via FastAPI `TestClient` (mocked LLM — no API key requi
 
 ## Environment
 
-
-
 | Variable | Required | Description |
-
 |----------|----------|-------------|
-
-| `OPENROUTER_API_KEY` | For **Run turn** | [OpenRouter](https://openrouter.ai/) API key |
-
+| `OPENROUTER_API_KEY` | For **Run turn** (or Featherless key) | [OpenRouter](https://openrouter.ai/) API key |
 | `OPENROUTER_MODEL` | No | Default: `deepseek/deepseek-v4-flash` |
-
-
+| `FEATHERLESS_API_KEY` | Alt for **Run turn** | Featherless API key when `LLM_PROVIDER=featherless` |
+| `FEATHERLESS_MODEL` | No | Default: `deepseek-ai/DeepSeek-V4-Flash` |
+| `LLM_PROVIDER` | No | `openrouter` (default) or `featherless` |
+| `CAMPAIGN_STUDIO_HOST` | No | Bind address; default `127.0.0.1`. Use `0.0.0.0` for remote players |
+| `CAMPAIGN_STUDIO_PORT` | No | Bind port; default `8765` |
+| `CAMPAIGN_STUDIO_PUBLIC_URL` | No | Public origin for player join links (e.g. `https://your.domain`) |
 
 Settings gear overrides these in memory until server restart.
-
-
 
 ## Troubleshooting
 

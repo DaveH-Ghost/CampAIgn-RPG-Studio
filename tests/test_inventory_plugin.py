@@ -643,6 +643,23 @@ def test_spawn_from_template_places_object(client):
         personality="Helpful.",
         is_player=True,
     )
+    menu = create_object(
+        name="Menu Sheet",
+        position=(3, 3),
+        passive_description="A paper menu.",
+        blocks_movement=False,
+    )
+    saved = client.post(
+        "/api/entity-templates/save-from-entity",
+        json={
+            "kind": "object",
+            "entity_id": menu.id,
+            "filename": "menu-sheet.json",
+        },
+    )
+    assert saved.status_code == 200
+    assert saved.json()["ok"] is True
+    # Source object stays in the world; spawn creates a second copy near the agent.
     counter = create_object(
         name="Counter",
         position=(1, 2),
@@ -655,7 +672,7 @@ def test_spawn_from_template_places_object(client):
             name="take menu",
             range=1,
             handler_id="spawn_from_template",
-            handler_params={"template_id": "ceramic-ball"},
+            handler_params={"template_id": "menu-sheet"},
             result="You take a menu.",
             passive_result="{actor} takes a menu.",
         ),
@@ -679,7 +696,7 @@ def test_spawn_from_template_places_object(client):
     new_ids = set(after) - before
     assert new_ids
     spawned = after[next(iter(new_ids))]
-    assert spawned.name == "Ceramic Ball"
+    assert spawned.name == "Menu Sheet"
 
 
 def test_inventory_add_from_template_grants_item(client):
@@ -690,6 +707,22 @@ def test_inventory_add_from_template_grants_item(client):
         personality="Hungry.",
         is_player=True,
     )
+    ball = create_object(
+        name="Ceramic Ball",
+        position=(3, 3),
+        passive_description="A ceramic ball.",
+        blocks_movement=False,
+    )
+    saved = client.post(
+        "/api/entity-templates/save-from-entity",
+        json={
+            "kind": "object",
+            "entity_id": ball.id,
+            "filename": "ceramic-ball.json",
+        },
+    )
+    assert saved.status_code == 200
+    assert saved.json()["ok"] is True
     box = create_object(
         name="Supply Box",
         position=(0, 1),

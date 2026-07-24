@@ -4,6 +4,34 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.7.4
+
+**Requires:** `campaign-rpg-engine>=1.7.4`
+
+### Engine dependency
+
+- Joint release with engine **1.7.4** (default prompt token budget regression update + LLM-failure unit test fix). No Studio feature delta vs **1.7.3** beyond hosting below.
+
+### Remote hosting / player links
+
+- `--host` / `--port` (and `CAMPAIGN_STUDIO_HOST` / `CAMPAIGN_STUDIO_PORT`) — default remains **`127.0.0.1:8765`**; use `--host 0.0.0.0` for a droplet/VPS.
+- Optional **Public base URL** (`CAMPAIGN_STUDIO_PUBLIC_URL` or Settings → Hosting) so **Copy player join link** uses a reachable https host behind nginx.
+- Settings section **Hosting / player links**; toast shows the copied join URL.
+- README: **Remote host (droplet / VPS)** setup steps.
+
+### Tests
+
+- Inventory template-handler tests now create the library template in-test (no longer assume a pre-existing `ceramic-ball` file).
+
+### Polish
+
+- Header banner stays **Studio**-branded (shows engine version alongside).
+- Default player-turn reasoning is **Looking around.** (was “Manual test turn.”).
+- Play client cache-bust / subtitle wording for the join client.
+- Dev dependency **`httpx2`** for Starlette `TestClient` (clears deprecation warning on pytest).
+
+---
+
 ## 1.7.3
 
 **Requires:** `campaign-rpg-engine>=1.7.3`

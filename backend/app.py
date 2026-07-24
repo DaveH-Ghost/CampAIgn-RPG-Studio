@@ -127,10 +127,6 @@ def create_app() -> FastAPI:
 
 app = create_app()
 
-_DEFAULT_HOST = "127.0.0.1"
-_DEFAULT_PORT = 8765
-_DEFAULT_URL = f"http://{_DEFAULT_HOST}:{_DEFAULT_PORT}"
-
 
 def main() -> None:
     import argparse
@@ -139,7 +135,21 @@ def main() -> None:
 
     import uvicorn
 
+    from backend.hosting import listen_host, listen_port
+
     parser = argparse.ArgumentParser(prog="campaign-rpg-studio")
+    parser.add_argument(
+        "--host",
+        default=None,
+        help="Bind address (default: CAMPAIGN_STUDIO_HOST or 127.0.0.1). "
+        "Use 0.0.0.0 to accept remote player clients.",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=None,
+        help="Bind port (default: CAMPAIGN_STUDIO_PORT or 8765).",
+    )
     parser.add_argument(
         "--no-browser",
         action="store_true",
@@ -147,8 +157,24 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    host = (args.host or "").strip() or listen_host()
+    port = args.port if args.port is not None else listen_port()
+    if args.port is not None:
+        if port < 1 or port > 65535:
+            raise SystemExit(f"Invalid --port {port} (expected 1–65535).")
+        # So Settings / health reflect the live bind for this process.
+        import os
+
+        os.environ["CAMPAIGN_STUDIO_PORT"] = str(port)
+    if args.host is not None and args.host.strip():
+        import os
+
+        os.environ["CAMPAIGN_STUDIO_HOST"] = host
+
+    open_url = f"http://127.0.0.1:{port}" if host in {"0.0.0.0", "::"} else f"http://{host}:{port}"
+
     if not args.no_browser:
-        threading.Timer(1.0, lambda: webbrowser.open(_DEFAULT_URL)).start()
+        threading.Timer(1.0, lambda: webbrowser.open(open_url)).start()
 
     reload_dirs = [str(_STUDIO_DIR)]
     if _ENGINE_ROOT.is_dir():
@@ -156,8 +182,8 @@ def main() -> None:
 
     uvicorn.run(
         "backend.app:app",
-        host=_DEFAULT_HOST,
-        port=_DEFAULT_PORT,
+        host=host,
+        port=port,
         reload=True,
         reload_dirs=reload_dirs,
         reload_excludes=[".custom_plugins/*"],

@@ -1,6 +1,11 @@
-/** Settings modal: in-memory LLM config (provider, key, model, token budget). */
+/** Settings modal: LLM config + hosting / player join links. */
 
-import { getLlmSettings, putLlmSettings } from "./api.js";
+import {
+  getHostingSettings,
+  getLlmSettings,
+  putHostingSettings,
+  putLlmSettings,
+} from "./api.js";
 
 /** DeepSeek V4 Flash — different catalog ids per provider. */
 const DEEPSEEK_V4_FLASH = {
@@ -37,6 +42,11 @@ export function initSettings({ showToastFn, onSettingsAppliedFn }) {
   const warningPercentInput = document.getElementById("settings-input-warning-percent");
   const concurrentLlmInput = document.getElementById("settings-concurrent-llm");
   const llmSaveBtn = document.getElementById("settings-llm-save");
+  const publicBaseInput = document.getElementById("settings-public-base-url");
+  const listenStatus = document.getElementById("settings-listen-status");
+  const joinHint = document.getElementById("settings-join-hint");
+  const remoteHint = document.getElementById("settings-remote-hint");
+  const hostingSaveBtn = document.getElementById("settings-hosting-save");
   const errorEl = document.getElementById("settings-error");
 
   let settingsDefaults = null;
@@ -63,7 +73,7 @@ export function initSettings({ showToastFn, onSettingsAppliedFn }) {
     }
   }
 
-  function applySettingsToForm(data) {
+  function applyLlmToForm(data) {
     settingsDefaults = data.defaults || settingsDefaults;
     if (providerSelect) providerSelect.value = data.provider || "openrouter";
     if (modelInput) modelInput.value = data.model || "";
@@ -89,6 +99,15 @@ export function initSettings({ showToastFn, onSettingsAppliedFn }) {
     syncProviderHints(data.provider || "openrouter", data.defaults);
   }
 
+  function applyHostingToForm(data) {
+    if (publicBaseInput) publicBaseInput.value = data.public_base_url || "";
+    if (listenStatus) {
+      listenStatus.textContent = `Listening on ${data.listen_host}:${data.listen_port} (set via --host / --port or env; restart to change).`;
+    }
+    if (joinHint) joinHint.textContent = data.join_link_hint || "";
+    if (remoteHint) remoteHint.textContent = data.remote_hint || "";
+  }
+
   function closeSettings() {
     backdrop.classList.add("hidden");
     setError("");
@@ -98,8 +117,9 @@ export function initSettings({ showToastFn, onSettingsAppliedFn }) {
   async function openSettings() {
     setError("");
     try {
-      const data = await getLlmSettings();
-      applySettingsToForm(data);
+      const [llm, hosting] = await Promise.all([getLlmSettings(), getHostingSettings()]);
+      applyLlmToForm(llm);
+      applyHostingToForm(hosting);
       if (apiKeyInput) apiKeyInput.value = "";
       backdrop.classList.remove("hidden");
     } catch (err) {
@@ -142,12 +162,33 @@ export function initSettings({ showToastFn, onSettingsAppliedFn }) {
         setError(data.message || "Failed to apply settings.");
         return;
       }
-      applySettingsToForm(data);
+      applyLlmToForm(data);
       if (apiKeyInput) apiKeyInput.value = "";
       showToastFn("LLM settings applied (this session only).");
       if (typeof onSettingsAppliedFn === "function") {
         await onSettingsAppliedFn(data);
       }
+    } catch (err) {
+      setError(String(err.message || err));
+    }
+  });
+
+  hostingSaveBtn?.addEventListener("click", async () => {
+    setError("");
+    try {
+      const data = await putHostingSettings({
+        public_base_url: publicBaseInput?.value?.trim() || "",
+      });
+      if (data.ok === false) {
+        setError(data.message || "Failed to apply hosting settings.");
+        return;
+      }
+      applyHostingToForm(data);
+      showToastFn(
+        data.public_base_url
+          ? "Public base URL applied (this session only)."
+          : "Public base URL cleared (join links use browser address).",
+      );
     } catch (err) {
       setError(String(err.message || err));
     }
