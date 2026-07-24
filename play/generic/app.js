@@ -1,18 +1,18 @@
 /**
- * /play/generic — player-scoped grid client (Studio 1.7.4).
+ * /play/generic — player-scoped grid client (Studio 1.7.5).
  */
 
-import { hasAppearance, resolveAppearanceUrl } from "/static/appearance.js?v=1.7.4f";
-import { CELL_SIZE, initGridViewport, maybeCenterGrid } from "/static/gridViewport.js?v=1.7.4f";
-import { asArray, isMultiTileObject, objectFootprintSize, objectOccupiesTile } from "/static/snapshot.js?v=1.7.4f";
+import { hasAppearance, resolveAppearanceUrl } from "/static/appearance.js?v=1.7.5f";
+import { CELL_SIZE, initGridViewport, maybeCenterGrid } from "/static/gridViewport.js?v=1.7.5f";
+import { asArray, isMultiTileObject, objectFootprintSize, objectOccupiesTile } from "/static/snapshot.js?v=1.7.5f";
 import {
   buildPlayTurn,
   clearSeatToken,
   fetchPlayerView,
   loadSeatToken,
   postPlayerTurn,
-} from "/play/generic/assets/api.js?v=1.7.4f";
-import { renderSceneDecorations } from "/play/generic/assets/decorations.js?v=1.7.4f";
+} from "/play/generic/assets/api.js?v=1.7.5f";
+import { renderSceneDecorations } from "/play/generic/assets/decorations.js?v=1.7.5f";
 
 const statusEl = document.getElementById("play-status");
 const subtitleEl = document.getElementById("play-subtitle");

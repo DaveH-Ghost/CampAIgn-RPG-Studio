@@ -4,6 +4,16 @@ Studio is distributed via GitHub only (not PyPI). Version tags match `pyproject.
 
 ---
 
+## 1.7.5
+
+**Requires:** `campaign-rpg-engine>=1.7.4`
+
+### Install
+
+- Default engine install is **PyPI**; sibling editable `[tool.uv.sources]` is opt-in for co-development only (commented in `pyproject.toml`).
+
+---
+
 ## 1.7.4
 
 **Requires:** `campaign-rpg-engine>=1.7.4`

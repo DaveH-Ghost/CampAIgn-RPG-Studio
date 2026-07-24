@@ -2,8 +2,8 @@
  * Read-only scene decoration render for /play/generic (no GM edit UI).
  */
 
-import { resolveAppearanceUrl } from "/static/appearance.js?v=1.7.4f";
-import { CELL_SIZE } from "/static/gridViewport.js?v=1.7.4f";
+import { resolveAppearanceUrl } from "/static/appearance.js?v=1.7.5f";
+import { CELL_SIZE } from "/static/gridViewport.js?v=1.7.5f";
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];

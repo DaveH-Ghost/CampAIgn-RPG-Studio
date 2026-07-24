@@ -36,31 +36,21 @@ wheels = [
 [[package]]
 name = "campaign-rpg-engine"
 version = "1.7.4"
-source = { editable = "../CampAIgn-RPG-Engine" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "rich" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "rich" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=9.0.3" },
-    { name = "ruff", specifier = ">=0.15.22" },
+sdist = { url = "https://files.pythonhosted.org/packages/04/d1/c4504a77263fabf773edff4f84982cc3bab9b3896c1ab850118e3451dbfe/campaign_rpg_engine-1.7.4.tar.gz", hash = "sha256:d82faaff9391e9d3b5756404555aa060fbc971b5b2ce00502dc78805c5f326da", size = 123708, upload-time = "2026-07-24T17:48:19.241Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/f8/be79423cd393b74ebd0ee09a84504822ae39fef9f972f52ea69da65350b5/campaign_rpg_engine-1.7.4-py3-none-any.whl", hash = "sha256:9271797807542b439dcfabe04e66c80a0a60949e9a1294de0a5109702c5ab7d2", size = 170574, upload-time = "2026-07-24T17:48:18.165Z" },
 ]
 
 [[package]]
 name = "campaign-rpg-studio"
-version = "1.7.4"
+version = "1.7.5"
 source = { editable = "." }
 dependencies = [
     { name = "campaign-rpg-engine" },
@@ -78,7 +68,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "campaign-rpg-engine", editable = "../CampAIgn-RPG-Engine" },
+    { name = "campaign-rpg-engine", specifier = ">=1.7.4" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "python-multipart", specifier = ">=0.0.9" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },

@@ -1,4 +1,4 @@
-"""In-memory LLM settings for campaign-rpg-studio (1.7.4)."""
+"""In-memory LLM settings for campaign-rpg-studio (1.7.5)."""
 
 from __future__ import annotations
 

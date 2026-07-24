@@ -1,6 +1,6 @@
 [project]
 name = "campaign-rpg-studio"
-version = "1.7.4"
+version = "1.7.5"
 description = "GM host for CampAIgn-RPG-Engine — world authoring and session authority"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -37,10 +37,10 @@ packages = ["backend"]
 [tool.uv]
 package = true
 
-# Local co-development: sibling engine checkout (../CampAIgn-RPG-Engine).
-# Remove this block and re-lock from PyPI to verify Studio against a published wheel.
-[tool.uv.sources]
-campaign-rpg-engine = { path = "../CampAIgn-RPG-Engine", editable = true }
+# Default: install campaign-rpg-engine from PyPI.
+# For sibling co-development only, uncomment:
+# [tool.uv.sources]
+# campaign-rpg-engine = { path = "../CampAIgn-RPG-Engine", editable = true }
 
 [tool.ruff]
 line-length = 100

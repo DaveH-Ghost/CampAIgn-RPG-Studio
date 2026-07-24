@@ -1,4 +1,4 @@
-"""Hosting / public join URL tests (Studio 1.7.4)."""
+"""Hosting / public join URL tests (Studio 1.7.5)."""
 
 from __future__ import annotations
 

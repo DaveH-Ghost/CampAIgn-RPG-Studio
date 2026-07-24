@@ -2,7 +2,7 @@
 
 
 
-**CampAIgn RPG Studio 1.7.4** — GM host for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.7.4`). Owns the world/session for authoring and play; players join via `/play/generic/` with a short-lived seat link.
+**CampAIgn RPG Studio 1.7.5** — GM host for [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) (`campaign-rpg-engine>=1.7.4`). Owns the world/session for authoring and play; players join via `/play/generic/` with a short-lived seat link.
 
 
 
@@ -106,7 +106,7 @@ Use `--no-browser` to skip opening the browser. Use `--host 0.0.0.0` (or `CAMPAI
 
 - Clone this repo from GitHub (Studio is not on PyPI)
 
-- Sibling checkout of [CampAIgn-RPG-Engine](https://github.com/DaveH-Ghost/CampAIgn-RPG-Engine) at `../CampAIgn-RPG-Engine` (editable via `[tool.uv.sources]` in `pyproject.toml`)
+- Python package [`campaign-rpg-engine`](https://pypi.org/project/campaign-rpg-engine/) from PyPI (`>=1.7.4`) — installed by `uv sync`
 
 - **OpenRouter API key** for LLM turns (area edits work without it)
 
@@ -114,15 +114,7 @@ Use `--no-browser` to skip opening the browser. Use `--host 0.0.0.0` (or `CAMPAI
 
 ## Development layout
 
-Clone both repos as siblings (same parent folder):
-
-```
-github/
-  CampAIgn-RPG-Engine/
-  CampAIgn-RPG-Studio/
-```
-
-`pyproject.toml` pins **`campaign-rpg-engine>=1.7.4`** and `[tool.uv.sources]` points at the sibling engine checkout. `uv sync` installs the engine editable — engine changes are picked up without reinstalling.
+`uv sync` installs **`campaign-rpg-engine` from PyPI** by default.
 
 ```powershell
 cd CampAIgn-RPG-Studio
@@ -130,18 +122,22 @@ uv sync
 uv run campaign-rpg-studio
 ```
 
-### Verify against PyPI (release check)
+### Sibling engine (co-development)
 
-To confirm Studio works with a published wheel only, temporarily remove the `[tool.uv.sources]` block from `pyproject.toml`, then:
+To edit the engine and Studio together, clone both as siblings and uncomment `[tool.uv.sources]` in `pyproject.toml`:
 
-```powershell
-Remove-Item -Recurse -Force .venv
-uv lock
-uv sync
-uv run pytest
+```
+github/
+  CampAIgn-RPG-Engine/
+  CampAIgn-RPG-Studio/
 ```
 
-Restore `[tool.uv.sources]` for day-to-day co-development.
+```toml
+[tool.uv.sources]
+campaign-rpg-engine = { path = "../CampAIgn-RPG-Engine", editable = true }
+```
+
+Then `uv sync` again (do not commit that uncomment unless you intend to). Engine changes apply without reinstalling.
 
 
 

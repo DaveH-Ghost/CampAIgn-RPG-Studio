@@ -1,4 +1,4 @@
-"""Listen bind + public base URL for remote player join links (Studio 1.7.4)."""
+"""Listen bind + public base URL for remote player join links (Studio 1.7.5)."""
 
 from __future__ import annotations
 
